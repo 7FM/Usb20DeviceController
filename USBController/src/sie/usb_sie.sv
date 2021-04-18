@@ -1,6 +1,6 @@
 // USB Serial Interface Engine(SIE)
 module usb_sie(
-    input logic CLK,
+    input logic clk48,
     inout logic USB_DN,
     inout logic USB_DP,
     output logic USB_PULLUP
@@ -20,6 +20,26 @@ module usb_sie(
         .dataOutN(dataOutN_reg),
         .dataInP(dataInP),
         .dataInN(dataInN)
+    );
+
+    logic receiveCLK, transmitCLK;
+
+    logic receiveClkGenRST;
+
+    //TODO is an reset needed before starting receive?
+    assign receiveClkGenRST = outEN_reg;
+
+    DPPL #() asyncRxCLK (
+        .clk48(clk48),
+        .RST(receiveClkGenRST),
+        .a(dataInP), //TODO
+        .b(dataInN), //TODO
+        .readCLK12(receiveCLK),
+    );
+
+    clock_gen #(DIVIDE_LOG_2=$clog(4)) clkDiv4 (
+        .inCLK(clk48),
+        .outCLK(transmitCLK)
     );
 
     /*

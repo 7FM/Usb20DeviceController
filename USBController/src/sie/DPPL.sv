@@ -6,9 +6,9 @@ module DPPL(
     // (also a’ is synchronized on the rising edge and ‘b’ is synchronized on the falling edge.
     input logic a,
     input logic b,
-    output logic readCLK12,
+    output logic readCLK12
     // TODO is this always true or better read input? also which data would this be? J/K or already decoded NRZI???
-    output logic data
+    //, output logic data
 );
 
     typedef enum {
@@ -34,7 +34,7 @@ module DPPL(
     logic [3:0] fsmState, nextFsmState, fsmStateNextGrayCode;
 
     assign readCLK12 = fsmState[1];
-    assign data = fsmState[2];
+    //assign data = fsmState[2];
 
     initial begin
         fsmState = STATE_C;

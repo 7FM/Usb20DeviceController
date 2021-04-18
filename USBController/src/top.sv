@@ -7,7 +7,7 @@ module top (
     inout logic USB_DP,
     output logic USB_PULLUP
 );
-    logic usbCLK;
+    logic clk48;
 
 `ifndef RUN_SIM
     SB_PLL40_PAD #(
@@ -20,11 +20,18 @@ module top (
         .RESETB(`PLL_CLK_RESETB),
         .BYPASS(`PLL_CLK_BYPASS),
         .PACKAGEPIN(CLK),
-        .PLLOUTCORE(usbCLK)
+        .PLLOUTCORE(clk48)
     );
 `else
-    assign usbCLK = CLK;
+    assign clk48 = CLK;
 `endif
+
+usb #() usbDeviceController(
+    .clk48(clk48),
+    .USB_DN(USB_DN),
+    .USB_DP(USB_DP),
+    .USB_PULLUP(USB_PULLUP)
+);
 
 
 endmodule
