@@ -3,7 +3,7 @@ module output_shift_reg#(
     parameter INIT_BIT_VALUE = 0,
     parameter LSB_FIRST = 1
 )(
-    input logic CLK,
+    input logic clk12,
     input logic EN,
     input logic NEW_IN,
     input logic [LENGTH-1:0] dataIn,
@@ -25,7 +25,7 @@ module output_shift_reg#(
             assign OUT = dataBuf[LENGTH-1];
         end
 
-        always_ff @(posedge CLK) begin
+        always_ff @(posedge clk12) begin
             if (EN) begin
                 if (NEW_IN) begin
                     dataBuf <= dataIn;

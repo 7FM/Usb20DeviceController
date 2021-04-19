@@ -17,6 +17,7 @@ module usb_crc(
     assign crc16_in = crcBuf[15] ^ data;
     assign crcX_in = useCRC5 ? crc5_in : crc16_in;
 
+    //TODO wtf this is send in MSb and not LSb as all other fields!
     // When the last bit of the checked field is sent, the CRC in the generator is inverted and sent to the checker MSb first
     assign crc = ~crcBuf;
 
