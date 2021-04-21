@@ -7,7 +7,7 @@ module usb_crc(
     input logic crc5_or_16, // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
     input logic data,
     output logic validCRC,
-    output logic [15:0] crc,
+    output logic [15:0] crc
 );
 
     logic [15:0] crcBuf;

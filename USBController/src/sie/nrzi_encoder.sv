@@ -8,6 +8,10 @@ module nrzi_encoder#(
     output logic OUT
 );
 
+    initial begin
+        OUT = INITIAL_VALUE[0];
+    end
+
     generate
         always_ff @(posedge clk12) begin
             if (RST) begin

@@ -66,7 +66,7 @@ module eop_detect(
     always_ff @(posedge clk48) begin
         if (RST) begin
             state <= IDLE;
-            eop = 1'b0;
+            eop <= 1'b0;
         end else begin
             state <= nextState;
             eop <= nextEOP;
