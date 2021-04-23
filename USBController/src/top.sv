@@ -1,3 +1,5 @@
+`include "../config.sv"
+
 module top (
     input logic CLK,
     output logic LED_R,

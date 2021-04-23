@@ -11,7 +11,7 @@ module eop_detect(
     assign se0 = !(dataInP || dataInN);
     assign j = dataInP && !dataInN;
 
-    typedef enum {
+    typedef enum logic[2:0] {
         IDLE = 0,
         FIRST_SE0,
         SECOND_SE0,
@@ -28,14 +28,14 @@ module eop_detect(
 
         unique case (state)
             IDLE: begin
-                unique if (!se0) begin
+                /*unique*/ if (!se0) begin
                     nextState = state;
                 end else begin
                     // Default: go to next state
                 end
             end
             FIRST_SE0, SECOND_SE0: begin
-                unique if (!se0) begin
+                /*unique*/ if (!se0) begin
                     nextState = IDLE;
                 end else begin
                     // Default: go to next state
@@ -43,7 +43,7 @@ module eop_detect(
             end
             THIRD_SE0: begin
                 nextEOP = j;
-                unique if (se0) begin
+                /*unique*/ if (se0) begin
                     nextState = state;
                 end else if (j) begin
                     nextState = IDLE;

@@ -30,7 +30,7 @@ module usb_sie(
              |   0100   |  Ping
         MSb -----^  ^--------------- LSb
     */
-    typedef enum {
+    typedef enum logic[3:0] {
         // TOKEN: last lsb bits are 01
         PID_OUT_TOKEN = 4'b0001,
         PID_IN_TOKEN = 4'b1001,
@@ -47,9 +47,9 @@ module usb_sie(
         PID_HANDSHAKE_STALL = 4'b1110,
         PID_HANDSHAKE_NYET = 4'b0110,
         // SPECIAL: last lsb bits are 00
-        PID_SPECIAL_PRE__ERR = 4'b1100 // Meaning depends on context
-        PID_SPECIAL_SPLIT = 4'b1000 // unused: High-speed only
-        PID_SPECIAL_PING = 4'b0100 // unused: High-speed only
+        PID_SPECIAL_PRE__ERR = 4'b1100, // Meaning depends on context
+        PID_SPECIAL_SPLIT = 4'b1000, // unused: High-speed only
+        PID_SPECIAL_PING = 4'b0100, // unused: High-speed only
         _PID_RESERVED = 4'b0000
     } PID_Types;
 
@@ -70,11 +70,20 @@ module usb_sie(
         .dataInN(dataInN)
     );
 
+    initial begin
+        outEN_reg = 1'b0; // Start in receiving mode
+        dataOutP_reg = 1'b1;
+        dataOutN_reg = 1'b0;
+    end
+
+    //TODO how can we detect that nothing is plugged into our USB port??? / got detached?
+    // -> this needs to be considered as state too!
+
     // =====================================================================================================
     // RECEIVE Modules
     // =====================================================================================================
 
-    typedef enum {
+    typedef enum logic[1:0] {
         RX_WAIT_FOR_SYNC,
         RX_GET_PID,
         RX_WAIT_FOR_EOP,
@@ -164,25 +173,31 @@ module usb_sie(
                 end
             end
             RX_GET_PID: begin
+                // After Sync was detected, we always need valid bit stuffing!
+                // Also there may not be invalid differential pair signals as we expect the PID to be send!
+                // Sanity check: was PID correctly received?
+                next_dropPacket = dropPacket || receiveBitStuffingError || !isValidDPSig || (inputBufFull && !pidValid);
+
                 if (inputBufFull) begin
                     // Save the PID for further decisions
                     next_rxPID = inputBuf[3:0];
-                    // Sanity check: was PID correctly received?
-                    next_dropPacket = dropPacket || !pidValid;
                     // Go to next state
                     next_rxState = rxStateAdd1;
                 end
             end
             RX_WAIT_FOR_EOP: begin
+                //TODO would be nice to integrate some isValidDPSig checks, but this might break logic very very easily!
+
+                // After Sync was detected, we always need valid bit stuffing!
+                // Sanity check: does the CRC match?
+                next_dropPacket = dropPacket || receiveBitStuffingError || (eopDetected && !lastByteValidCRC);
+
                 // We need the EOP detection -> clear RST flag
                 rxEopDetectorReset = 1'b0;
 
                 if (eopDetected) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
-
-                    // Sanity check: does the CRC match?
-                    next_dropPacket = dropPacket || !lastByteValidCRC;
                 end else if (inputBufFull) begin
                     next_lastByteValidCRC = isValidCRC;
                     //TODO further processing is required! i.e. give data to next stage for processing
@@ -190,6 +205,8 @@ module usb_sie(
                 end
             end
             RX_RST_DPLL: begin
+                // TODO we should probably publish the final dropPacket value!
+
                 // Trigger some resets
                 // TODO is a RST needed for the NRZI decoder?
                 rxNRZiDecodeReset = 1'b1;
@@ -290,6 +307,7 @@ module usb_sie(
     // TRANSMIT Modules
     // =====================================================================================================
 
+    /*
     logic transmitCLK;
 
     clock_gen #(
@@ -306,6 +324,7 @@ module usb_sie(
         .ready(), //TODO
         .outData() //TODO
     );
+    */
 
     /*
     Differential Signal:

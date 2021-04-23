@@ -11,7 +11,7 @@ module DPPL(
     //, output logic data
 );
 
-    typedef enum {
+    typedef enum logic[3:0] {
         // Init states
         STATE_C = 4'b1100,
         STATE_D = 4'b1101,
@@ -31,7 +31,7 @@ module DPPL(
         // Note: states 1, 5, B, F are replaced by freezeFSM state
     } DPPL_FSM;
 
-    logic [3:0] fsmState, nextFsmState, fsmStateNextGrayCode;
+    DPPL_FSM [3:0] fsmState, nextFsmState, fsmStateNextGrayCode;
 
     assign readCLK12 = fsmState[1];
     //assign data = fsmState[2];
@@ -63,7 +63,7 @@ module DPPL(
             STATE_D: begin 
                 if (fsmState[0] ^ b) begin
                     nextFsmState = fsmState;
-                else begin
+                end else begin
                     nextFsmState = {1'b0, fsmState[2:0]};
                 end
             end

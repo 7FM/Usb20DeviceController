@@ -10,11 +10,13 @@ module usb_dp(
 );
 
     logic inP, inN;
+    // Prevent propagation of meta stability by double flopping
+    logic doubleFlopP, doubleFlopN;
 `ifndef RUN_SIM
 
     SB_IO #(
         .PIN_TYPE(6'b1010_01) // tristatable output and normal input
-    ) buffer(
+    ) buffer1(
         .OUTPUT_ENABLE(OUT_EN),
         .PACKAGE_PIN(pinP),
         .D_IN_0(inP),
@@ -22,7 +24,7 @@ module usb_dp(
     );
     SB_IO #(
         .PIN_TYPE(6'b1010_01) // tristatable output and normal input
-    ) buffer(
+    ) buffer2(
         .OUTPUT_ENABLE(OUT_EN),
         .PACKAGE_PIN(pinN),
         .D_IN_0(inN),
@@ -38,9 +40,18 @@ module usb_dp(
     assign inN = pinN;
 `endif
 
+    initial begin
+        doubleFlopP = 1'b1;
+        doubleFlopN = 1'b0;
+        dataInP = 1'b1;
+        dataInN = 1'b0;
+    end
+
     always_ff @(posedge clk48) begin
-        dataInP <= OUT_EN ? 1'b1 : inP;
-        dataInN <= OUT_EN ? 1'b0 : inN;
+        doubleFlopP <= inP;
+        doubleFlopN <= inN;
+        dataInP <= OUT_EN ? 1'b1 : doubleFlopP;
+        dataInN <= OUT_EN ? 1'b0 : doubleFlopN;
     end
 
 endmodule
