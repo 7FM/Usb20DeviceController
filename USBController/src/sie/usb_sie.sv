@@ -86,6 +86,10 @@ module usb_sie(
     //TODO how can we detect that nothing is plugged into our USB port??? / got detached?
     // -> this needs to be considered as state too!
 
+    //TODO this is important for the device state & initialization
+    //TODO requires explicit reset!
+    logic usbResetDetect;
+
     // =====================================================================================================
     // RECEIVE Modules
     // =====================================================================================================
@@ -141,8 +145,9 @@ module usb_sie(
     end
 
     always_ff @(posedge clk48) begin
-        // Do not reseted once the error occurs
+        // Do not reset values once target signal value was achieved
         LED_R <= LED_R || dropPacket;
+        LED_B <= LED_B || usbResetDetect;
     end
 `endif
 
@@ -249,12 +254,13 @@ module usb_sie(
         lastByteValidCRC <= next_lastByteValidCRC;
     end
 
-    eop_detect eopDetector(
+    eop_detect eop_reset_detect(
         .clk48(clk48),
         .RST(rxEopDetectorReset),
         .dataInP(dataInP),
         .dataInN(dataInN),
-        .eop(eopDetected)
+        .eop(eopDetected),
+        .usb_reset(usbResetDetect)
     );
 
     DPPL #() asyncRxCLK (
