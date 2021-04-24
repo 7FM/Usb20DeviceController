@@ -10,4 +10,7 @@
 `define PLL_CLK_RESETB 1'b1
 `define PLL_CLK_BYPASS 1'b0
 
+// Debug LEDs to show different types of errors!
+`define USE_DEBUG_LEDS
+
 `endif

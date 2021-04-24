@@ -1,9 +1,16 @@
+`include "../../config.sv"
+
 // USB Serial Interface Engine(SIE)
 module usb_sie(
     input logic clk48,
     inout logic USB_DN,
     inout logic USB_DP,
     output logic USB_PULLUP
+`ifdef USE_DEBUG_LEDS
+    ,output logic LED_R,
+    output logic LED_G,
+    output logic LED_B
+`endif
 );
 
     /*
@@ -124,6 +131,20 @@ module usb_sie(
     logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
     logic receiveClkGenRST;
+
+
+`ifdef USE_DEBUG_LEDS
+    initial begin
+        LED_R = 1'b0;
+        LED_G = 1'b0;
+        LED_B = 1'b0;
+    end
+
+    always_ff @(posedge clk48) begin
+        // Do not reseted once the error occurs
+        LED_R <= LED_R || dropPacket;
+    end
+`endif
 
     // TODO we could only reset on switch to receive mode!
     // -> this would allow us to reuse the clk signal for transmission too!

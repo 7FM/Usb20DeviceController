@@ -9,7 +9,7 @@ TOP_MODULE ?= top
 LOG ?= build.log
 
 TARGET ?= ice40
-TARGET_FREQ ?= 48
+#TARGET_FREQ ?= 48
 
 ifeq ($(TARGET),ecp5)
     PNR_ARGS ?= --25k --package CABGA256
@@ -82,7 +82,8 @@ sanityChecks: $(LOG)
 # Place and Route
 $(pnr_target): $(syn_target) $(constraints)
 	@mkdir -p $(BUILDDIR)
-	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) --freq $(TARGET_FREQ) >> $(LOG) 2>&1
+#	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) --freq $(TARGET_FREQ) >> $(LOG) 2>&1
+	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) >> $(LOG) 2>&1
 	@echo "============================================================================================"
 
 genBitstream: $(pnr_target)
