@@ -334,8 +334,18 @@ module usb_sie(
     // TRANSMIT Modules
     // =====================================================================================================
 
-    /*
     logic transmitCLK;
+
+    logic txStallDueToBitStuffing; //TODO
+    logic txBitStuffedData;
+    logic txNRZiEncodedData;
+
+    logic txSendSingleEnded;
+    logic txDataOut;
+
+    //TODO requires special handling for SE0 signals
+    // This could be used to MUX special cases as EOP which should not mess with NRZI encoding
+    assign txDataOut = txNRZiEncodedData;
 
     clock_gen #(
         .DIVIDE_LOG_2($clog2(4))
@@ -344,14 +354,34 @@ module usb_sie(
         .outCLK(transmitCLK)
     );
 
-    usb_bit_stuff transmitBitStuffing(
+    output_shift_reg #() outputSerializer(
+        .clk12(transmitCLK),
+        .EN(), //TODO
+        .NEW_IN(), //TODO
+        .dataIn(), //TODO
+        .OUT(), //TODO
+        .bufferEmpty() //TODO
+    );
+
+    usb_bit_stuff txBitStuffing(
         .clk12(transmitCLK),
         .RST(), //TODO
         .data(), //TODO
-        .ready(), //TODO
-        .outData() //TODO
+        .ready(txStallDueToBitStuffing),
+        .outData(txBitStuffedData)
     );
-    */
+
+    nrzi_encoder nrziEncoder(
+        .clk12(transmitCLK),
+        .RST(), //TODO
+        .data(txBitStuffedData),
+        .OUT(txNRZiEncodedData)
+    );
+
+    always @(posedge transmitCLK) begin
+        dataOutP_reg <= txDataOut;
+        dataOutN_reg <= txSendSingleEnded ~^ txDataOut;
+    end
 
     /*
     Differential Signal:

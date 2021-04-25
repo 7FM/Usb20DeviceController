@@ -8,15 +8,20 @@ module output_shift_reg#(
     input logic NEW_IN,
     input logic [LENGTH-1:0] dataIn,
     input logic OUT,
+    output logic bufferEmpty
 );
 
-    //TODO implement bit stuffing!
+    localparam CNT_WID = $clog2(LENGTH+1) - 1;
+    logic [CNT_WID:0] bitsLeft;
 
     logic [LENGTH-1:0] dataBuf;
 
     initial begin
         dataBuf = {LENGTH{INIT_BIT_VALUE[0]}};
+        bitsLeft = 0;
     end
+
+    assign bufferEmpty = bitsLeft == 0;
 
     generate
         if (LSB_FIRST) begin
@@ -26,18 +31,19 @@ module output_shift_reg#(
         end
 
         always_ff @(posedge clk12) begin
-            if (EN) begin
-                if (NEW_IN) begin
-                    dataBuf <= dataIn;
+            if (NEW_IN) begin
+                dataBuf <= dataIn;
+                bitsLeft <= LENGHT - EN;
+            end else if (EN) begin
+                bitsLeft <= bufferEmpty ? bitsLeft : bitsLeft - 1;
+                if (LSB_FIRST) begin
+                    dataBuf <= {INIT_BIT_VALUE[0], dataBuf[LENGTH-1:1]};
                 end else begin
-                    if (LSB_FIRST) begin
-                        dataBuf <= {INIT_BIT_VALUE[0], dataBuf[LENGTH-1:1]};
-                    end else begin
-                        dataBuf <= {dataBuf[LENGTH-2:0], INIT_BIT_VALUE[0]};
-                    end
+                    dataBuf <= {dataBuf[LENGTH-2:0], INIT_BIT_VALUE[0]};
                 end
             end else begin
                 dataBuf <= dataBuf;
+                bitsLeft <= bitsLeft;
             end
         end
     endgenerate
