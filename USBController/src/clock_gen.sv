@@ -8,13 +8,13 @@ module clock_gen #(
     generate
         if (DIVIDE_LOG_2 == 0) begin
             assign outCLK = inCLK;
-        end begin
+        end else begin
             logic div2CLK;
 
             simpleDFlipFlopCLK clockDiv2 (.CLK(inCLK), .outCLK(div2CLK));
 
             // Recursive instantiation!
-            clock_gen #(.DIVIDE_LOG_2(DIVIDE_LOG_2-1)) rev_clk_gen (.inCLK(div2CLK), .outCLK(outCLK));
+            clock_gen #(.DIVIDE_LOG_2(DIVIDE_LOG_2 - 1)) rev_clk_gen (.inCLK(div2CLK), .outCLK(outCLK));
         end
     endgenerate
 
