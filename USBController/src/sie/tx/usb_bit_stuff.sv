@@ -13,7 +13,7 @@ module usb_bit_stuff#()(
     assign outData = ready ? data : 1'b0;
 
     always_ff @(posedge clk12) begin
-        if (RST || !ready) begin
+        if (RST || !ready || !data) begin
             oneCounter <= 0;
         end else begin
             oneCounter <= oneCounter + 1;

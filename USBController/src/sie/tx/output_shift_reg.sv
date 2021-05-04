@@ -33,7 +33,7 @@ module output_shift_reg#(
         always_ff @(posedge clk12) begin
             if (NEW_IN) begin
                 dataBuf <= dataIn;
-                bitsLeft <= LENGHT - EN;
+                bitsLeft <= EN? LENGHT-1 : LENGHT;
             end else if (EN) begin
                 bitsLeft <= bufferEmpty ? bitsLeft : bitsLeft - 1;
                 if (LSB_FIRST) begin

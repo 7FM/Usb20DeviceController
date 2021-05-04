@@ -32,6 +32,7 @@ module usb_sie(
     );
 
     initial begin
+        //TODO set logic is required
         outEN_reg = 1'b0; // Start in receiving mode
     end
 
@@ -40,7 +41,7 @@ module usb_sie(
 
     //TODO this is important for the device state & initialization
     //TODO requires explicit reset!
-    logic usbResetDetect;
+    logic usbResetDetect; //TODO export
 
     // =====================================================================================================
     // RECEIVE Modules
@@ -65,13 +66,28 @@ module usb_sie(
     // TRANSMIT Modules
     // =====================================================================================================
 
+    logic reqSendPacket; //TODO
+
+    logic lastDataByte; //TODO
+    logic toBeSendDataValid; //TODO
+    logic [7:0] toBeSendData; //TODO
+
+    logic isSending;//TODO
+    logic acceptsNewData;//TODO
+
     usb_tx#() usbTxModules(
         // Inputs
         .clk48(clk48),
-        .dataInN(dataInN),
-        .dataInP(dataInP),
-        .outEN_reg(outEN_reg),
         .usbResetDetect(usbResetDetect),
+        // Data interface
+        .reqSendPacket(reqSendPacket), // Trigger sending a new packet
+        .lastData(lastDataByte), // Indicates that the applied sendData is the last byte to send
+        .sendDataValid(toBeSendDataValid), // Indicates that sendData contains valid & new data
+        .sendData(toBeSendData), // Data to be send: First byte should be PID, followed by the user data bytes
+        // interface output signals
+        .acceptNewData(acceptsNewData), // indicates that the send buffer can be filled
+        .sending(isSending), // indicates that currently data is transmitted
+
         // Outputs
         .dataOutN_reg(dataOutN_reg), 
         .dataOutP_reg(dataOutP_reg)
