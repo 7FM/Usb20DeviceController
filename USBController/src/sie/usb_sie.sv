@@ -1,9 +1,6 @@
 `include "config_pkg.sv"
 `include "sie_defs_pkg.sv"
 
-// import config_pkg::*;
-// import sie_defs_pkg::*;
-
 // USB Serial Interface Engine(SIE)
 module usb_sie(
     input logic clk48,

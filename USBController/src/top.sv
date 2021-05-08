@@ -1,5 +1,4 @@
 `include "config_pkg.sv"
-// import config_pkg::*;
 
 module top (
     input logic CLK,

@@ -1,7 +1,5 @@
 `include "config_pkg.sv"
 
-// import config_pkg::*;
-
 module usb_dp(
     input logic clk48,
     inout logic pinP,

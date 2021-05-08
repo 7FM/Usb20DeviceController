@@ -1,7 +1,5 @@
 `include "config_pkg.sv"
 
-// import config_pkg::*;
-
 module sim_top (
     input logic CLK,
     inout logic USB_DN,

@@ -1,10 +1,6 @@
 `include "config_pkg.sv"
 `include "sie_defs_pkg.sv"
 
-// import config_pkg::*;
-// import sie_defs_pkg::*;
-
-
 module usb_tx#()(
     input logic clk48,
     input logic usbResetDetect, //TODO how to handle this signal? Is it even relevant during sending phase? I honestly do not think so

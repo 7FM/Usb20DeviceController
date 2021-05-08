@@ -1,9 +1,6 @@
 `include "config_pkg.sv"
 `include "sie_defs_pkg.sv"
 
-// import config_pkg::*;
-// import sie_defs_pkg::*;
-
 module usb_rx#()(
     input logic clk48,
     input logic dataInN,
