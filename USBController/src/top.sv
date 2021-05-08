@@ -1,4 +1,5 @@
-`include "../config.sv"
+`include "config_pkg.sv"
+// import config_pkg::*;
 
 module top (
     input logic CLK,
@@ -16,13 +17,13 @@ module top (
 `ifndef RUN_SIM
     SB_PLL40_PAD #(
         .FEEDBACK_PATH("SIMPLE"),
-        .DIVR(`PLL_CLK_DIVR),
-        .DIVF(`PLL_CLK_DIVF),
-        .DIVQ(`PLL_CLK_DIVQ),
-        .FILTER_RANGE(`PLL_CLK_FILTER_RANGE)
+        .DIVR(config_pkg::PLL_CLK_DIVR),
+        .DIVF(config_pkg::PLL_CLK_DIVF),
+        .DIVQ(config_pkg::PLL_CLK_DIVQ),
+        .FILTER_RANGE(config_pkg::PLL_CLK_FILTER_RANGE)
     ) clkGen (
-        .RESETB(`PLL_CLK_RESETB),
-        .BYPASS(`PLL_CLK_BYPASS),
+        .RESETB(config_pkg::PLL_CLK_RESETB),
+        .BYPASS(config_pkg::PLL_CLK_BYPASS),
         .PACKAGEPIN(CLK),
         .PLLOUTCORE(clk48)
     );

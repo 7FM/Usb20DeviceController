@@ -7,7 +7,7 @@ module output_shift_reg#(
     input logic EN,
     input logic NEW_IN,
     input logic [LENGTH-1:0] dataIn,
-    input logic OUT,
+    output logic OUT,
     output logic bufferEmpty
 );
 
@@ -33,7 +33,7 @@ module output_shift_reg#(
         always_ff @(posedge clk12) begin
             if (NEW_IN) begin
                 dataBuf <= dataIn;
-                bitsLeft <= EN? LENGHT-1 : LENGHT;
+                bitsLeft <= EN? LENGTH-1 : LENGTH;
             end else if (EN) begin
                 bitsLeft <= bufferEmpty ? bitsLeft : bitsLeft - 1;
                 if (LSB_FIRST) begin

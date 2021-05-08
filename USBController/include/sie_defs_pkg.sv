@@ -1,5 +1,7 @@
-`ifndef SIE_COMMON_DEFS_SV
-`define SIE_COMMON_DEFS_SV
+`ifndef SIE_DEFS_PKG_SV
+`define SIE_DEFS_PKG_SV
+
+package sie_defs_pkg;
 
     /*
     Group    | PID[3:0] |  Packet Identifier
@@ -53,4 +55,7 @@
     //              ------ time ---->
     // Is send LSB first
     localparam SYNC_VALUE = 8'b1000_0000;
+
+endpackage
+
 `endif

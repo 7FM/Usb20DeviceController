@@ -4,8 +4,9 @@ module eop_reset_detect(
     input logic RST,
     input logic dataInP,
     input logic dataInN,
+    input logic ACK_USB_RST,
     output logic eop, // Requires explicit RST to clear flag again
-    output logic usb_reset // Requires explicit RST to clear flag again
+    output logic usb_reset // Requires explicit ACK to clear flag again
 );
 
     logic se0, j;
@@ -28,7 +29,7 @@ module eop_reset_detect(
     localparam RESET_REQUIRED_SE0_CYCLES = 120;
     localparam SE0_COUNTER_WID = $clog2(RESET_REQUIRED_SE0_CYCLES+1);
     logic [SE0_COUNTER_WID-1:0] se0_counter, next_se0_counter;
-    assign next_se0_counter = se0 ? se0_counter + 1 : SE0_COUNTER_WID'b0;
+    assign next_se0_counter = se0 ? se0_counter + 1 : {SE0_COUNTER_WID{1'b0}};
     assign nextUsbReset = usb_reset || RESET_REQUIRED_SE0_CYCLES >= RESET_REQUIRED_SE0_CYCLES;
 
     always_comb begin
@@ -71,20 +72,25 @@ module eop_reset_detect(
         state = IDLE;
         eop = 1'b0;
         usb_reset = 1'b0;
-        se0_counter = SE0_COUNTER_WID'b0;
+        se0_counter = {SE0_COUNTER_WID{1'b0}};
     end
 
     always_ff @(posedge clk48) begin
+        // We always want to detect usb reset signals!
+        se0_counter <= next_se0_counter;
+
+        if (ACK_USB_RST) begin
+            usb_reset <= 1'b0;
+        end else begin
+            usb_reset <= nextUsbReset;
+        end
+
         if (RST) begin
             state <= IDLE;
             eop <= 1'b0;
-            usb_reset <= 1'b0;
-            se0_counter <= SE0_COUNTER_WID'b0;
         end else begin
             state <= nextState;
             eop <= nextEOP;
-            usb_reset <= nextUsbReset;
-            se0_counter <= next_se0_counter;
         end
     end
 

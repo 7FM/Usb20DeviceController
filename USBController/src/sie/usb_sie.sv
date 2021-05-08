@@ -1,5 +1,8 @@
-`include "../../config.sv"
-`include "sie_common_defs.sv"
+`include "config_pkg.sv"
+`include "sie_defs_pkg.sv"
+
+// import config_pkg::*;
+// import sie_defs_pkg::*;
 
 // USB Serial Interface Engine(SIE)
 module usb_sie(
@@ -47,14 +50,31 @@ module usb_sie(
     // RECEIVE Modules
     // =====================================================================================================
 
+    logic ackUsbResetDetect; //TODO
+
+    // Data output interface: synced with clk48!
+    logic rxAcceptNewData; //TODO: Backend indicates that it is able to retrieve the next data byte
+    logic rxIsLastByte; //TODO: indicates that the current byte at rxData is the last one
+    logic rxDataValid; //TODO: rxData contains valid & new data
+    logic [7:0] rxData; //TODO: data to be retrieved
+    logic keepPacket; //TODO: should be tested when rxIsLastByte set to check whether an retrival error occurred
+
+
     usb_rx#() usbRxModules(
-        // Inputs
         .clk48(clk48),
         .dataInN(dataInN),
         .dataInP(dataInP),
         .outEN_reg(outEN_reg),
-        // Outputs
-        .usbResetDetect(usbResetDetect)
+        // Usb reset detection
+        .ACK_USB_RST(ackUsbResetDetect),
+        .usbResetDetect(usbResetDetect),
+        // Data output interface: synced with clk48!
+        .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
+        .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one
+        .rxDataValid(rxDataValid), // rxData contains valid & new data
+        .rxData(rxData), // data to be retrieved
+        .keepPacket(keepPacket) // should be tested when rxIsLastByte set to check whether an retrival error occurred
+
     `ifdef USE_DEBUG_LEDS
         ,.LED_R(LED_R),
          .LED_G(LED_G),

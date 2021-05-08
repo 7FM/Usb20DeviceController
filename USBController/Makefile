@@ -1,8 +1,10 @@
 SRC ?= src
+INCLUDE_DIR ?= include
 SIM_SRC ?= sim_src
 OUT ?= bin
 BUILDDIR ?= build
-V_DIR ?= sim
+V_DIR ?= sim_build
+SIM_DEFS ?= -DRUN_SIM
 
 TOP_MODULE ?= top
 
@@ -46,23 +48,28 @@ VERILATOR := $(VERILATOR_PREFIX)verilator
 
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-srcs := $(call rwildcard,$(SRC),*.v)
+srcs := $(call rwildcard,$(INCLUDE_DIR),*.v)
+srcs += $(call rwildcard,$(INCLUDE_DIR),*.sv)
+srcs += $(call rwildcard,$(SRC),*.v)
 srcs += $(call rwildcard,$(SRC),*.sv)
 constraints := $(call rwildcard,.,*.$(CONSTRAINT_SUFFIX))
 
-sim_srcs := $(call rwildcard,$(SIM_SRC),*.cpp)
+#sim_srcs := $(call rwildcard,$(SIM_SRC),*.cpp)
+sim_targets := $(wildcard $(SIM_SRC)/sim_*.cpp)
+sim_tops := $(patsubst sim_%.cpp,%,$(notdir $(sim_targets)))
+
 deps := $(call rwildcard,$(V_DIR),*.d)
 
 syn_target := $(BUILDDIR)/$(TOP_MODULE).json
 
 CCFLAGS := -g -ffast-math -Wall -O3 -I$(SIM_SRC)
-ifeq ($(OS),Windows_NT)
-  LDFLAGS := -lmingw32 -lSDL2main -lSDL2
-else
-  LDFLAGS := -lSDL2
-endif
+#ifeq ($(OS),Windows_NT)
+#  LDFLAGS := -lmingw32 -lSDL2main -lSDL2
+#else
+#  LDFLAGS := -lSDL2
+#endif
 
-.PHONY: all clean genBitstream sanityChecks
+.PHONY: all clean genBitstream sanityChecks sim
 
 all: genBitstream sanityChecks
 
@@ -94,17 +101,39 @@ genBitstream: $(pnr_target)
 # Synthesis
 $(syn_target): $(srcs)
 	@mkdir -p $(BUILDDIR)
-	$(SYN) -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+# Uses patched yosys version to allow specifying include dirs before all files are read
+	$(SYN) -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+#	$(SYN) -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
 	@echo "============================================================================================"
 
-$(V_DIR)/Vsim_$(TOP_MODULE): sim_$(TOP_MODULE).cpp $(sim_srcs) $(srcs)
-#	$(VERILATOR) -Wall --MMD --MP -DRUN_SIM -DUSE_INTERFACES --Mdir $(V_DIR) --cc -O3 -CFLAGS "$(CCFLAGS)" -LDFLAGS "$(LDFLAGS)" -I$(SRC) --exe sim_$(TOP_MODULE).cpp $(sim_srcs) -sv --top-module sim_$(TOP_MODULE) --trace $(srcs) || true
-	$(VERILATOR) -Wall --MMD --MP -DRUN_SIM --Mdir $(V_DIR) --cc -O3 -CFLAGS "$(CCFLAGS)" -LDFLAGS "$(LDFLAGS)" -I$(SRC) --exe sim_$(TOP_MODULE).cpp $(sim_srcs) -sv --top-module sim_$(TOP_MODULE) --trace $(srcs) || true
+define GEN_SIM_RULES
+sim_$(sim_top): $$(V_DIR)/$(sim_top)/Vsim_$(sim_top)
+$$(V_DIR)/$(sim_top)/Vsim_$(sim_top): $$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$(SIM_SRC)/$(sim_top),*.cpp) $$(srcs)
+	@mkdir -p $$(V_DIR)/$(sim_top)
+	$$(VERILATOR) -j$$(nprocs) \
+		-Wall -Werror-IMPLICIT -Werror-PINMISSING \
+		--MMD --MP $$(SIM_DEFS) \
+	 	--Mdir $$(V_DIR)/$(sim_top) --cc -O3 \
+		$$(if $$(PROFILE),--stats --stats-vars --profile-cfuncs,) \
+		-CFLAGS "$$(CCFLAGS)$$(if $$(PROFILE), -g -pg,) -I$$(SIM_SRC)/$(sim_top)" \
+	 	-LDFLAGS "$$(LDFLAGS)$$(if $$(PROFILE), -g -pg,)" \
+		-I$$(SRC) -I$$(INCLUDE_DIR) \
+		--exe $$< $(call rwildcard,$$(SIM_SRC)/$(sim_top),*.cpp) \
+		-sv --top-module sim_$(sim_top) --trace --trace-structs $$(srcs) || true
 	@echo "============================================================================================"
-	@make -j -C $(V_DIR) -f Vsim_$(TOP_MODULE).mk Vsim_$(TOP_MODULE)
+	@make -j$$(nprocs) -C $$(V_DIR)/$(sim_top) -f Vsim_$(sim_top).mk Vsim_$(sim_top)
 	@echo "============================================================================================"
+endef
 
-sim: $(V_DIR)/Vsim_$(TOP_MODULE)
+$(foreach sim_top,$(sim_tops), \
+	$(eval $(GEN_SIM_RULES)) \
+)
+
+test:
+	@echo $(sim_tops)
+
+#sim_%: $(V_DIR)/$*/Vsim_%
+sim: sim_$(TOP_MODULE)
 
 clean:
 	rm -rf $(OUT) $(BUILDDIR) $(V_DIR) $(LOG)
