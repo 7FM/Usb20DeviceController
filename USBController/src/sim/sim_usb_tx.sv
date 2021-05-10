@@ -36,6 +36,6 @@ module sim_usb_tx (
         .dataOutP_reg(dataOutP_reg)
     );
 
-    assign USB_DN = sending ? dataOutN_reg : 1'x;
-    assign USB_DP = sending ? dataOutP_reg : 1'x;
+    assign USB_DN = sending ? dataOutN_reg : 1'bx;
+    assign USB_DP = sending ? dataOutP_reg : 1'bx;
 endmodule

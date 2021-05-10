@@ -85,12 +85,12 @@ module usb_sie(
 
     logic reqSendPacket; //TODO
 
-    logic lastDataByte; //TODO
-    logic toBeSendDataValid; //TODO
-    logic [7:0] toBeSendData; //TODO
+    logic txIsLastByte; //TODO
+    logic txDataValid; //TODO
+    logic [7:0] txData; //TODO
 
     logic isSending;//TODO
-    logic acceptsNewData;//TODO
+    logic txAcceptNewData;//TODO
 
     usb_tx#() usbTxModules(
         // Inputs
@@ -98,11 +98,11 @@ module usb_sie(
         .usbResetDetect(usbResetDetect),
         // Data interface
         .reqSendPacket(reqSendPacket), // Trigger sending a new packet
-        .lastData(lastDataByte), // Indicates that the applied sendData is the last byte to send
-        .sendDataValid(toBeSendDataValid), // Indicates that sendData contains valid & new data
-        .sendData(toBeSendData), // Data to be send: First byte should be PID, followed by the user data bytes
+        .txIsLastByte(txIsLastByte), // Indicates that the applied sendData is the last byte to send
+        .txDataValid(txDataValid), // Indicates that sendData contains valid & new data
+        .txData(txData), // Data to be send: First byte should be PID, followed by the user data bytes
         // interface output signals
-        .acceptNewData(acceptsNewData), // indicates that the send buffer can be filled
+        .txAcceptNewData(txAcceptNewData), // indicates that the send buffer can be filled
         .sending(isSending), // indicates that currently data is transmitted
 
         // Outputs
