@@ -14,6 +14,7 @@ module usb_rx#()(
     output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
     output logic rxDataValid, // rxData contains valid & new data
     output logic [7:0] rxData, // data to be retrieved
+
     output logic keepPacket // should be tested when rxIsLastByte set to check whether an retrival error occurred
 
 `ifdef USE_DEBUG_LEDS

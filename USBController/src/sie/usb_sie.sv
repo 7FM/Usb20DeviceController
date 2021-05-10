@@ -24,7 +24,7 @@ module usb_sie(
         .clk48(clk48),
         .pinP(USB_DP),
         .pinN(USB_DN),
-        .OUT_EN(outEN_reg),
+        .OUT_EN(outEN_reg), //TODO this needs to interact with the sending signal of usb_tx
         .dataOutP(dataOutP_reg),
         .dataOutN(dataOutN_reg),
         .dataInP(dataInP),
