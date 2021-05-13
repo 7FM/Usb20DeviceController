@@ -312,8 +312,7 @@ module usb_rx#()(
         .readCLK12(receiveCLK)
     );
 
-    //TODO reuse
-    nrzi_encoder nrziDecoder(
+    nrzi_decoder nrziDecoder(
         .clk12(receiveCLK),
         .RST(rxNRZiDecodeReset),
         .data(dataInP),
