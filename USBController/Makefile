@@ -107,10 +107,17 @@ $(syn_target): $(srcs)
 	@echo "============================================================================================"
 
 define GEN_SIM_RULES
-sim_$(sim_top): $$(V_DIR)/$(sim_top)/Vsim_$(sim_top)
-$$(V_DIR)/$(sim_top)/Vsim_$(sim_top): $$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$(SIM_SRC)/$(sim_top),*.cpp) $$(srcs)
+.PHONY: sim_$(sim_top)
+
+sim_$(sim_top): $$(V_DIR)/$(sim_top)/Vsim_$(sim_top).mk $$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$(SIM_SRC)/$(sim_top),*.cpp) $$(srcs)
+	@make -j$$(shell nproc) -C $$(V_DIR)/$(sim_top) -f Vsim_$(sim_top).mk Vsim_$(sim_top)
+	@echo "============================================================================================"
+
+$$(V_DIR)/$(sim_top)/Vsim_$(sim_top).mk: $$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$(SIM_SRC)/$(sim_top),*.cpp) $$(srcs)
 	@mkdir -p $$(V_DIR)/$(sim_top)
-	$$(VERILATOR) -j$$(nprocs) \
+	@mkdir -p $$(V_DIR)/$(sim_top)/$$(SIM_SRC)
+	@cp $$< $$(V_DIR)/$(sim_top)/$$(SIM_SRC)
+	$$(VERILATOR) -j $$(shell nproc) \
 		-Wall -Werror-IMPLICIT -Werror-PINMISSING \
 		--MMD --MP $$(SIM_DEFS) \
 	 	--Mdir $$(V_DIR)/$(sim_top) --cc -O3 \
@@ -120,8 +127,6 @@ $$(V_DIR)/$(sim_top)/Vsim_$(sim_top): $$(SIM_SRC)/sim_$(sim_top).cpp $(call rwil
 		-I$$(SRC) -I$$(INCLUDE_DIR) \
 		--exe $$< $(call rwildcard,$$(SIM_SRC)/$(sim_top),*.cpp) \
 		-sv --top-module sim_$(sim_top) --trace --trace-structs $$(srcs) || true
-	@echo "============================================================================================"
-	@make -j$$(nprocs) -C $$(V_DIR)/$(sim_top) -f Vsim_$(sim_top).mk Vsim_$(sim_top)
 	@echo "============================================================================================"
 endef
 
@@ -138,4 +143,4 @@ sim: sim_$(TOP_MODULE)
 clean:
 	rm -rf $(OUT) $(BUILDDIR) $(V_DIR) $(LOG)
 
--include $(deps)
+#-include $(deps)
