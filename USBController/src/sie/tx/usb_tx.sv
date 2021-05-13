@@ -176,6 +176,17 @@ module usb_tx#()(
                 end
             end
             TX_SEND_EOP_1, TX_SEND_EOP_2: begin
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+
                 // special handling for SE0 signals
                 txDataOut = 1'b0;
                 txSendSingleEnded = 1'b1;
