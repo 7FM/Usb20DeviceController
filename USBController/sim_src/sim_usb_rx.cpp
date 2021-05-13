@@ -95,14 +95,14 @@ struct USBSignal {
 
 // Source: https://stackoverflow.com/questions/5438671/static-assert-on-initializer-listsize
 template <typename T, std::size_t N>
-static constexpr auto nrziEncode(const T (&dataBytes)[N]) {
+static constexpr auto nrziEncode(const T (&dataBytes)[N], uint8_t encoderStartState = 0) {
     //TODO bitstuffing!!!
 
     USBSignal<N * sizeof(T) * 8> signal;
 
     int signalIdx = 0;
 
-    uint8_t nrziEncoderState = 1;
+    uint8_t nrziEncoderState = encoderStartState;
 
     for (T data : dataBytes) {
         for (int i = 0; i < sizeof(T) * 8; ++i, ++signalIdx) {
@@ -153,7 +153,7 @@ static constexpr auto createEOPSignal() {
     return signal;
 }
 
-static constexpr auto usbSyncSignal = nrziEncode({static_cast<uint8_t>(0b1000'0000)});
+static constexpr auto usbSyncSignal = nrziEncode({static_cast<uint8_t>(0b1000'0000)}, 1);
 static constexpr auto usbEOPSignal = createEOPSignal();
 
 static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode({static_cast<uint8_t>(0b1000'0111), static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)}), usbEOPSignal);
