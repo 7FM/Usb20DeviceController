@@ -1,9 +1,10 @@
 `include "config_pkg.sv"
 
+`ifdef RUN_SIM
 module sim_usb_rx (
     input logic CLK,
-    input logic USB_DN,
     input logic USB_DP,
+    input logic USB_DN,
     input logic outEN_reg,
     input logic ACK_USB_RST,
     output logic usbResetDetect,
@@ -23,10 +24,26 @@ module sim_usb_rx (
 `endif
 );
 
+    logic dataInP;
+    logic dataInN;
+
+    usb_dp uut_input(
+        .clk48(CLK),
+        .pinP(USB_DP),
+        .pinP_OUT(),
+        .pinN(USB_DN),
+        .pinN_OUT(),
+        .OUT_EN(outEN_reg),
+        .dataOutP(),
+        .dataOutN(),
+        .dataInP(dataInP),
+        .dataInN(dataInN)
+    );
+
     usb_rx uut(
         .clk48(CLK),
-        .dataInN(USB_DN),
-        .dataInP(USB_DP),
+        .dataInP(dataInP),
+        .dataInN(dataInN),
         .outEN_reg(outEN_reg),
         .ACK_USB_RST(ACK_USB_RST),
         .usbResetDetect(usbResetDetect),
@@ -43,3 +60,4 @@ module sim_usb_rx (
 `endif
     );
 endmodule
+`endif

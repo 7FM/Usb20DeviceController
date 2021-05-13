@@ -4,8 +4,15 @@
 // USB Serial Interface Engine(SIE)
 module usb_sie(
     input logic clk48,
-    inout logic USB_DN,
+`ifdef RUN_SIM
+    input logic USB_DP,
+    input logic USB_DN,
+    output logic USB_DP_OUT,
+    output logic USB_DN_OUT,
+`else
     inout logic USB_DP,
+    inout logic USB_DN,
+`endif
     output logic USB_PULLUP
 `ifdef USE_DEBUG_LEDS
     ,output logic LED_R,
@@ -24,6 +31,10 @@ module usb_sie(
         .clk48(clk48),
         .pinP(USB_DP),
         .pinN(USB_DN),
+`ifdef RUN_SIM
+        .pinP_OUT(USB_DP_OUT),
+        .pinN_OUT(USB_DN_OUT),
+`endif
         .OUT_EN(outEN_reg), //TODO this needs to interact with the sending signal of usb_tx
         .dataOutP(dataOutP_reg),
         .dataOutN(dataOutN_reg),

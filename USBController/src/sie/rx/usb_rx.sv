@@ -3,8 +3,8 @@
 
 module usb_rx#()(
     input logic clk48,
-    input logic dataInN,
     input logic dataInP,
+    input logic dataInN,
     input logic outEN_reg,
     input logic ACK_USB_RST,
     output logic usbResetDetect,

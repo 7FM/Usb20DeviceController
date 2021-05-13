@@ -1,9 +1,12 @@
 `include "config_pkg.sv"
 
+`ifdef RUN_SIM
 module sim_top (
     input logic CLK,
-    inout logic USB_DN,
-    inout logic USB_DP,
+    input logic USB_DP,
+    output logic USB_DP_OUT,
+    input logic USB_DN,
+    output logic USB_DN_OUT,
     output logic USB_PULLUP
 `ifdef USE_DEBUG_LEDS
     ,output logic LED_R,
@@ -14,8 +17,10 @@ module sim_top (
 
     top uut(
         .CLK(CLK),
-        .USB_DN(USB_DN),
         .USB_DP(USB_DP),
+        .USB_DP_OUT(USB_DP_OUT),
+        .USB_DN(USB_DN),
+        .USB_DN_OUT(USB_DN_OUT),
         .USB_PULLUP(USB_PULLUP)
 `ifdef USE_DEBUG_LEDS
         ,.LED_R(LED_R),
@@ -24,3 +29,4 @@ module sim_top (
 `endif
     );
 endmodule
+`endif

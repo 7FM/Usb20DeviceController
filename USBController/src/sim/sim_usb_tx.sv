@@ -1,9 +1,10 @@
 `include "config_pkg.sv"
 
+`ifdef RUN_SIM
 module sim_usb_tx (
     input logic CLK,
-    output logic USB_DN,
     output logic USB_DP,
+    output logic USB_DN,
 
     input logic usbResetDetect,
     input logic reqSendPacket,
@@ -36,6 +37,7 @@ module sim_usb_tx (
         .dataOutP_reg(dataOutP_reg)
     );
 
-    assign USB_DN = sending ? dataOutN_reg : 1'bx;
     assign USB_DP = sending ? dataOutP_reg : 1'bx;
+    assign USB_DN = sending ? dataOutN_reg : 1'bx;
 endmodule
+`endif

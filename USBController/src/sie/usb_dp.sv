@@ -2,8 +2,15 @@
 
 module usb_dp(
     input logic clk48,
+`ifdef RUN_SIM
+    input logic pinP,
+    output logic pinP_OUT,
+    input logic pinN,
+    output logic pinN_OUT,
+`else
     inout logic pinP,
     inout logic pinN,
+`endif
     input logic OUT_EN,
     input logic dataOutP,
     input logic dataOutN,
@@ -34,6 +41,7 @@ module usb_dp(
         .INPUT_CLK(clk48)
 `endif
     );
+
     SB_IO #(
 `ifndef DP_REGISTERED_INPUT
         .PIN_TYPE(6'b1010_01) // tristatable output and normal input
@@ -56,12 +64,12 @@ module usb_dp(
     assign doubleFlopN = inN;
 `endif
 
-`else
+`else // SIMULATION CASE
     // Always double flop in simulation
 
     // Tristate output logic
-    assign pinP = OUT_EN ? dataOutP : 1'bz;
-    assign pinN = OUT_EN ? dataOutN : 1'bz;
+    assign pinP_OUT = OUT_EN ? dataOutP : 1'bz;
+    assign pinN_OUT = OUT_EN ? dataOutN : 1'bz;
 
     assign inP = pinP;
     assign inN = pinN;
