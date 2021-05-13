@@ -51,7 +51,11 @@ module usb_dp(
     ) buffer2(
         .OUTPUT_ENABLE(OUT_EN),
         .PACKAGE_PIN(pinN),
-        .D_IN_0(inN),
+`ifndef DP_SYNC_USB_N_NEGEDGE
+        .D_IN_0(inN), // Use normal posedge synced input
+`else
+        .D_IN_1(inN), // Use negedge synced input
+`endif
         .D_OUT_0(dataOutN)
 `ifdef DP_REGISTERED_INPUT
         ,.CLOCK_ENABLE(1'b1),
@@ -89,16 +93,37 @@ module usb_dp(
         dataInN = 1'b0;
     end
 
+`ifndef RUN_SIM
+`ifndef DP_REGISTERED_INPUT
+`ifdef DP_SYNC_USB_N_NEGEDGE
+    always_ff @(negedge clk48) begin
+        doubleFlopN <= inN;
+    end
+`endif
+`endif
+`else // SIMULATION CASE
+`ifdef DP_SYNC_USB_N_NEGEDGE
+    always_ff @(negedge clk48) begin
+        doubleFlopN <= inN;
+    end
+`endif
+`endif
+
     always_ff @(posedge clk48) begin
 `ifndef RUN_SIM
 `ifndef DP_REGISTERED_INPUT
         doubleFlopP <= inP;
+`ifndef DP_SYNC_USB_N_NEGEDGE
         doubleFlopN <= inN;
+`endif
 `endif
 `else
         doubleFlopP <= inP;
+`ifndef DP_SYNC_USB_N_NEGEDGE
         doubleFlopN <= inN;
 `endif
+`endif
+
         dataInP <= OUT_EN ? 1'b1 : doubleFlopP;
         dataInN <= OUT_EN ? 1'b0 : doubleFlopN;
     end
