@@ -4,6 +4,7 @@
 module usb_rx#()(
     input logic clk48,
     input logic dataInP,
+    input logic dataInP_negedge,
     input logic dataInN,
     input logic outEN_reg,
     input logic ACK_USB_RST,
@@ -37,9 +38,9 @@ module usb_rx#()(
     logic pidValid;
     logic isValidCRC;
 
-    logic isValidDPSig;
+    logic isValidDPSignal;
 
-    assign isValidDPSig = dataInN ^ dataInP;
+    assign isValidDPSignal = dataInN ^ dataInP;
 
     // State variables
     RxStates rxState;
@@ -62,7 +63,7 @@ module usb_rx#()(
     logic [7:0] inputBufDelay2, next_inputBufDelay2;
     logic [7:0] next_rxData;
     logic [3:0] isLastShiftReg, next_isLastShiftReg;
-    logic [3:0] isDataShiftReg, next_isDataShiftReg; //TODO not yet done
+    logic [3:0] isDataShiftReg, next_isDataShiftReg;
     assign rxIsLastByte = isLastShiftReg[3];
 
     logic dataNotYetRead, next_dataNotYetRead; //TODO check handshake & update accordingly!
@@ -217,7 +218,7 @@ module usb_rx#()(
                 // After Sync was detected, we always need valid bit stuffing!
                 // Also there may not be invalid differential pair signals as we expect the PID to be send!
                 // Sanity check: was PID correctly received?
-                next_dropPacket = dropPacket || receiveBitStuffingError || !isValidDPSig || (inputBufFull && !pidValid);
+                next_dropPacket = dropPacket || receiveBitStuffingError || !isValidDPSignal || (inputBufFull && !pidValid);
 
                 if (inputBufFull) begin
                     // Save the PID for further decisions
@@ -230,7 +231,7 @@ module usb_rx#()(
                 end
             end
             RX_WAIT_FOR_EOP: begin
-                //TODO would be nice to integrate some isValidDPSig checks, but this might break logic very very easily!
+                //TODO would be nice to integrate some isValidDPSignal checks, but this might break logic very very easily!
 
                 // After Sync was detected, we always need valid bit stuffing!
                 // Sanity check: does the CRC match?
@@ -307,8 +308,8 @@ module usb_rx#()(
     DPPL #() asyncRxCLK (
         .clk48(clk48),
         .RST(receiveClkGenRST),
-        .a(dataInP), //TODO
-        .b(dataInN), //TODO
+        .a(dataInP),
+        .b(dataInP_negedge),
         .readCLK12(receiveCLK)
     );
 

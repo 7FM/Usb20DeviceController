@@ -18,9 +18,6 @@ localparam PLL_CLK_BYPASS = 1'b0;
 // Debug LEDs to show different types of errors!
 `define USE_DEBUG_LEDS
 
-// Sync USB_N at negedge and USB_P on posedge of clk48
-`define DP_SYNC_USB_N_NEGEDGE
-
 endpackage
 
 `endif

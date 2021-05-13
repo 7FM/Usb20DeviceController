@@ -25,7 +25,7 @@ module usb_sie(
     // Pin connected to USB_DP with 1.5K Ohm resistor -> indicate to be a full speed device: 12 Mbit/s
     assign USB_PULLUP = 1'b1;
 
-    logic dataOutN_reg, dataOutP_reg, dataInP, dataInN, outEN_reg;
+    logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge, dataInN, outEN_reg;
 
     usb_dp usbDifferentialPair(
         .clk48(clk48),
@@ -39,6 +39,7 @@ module usb_sie(
         .dataOutP(dataOutP_reg),
         .dataOutN(dataOutN_reg),
         .dataInP(dataInP),
+        .dataInP_negedge(dataInP_negedge),
         .dataInN(dataInN)
     );
 
@@ -70,8 +71,9 @@ module usb_sie(
 
     usb_rx#() usbRxModules(
         .clk48(clk48),
-        .dataInN(dataInN),
         .dataInP(dataInP),
+        .dataInP_negedge(dataInP_negedge),
+        .dataInN(dataInN),
         .outEN_reg(outEN_reg),
         // Usb reset detection
         .ACK_USB_RST(ackUsbResetDetect),

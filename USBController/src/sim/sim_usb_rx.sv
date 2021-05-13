@@ -25,6 +25,7 @@ module sim_usb_rx (
 );
 
     logic dataInP;
+    logic dataInP_negedge;
     logic dataInN;
 
     usb_dp uut_input(
@@ -37,12 +38,14 @@ module sim_usb_rx (
         .dataOutP(),
         .dataOutN(),
         .dataInP(dataInP),
+        .dataInP_negedge(dataInP_negedge),
         .dataInN(dataInN)
     );
 
     usb_rx uut(
         .clk48(CLK),
         .dataInP(dataInP),
+        .dataInP_negedge(dataInP_negedge),
         .dataInN(dataInN),
         .outEN_reg(outEN_reg),
         .ACK_USB_RST(ACK_USB_RST),
