@@ -17,14 +17,14 @@
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
-#include "Vsim_top.h"       // basic Top header
-#include "Vsim_top__Syms.h" // all headers to access exposed internal signals
+#include "Vsim_usb_tx.h"       // basic Top header
+#include "Vsim_usb_tx__Syms.h" // all headers to access exposed internal signals
 
 #ifndef PHASE_LENGTH
 #define PHASE_LENGTH 5
 #endif
 
-static Vsim_top *ptop = nullptr; // Instantiation of module
+static Vsim_usb_tx *ptop = nullptr; // Instantiation of module
 static VerilatedVcdC *tfp = nullptr;
 
 static vluint64_t main_time = 0; // Current simulation time
@@ -85,7 +85,7 @@ static void onFallingEdge() {
 /******************************************************************************/
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
-    ptop = new Vsim_top; // Create instance
+    ptop = new Vsim_usb_tx; // Create instance
 
     int verbose = 0;
     int start = 0;
