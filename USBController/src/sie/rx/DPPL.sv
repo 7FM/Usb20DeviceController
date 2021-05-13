@@ -1,9 +1,11 @@
+// Implementation of the proposed DPPL FSM in the USB whitepaper: https://www.usb.org/sites/default/files/siewp.pdf
 module DPPL(
     input logic clk48,
     input logic RST,
-    //TODO how are a and b defined?
-    // a’ and ‘b’ are the differential receiver output synchronized by a stage of the 48Mhz 
-    // (also a’ is synchronized on the rising edge and ‘b’ is synchronized on the falling edge.
+    // Ideally a signal rcv is given from a comparator.
+    // This signal rcv is then synced at posedge (for input a) and synced at negedge (for input b) with 48 MHz
+    // (and double flopped to reduce the risc for metastability)
+    // However, not all FPGAs have a comparator and in such cases rcv is simply the USB_DP+ signal
     input logic a,
     input logic b,
     output logic readCLK12
