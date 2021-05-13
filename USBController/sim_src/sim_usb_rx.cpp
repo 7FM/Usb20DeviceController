@@ -1,21 +1,8 @@
-#include <getopt.h>
-#include <unistd.h>
-
-#include <chrono>
-#include <cmath>
-#include <csignal>
 #include <cstdint>
-#include <cstdlib>
-#include <ctype.h>
-#include <exception>
 #include <fstream>
-#include <functional>
-#include <initializer_list>
-#include <iomanip>
+#include <getopt.h>
 #include <iostream> // Need std::cout
-#include <string>
-#include <thread>
-#include <tuple>
+#include <unistd.h>
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
@@ -277,10 +264,10 @@ int main(int argc, char **argv) {
                 start = std::atoi(optarg);
                 break;
             case ':':
-                printf("option needs a value\n");
+                std::cout << "option needs a value" << std::endl;
                 break;
             case '?': //used for some unknown options
-                printf("unknown option: %c\n", optopt);
+                std::cout << "unknown option: " << optopt << std::endl;
                 break;
         }
     }
