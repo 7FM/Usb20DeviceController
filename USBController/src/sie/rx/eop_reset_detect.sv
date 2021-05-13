@@ -29,8 +29,9 @@ module eop_reset_detect(
     localparam RESET_REQUIRED_SE0_CYCLES = 120;
     localparam SE0_COUNTER_WID = $clog2(RESET_REQUIRED_SE0_CYCLES+1);
     logic [SE0_COUNTER_WID-1:0] se0_counter, next_se0_counter;
+
     assign next_se0_counter = se0 ? se0_counter + 1 : {SE0_COUNTER_WID{1'b0}};
-    assign nextUsbReset = usb_reset || RESET_REQUIRED_SE0_CYCLES >= RESET_REQUIRED_SE0_CYCLES;
+    assign nextUsbReset = usb_reset || se0_counter >= RESET_REQUIRED_SE0_CYCLES;
 
     always_comb begin
         nextState = state + 1;
@@ -76,12 +77,12 @@ module eop_reset_detect(
     end
 
     always_ff @(posedge clk48) begin
-        // We always want to detect usb reset signals!
-        se0_counter <= next_se0_counter;
 
         if (ACK_USB_RST) begin
             usb_reset <= 1'b0;
+            se0_counter <= {SE0_COUNTER_WID{1'b0}};
         end else begin
+            se0_counter <= next_se0_counter;
             usb_reset <= nextUsbReset;
         end
 
