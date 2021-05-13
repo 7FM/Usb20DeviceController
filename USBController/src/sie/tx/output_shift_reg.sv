@@ -1,6 +1,6 @@
 module output_shift_reg#(
     parameter LENGTH = 8,
-    parameter INIT_BIT_VALUE = 0,
+    parameter INIT_BIT_VALUE = 1,
     parameter LSB_FIRST = 1
 )(
     input logic clk12,
