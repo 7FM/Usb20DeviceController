@@ -49,10 +49,10 @@ static void tick(int count, bool dump) {
 
 /******************************************************************************/
 
-static void run(uint64_t limit, bool dump = true) {
+static void run(uint64_t limit, bool dump, bool checkStopCondition = true) {
     bool stop;
     do {
-        stop = stopCondition();
+        stop = checkStopCondition && stopCondition();
         ptop->CLK = 1;
         onRisingEdge();
         tick(PHASE_LENGTH, dump);
@@ -203,6 +203,15 @@ static void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
     }
 }
 
+static void receiveDeserializedInput() {
+    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+}
+
 /******************************************************************************/
 
 static bool stopCondition() {
@@ -210,6 +219,7 @@ static bool stopCondition() {
 }
 
 static void onRisingEdge() {
+    receiveDeserializedInput();
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
     applyUsbSignal(signalToReceive.data(), signalToReceive.size());
 #endif
@@ -276,8 +286,10 @@ int main(int argc, char **argv) {
     if (start) {
         run(start, false);
     }
-    // Only dump transistion lines to new frame
-    run(800 * (525 + 1 - 479), true);
+    // Execute till stop condition
+    run(0, true);
+    // Execute a few more cycles
+    run(4 * 10, true, false);
 
     if (tfp)
         tfp->close();
