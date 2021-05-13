@@ -1,8 +1,6 @@
 #include <cstdint>
-#include <fstream>
 #include <getopt.h>
 #include <iostream> // Need std::cout
-#include <unistd.h>
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
