@@ -143,4 +143,4 @@ sim: sim_$(TOP_MODULE)
 clean:
 	rm -rf $(OUT) $(BUILDDIR) $(V_DIR) $(LOG)
 
-#-include $(deps)
+-include $(deps)
