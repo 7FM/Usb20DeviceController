@@ -7,6 +7,8 @@
 #include "Vsim_usb_rx.h"       // basic Top header
 #include "Vsim_usb_rx__Syms.h" // all headers to access exposed internal signals
 
+#include "usb_encoding_utils.hpp" // Utils to create a usb packet
+
 #ifndef PHASE_LENGTH
 #define PHASE_LENGTH 5
 #endif
@@ -14,7 +16,6 @@
 #define USB_SIGNAL_LENGTH 4
 #endif
 
-#define BIT_STUFF_AFTER_X_ONES 6
 #define APPLY_USB_SIGNAL_ON_RISING_EDGE 0
 
 static Vsim_usb_rx *ptop = nullptr; // Instantiation of module
@@ -70,125 +71,7 @@ static void sanityChecks() {
 
 /******************************************************************************/
 
-template <std::size_t N>
-struct USBSignal {
-    constexpr USBSignal() : dp(), dn() {}
-
-    static constexpr std::size_t size = N;
-    uint8_t dp[N];
-    uint8_t dn[N];
-};
-
-static constexpr bool needsBitStuffing(uint8_t &oneCounter, uint8_t dataBit) {
-    if (dataBit == 1) {
-        ++oneCounter;
-        if (oneCounter >= BIT_STUFF_AFTER_X_ONES) {
-            oneCounter = 0;
-            return true;
-        }
-    } else {
-        oneCounter = 0;
-    }
-    return false;
-}
-
-template <uint8_t... dataBytes>
-static constexpr int requiredBitStuffings() {
-    int requiredBitStuffing = 0;
-    uint8_t ones = 0;
-
-    for (uint8_t data : {dataBytes...}) {
-        for (int i = 0; i < sizeof(data) * 8; ++i) {
-
-            if (needsBitStuffing(ones, data & 1)) {
-                ++requiredBitStuffing;
-            }
-
-            // Next data bit
-            data >>= 1;
-        }
-    }
-
-    return requiredBitStuffing;
-}
-
-static constexpr void applyNrziEncode(uint8_t &nrziEncoderState, uint8_t dataBit, uint8_t *dp, uint8_t *dn) {
-    // XNOR first bit
-    nrziEncoderState = 1 ^ (nrziEncoderState ^ dataBit);
-
-    *dp = nrziEncoderState;
-    *dn = 1 ^ nrziEncoderState;
-}
-
-// Source: https://stackoverflow.com/questions/5438671/static-assert-on-initializer-listsize
-template <uint8_t... dataBytes>
-static constexpr auto nrziEncode(uint8_t initialOneCount = 1, uint8_t encoderStartState = 0) {
-
-    // Set size to upper bound -> #bits + #bits/6 to account for bitstuffing too
-    USBSignal<sizeof...(dataBytes) * sizeof(uint8_t) * 8 + requiredBitStuffings<dataBytes...>()> signal;
-    int signalIdx = 0;
-
-    int requiredBitStuffings = 0;
-    uint8_t bitStuffingOneCounter = initialOneCount;
-    uint8_t nrziEncoderState = encoderStartState;
-
-    for (uint8_t data : {dataBytes...}) {
-        for (int i = 0; i < sizeof(data) * 8; ++i, ++signalIdx) {
-
-            uint8_t dataBit = data & 1;
-            // Next data bit
-            data >>= 1;
-
-            applyNrziEncode(nrziEncoderState, dataBit, signal.dp + signalIdx, signal.dn + signalIdx);
-
-            if (needsBitStuffing(bitStuffingOneCounter, dataBit)) {
-                // If the allowed amount of consecutive one's are exceeded a 0 needs to be stuffed into the signal!
-                ++signalIdx;
-                applyNrziEncode(nrziEncoderState, 0, signal.dp + signalIdx, signal.dn + signalIdx);
-            }
-        }
-    }
-
-    return signal;
-}
-
-template <class... SignalPart>
-static constexpr int determineSignalLength(const SignalPart &...signalParts) {
-    return (0 + ... + signalParts.size);
-}
-
-template <class SignalPart, std::size_t N>
-static constexpr void constructSignalHelper(const SignalPart &signalPart, int &idx, std::array<uint8_t, N> &storage) {
-    for (int j = 0; j < signalPart.size; ++j) {
-        storage[idx++] = signalPart.dp[j];
-        storage[idx++] = signalPart.dn[j];
-    }
-}
-
-template <class... SignalPart>
-static constexpr auto constructSignal(const SignalPart &...signalParts) {
-    std::array<uint8_t, determineSignalLength(signalParts...) * 2> signal{};
-
-    int i = 0;
-    (constructSignalHelper(signalParts, i, signal), ...);
-
-    return signal;
-}
-
-static constexpr auto createEOPSignal() {
-    USBSignal<3> signal;
-
-    signal.dp[0] = signal.dn[0] = signal.dp[1] = signal.dn[1] = 0;
-    signal.dp[2] = 1;
-    signal.dn[2] = 0;
-
-    return signal;
-}
-
-static constexpr auto usbSyncSignal = nrziEncode<static_cast<uint8_t>(0b1000'0000)>(0, 1);
-static constexpr auto usbEOPSignal = createEOPSignal();
-
-static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<static_cast<uint8_t>(0b1000'0111), static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
+static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<PID_DATA0, static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
 
 int signalIdx;
 uint8_t delayCnt;
