@@ -62,7 +62,8 @@ deps := $(call rwildcard,$(V_DIR),*.d)
 
 syn_target := $(BUILDDIR)/$(TOP_MODULE).json
 
-CCFLAGS := -g -ffast-math -Wall -O3 -I$(SIM_SRC)
+PWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+CCFLAGS := -g -ffast-math -Wall -O3 -I$(PWD)$(SIM_SRC)
 #ifeq ($(OS),Windows_NT)
 #  LDFLAGS := -lmingw32 -lSDL2main -lSDL2
 #else
@@ -113,19 +114,18 @@ sim_$(sim_top): $$(V_DIR)/$(sim_top)/Vsim_$(sim_top).mk $$(SIM_SRC)/sim_$(sim_to
 	@make -j$$(shell nproc) -C $$(V_DIR)/$(sim_top) -f Vsim_$(sim_top).mk Vsim_$(sim_top)
 	@echo "============================================================================================"
 
-$$(V_DIR)/$(sim_top)/Vsim_$(sim_top).mk: $$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$(SIM_SRC)/$(sim_top),*.cpp) $$(srcs)
+$$(V_DIR)/$(sim_top)/Vsim_$(sim_top).mk: $(call rwildcard,$(SIM_SRC)/$(sim_top),*.cpp) $$(srcs)
 	@mkdir -p $$(V_DIR)/$(sim_top)
 	@mkdir -p $$(V_DIR)/$(sim_top)/$$(SIM_SRC)
-	@cp $$< $$(V_DIR)/$(sim_top)/$$(SIM_SRC)
 	$$(VERILATOR) -j $$(shell nproc) \
 		-Wall -Werror-IMPLICIT -Werror-PINMISSING \
 		--MMD --MP $$(SIM_DEFS) \
 	 	--Mdir $$(V_DIR)/$(sim_top) --cc -O3 \
 		$$(if $$(PROFILE),--stats --stats-vars --profile-cfuncs,) \
-		-CFLAGS "$$(CCFLAGS)$$(if $$(PROFILE), -g -pg,) -I$$(SIM_SRC)/$(sim_top)" \
+		-CFLAGS "$$(CCFLAGS)$$(if $$(PROFILE), -g -pg,) -I$$(PWD)$$(SIM_SRC)/$(sim_top)" \
 	 	-LDFLAGS "$$(LDFLAGS)$$(if $$(PROFILE), -g -pg,)" \
 		-I$$(SRC) -I$$(INCLUDE_DIR) \
-		--exe $$< $(call rwildcard,$$(SIM_SRC)/$(sim_top),*.cpp) \
+		--exe $$(PWD)$$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$$(PWD)$$(SIM_SRC)/$(sim_top),*.cpp) \
 		-sv --top-module sim_$(sim_top) --trace --trace-structs $$(srcs) || true
 	@echo "============================================================================================"
 endef
