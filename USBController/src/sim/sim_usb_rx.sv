@@ -42,10 +42,26 @@ module sim_usb_rx (
         .dataInN(dataInN)
     );
 
+    logic rxClkGenRST;
+    // TODO we could only reset on switch to receive mode!
+    // -> this would allow us to reuse the clk signal for transmission too!
+    // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
+    assign rxClkGenRST = outEN_reg; //TODO change the rst -> then it can be used for tx as well!
+    logic rxClk12;
+
+    DPPL #() asyncRxCLK (
+        .clk48(CLK),
+        .RST(rxClkGenRST),
+        .a(dataInP),
+        .b(dataInP_negedge),
+        .readCLK12(rxClk12)
+    );
+
     usb_rx uut(
         .clk48(CLK),
+        .receiveCLK(rxClk12),
+
         .dataInP(dataInP),
-        .dataInP_negedge(dataInP_negedge),
         .dataInN(dataInN),
         .outEN_reg(outEN_reg),
         .ACK_USB_RST(ACK_USB_RST),

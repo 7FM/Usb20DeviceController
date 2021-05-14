@@ -3,8 +3,9 @@
 
 module usb_rx#()(
     input logic clk48,
+    input logic receiveCLK,
+
     input logic dataInP,
-    input logic dataInP_negedge,
     input logic dataInN,
     input logic outEN_reg,
     input logic ACK_USB_RST,
@@ -49,7 +50,6 @@ module usb_rx#()(
     logic dropPacket; // Drop reason might be i.e. receive errors!
 
     // Current signals
-    logic receiveCLK;
     logic nrziDecodedInput;
     logic [7:0] inputBuf;
     logic inputBufFull;
@@ -138,7 +138,6 @@ module usb_rx#()(
     logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
     logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
-    logic receiveClkGenRST;
 
 
 `ifdef USE_DEBUG_LEDS
@@ -155,12 +154,6 @@ module usb_rx#()(
     end
 `endif
 
-    // TODO we could only reset on switch to receive mode!
-    // -> this would allow us to reuse the clk signal for transmission too!
-    // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
-    //TODO is an reset needed before starting receive?
-    //TODO rxState == RX_RST_DPLL is probably breaking as another clock is required to trigger the final state transition back to the wait state
-    assign receiveClkGenRST = outEN_reg /*|| rxState == RX_RST_DPLL*/;
     //TODO is a RST even needed? sync signal should automagically cause the required resets
     assign rxBitUnstuffingReset = 1'b0;
 
@@ -303,14 +296,6 @@ module usb_rx#()(
         .eop(eopDetected),
         .usb_reset(usbResetDetect),
         .ACK_USB_RST(ACK_USB_RST)
-    );
-
-    DPPL #() asyncRxCLK (
-        .clk48(clk48),
-        .RST(receiveClkGenRST),
-        .a(dataInP),
-        .b(dataInP_negedge),
-        .readCLK12(receiveCLK)
     );
 
     nrzi_decoder nrziDecoder(
