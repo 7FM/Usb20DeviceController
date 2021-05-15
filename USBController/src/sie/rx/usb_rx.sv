@@ -346,8 +346,8 @@ module usb_rx#()(
 
     logic useCRC5;
     // Needs thight timing -> use input buffer directly
-    // CRC5 is only used for token packets -> identified by 2 lsb bits
-    assign useCRC5 = inputBuf[1:0] == 2'b01;
+    // CRC5 is only used for token packets -> identified by 2 lsb bits, which are at this stage not yet at the lsb location
+    assign useCRC5 = inputBuf[2:1] == 2'b01;
 
     //TODO reuse
     usb_crc crcEngine (
