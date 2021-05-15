@@ -1,17 +1,18 @@
 [*]
 [*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
-[*] Sat May 15 11:35:34 2021
+[*] Sat May 15 13:16:32 2021
 [*]
 [dumpfile] "/home/deppian/hdl_revival/USBController/deadBeefRxReceive.vcd"
-[dumpfile_mtime] "Sat May 15 11:32:08 2021"
-[dumpfile_size] 47805
+[dumpfile_mtime] "Sat May 15 12:55:32 2021"
+[dumpfile_size] 47990
 [savefile] "/home/deppian/hdl_revival/USBController/usb_rx_signals.gtkw"
-[timestart] 2589
+[timestart] 564
 [size] 1854 911
-[pos] -51 -51
-*-6.000000 2761 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[pos] -1 -1
+*-6.000000 711 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.sim_usb_rx.
+[treeopen] TOP.sim_usb_rx.uut.
 [sst_width] 228
 [signals_width] 301
 [sst_expanded] 1
@@ -20,9 +21,8 @@
 TOP.CLK
 TOP.sim_usb_rx.uut_input.dataInP
 TOP.sim_usb_rx.uut_input.dataInN
-@29
 TOP.sim_usb_rx.asyncRxCLK.readCLK12
-@28
+[color] 2
 TOP.sim_usb_rx.uut.eopDetected
 TOP.sim_usb_rx.uut.keepPacket
 TOP.sim_usb_rx.uut.byteWasNotReceived
@@ -31,7 +31,6 @@ TOP.sim_usb_rx.uut.dropPacket
 TOP.sim_usb_rx.uut.receiveBitStuffingError
 TOP.sim_usb_rx.uut.isValidDPSignal
 TOP.sim_usb_rx.uut.pidValid
-TOP.sim_usb_rx.uut.isValidCRC
 TOP.sim_usb_rx.uut.lastByteValidCRC
 TOP.sim_usb_rx.uut.usbResetDetect
 @22
@@ -39,6 +38,7 @@ TOP.sim_usb_rx.uut.rxPID[3:0]
 @28
 TOP.sim_usb_rx.uut.rxState[1:0]
 TOP.sim_usb_rx.uut.syncDetect
+[color] 3
 TOP.sim_usb_rx.uut.inputBufFull
 TOP.sim_usb_rx.uut.inputBuf[7:0]
 TOP.sim_usb_rx.uut.inputBufRescue[7:0]
@@ -46,11 +46,19 @@ TOP.sim_usb_rx.uut.inputBufDelay1[7:0]
 TOP.sim_usb_rx.uut.inputBufDelay2[7:0]
 TOP.sim_usb_rx.uut.rxData[7:0]
 TOP.sim_usb_rx.uut.rxDataValid
-@22
-TOP.sim_usb_rx.uut.isDataShiftReg[3:0]
-@28
 TOP.sim_usb_rx.uut.rxIsLastByte
 @22
+TOP.sim_usb_rx.uut.isDataShiftReg[3:0]
 TOP.sim_usb_rx.uut.isLastShiftReg[3:0]
+@28
+TOP.sim_usb_rx.uut.crcEngine.crcBuf[15:0]
+TOP.sim_usb_rx.uut.crcEngine.useCRC5
+@29
+TOP.sim_usb_rx.uut.rxCRCReset
+@28
+TOP.sim_usb_rx.uut.isValidCRC
+TOP.sim_usb_rx.uut.crcEngine.crcX_in
+TOP.sim_usb_rx.uut.nrziDecodedInput
+TOP.sim_usb_rx.uut.nonBitStuffedInput
 [pattern_trace] 1
 [pattern_trace] 0
