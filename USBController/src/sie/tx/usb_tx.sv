@@ -58,12 +58,13 @@ module usb_tx#()(
     assign txStateAdd1 = txState + 1;
     logic [15:0] reversedCRC16, crc16; 
     logic [4:0] crc5;
-    logic useCRC5, useCRC16;
+    logic useCRC16;
     logic noDataAndCrcStage;
 
-    assign useCRC16 = txPID[1:0] == 2'b11; // Only Data Packets use CRC16!
-    assign useCRC5 = ~useCRC16; // Otherwise CRC5 or no CRC at all!
-    assign noDataAndCrcStage = txPID[1:0] == 2'b10 || txPID == sie_defs_pkg::PID_SPECIAL_PRE__ERR; // Either a Handshake or ERR/PRE
+    // Only Data Packets use CRC16!
+    assign useCRC16 = txPID[1:0] == sie_defs_pkg::PID_DATA0[1:0];
+    // Either a Handshake or ERR/PRE
+    assign noDataAndCrcStage = txPID[1:0] == sie_defs_pkg::PID_HANDSHAKE_ACK[1:0] || txPID == sie_defs_pkg::PID_SPECIAL_PRE__ERR;
     assign crc16 = {reversedCRC16[0], reversedCRC16[1], reversedCRC16[2], reversedCRC16[3], reversedCRC16[4], reversedCRC16[5], reversedCRC16[6], reversedCRC16[7], reversedCRC16[8], reversedCRC16[9], reversedCRC16[10], reversedCRC16[11], reversedCRC16[12], reversedCRC16[13], reversedCRC16[14], reversedCRC16[15]};
     assign crc5 = {reversedCRC16[0], reversedCRC16[1], reversedCRC16[2], reversedCRC16[3], reversedCRC16[4]};
 
@@ -251,9 +252,15 @@ module usb_tx#()(
     usb_crc crcEngine (
         .clk12(transmitCLK),
         //TODO we need to exclude undesired fields too: might be controlled with the rst signal
+        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
+        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
+        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
+        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
+        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
+        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
         .RST(txState == TX_SEND_PID), // Required at every new packet, can be a wire
         .VALID(txNoBitStuffingNeeded), // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-        .crc5_or_16(useCRC5),
+        .rxUseCRC16(useCRC16),
         .data(txSerializerOut),
         .crc(reversedCRC16),
         .validCRC() // This pin is unused for tx purposes

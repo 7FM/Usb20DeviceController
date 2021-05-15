@@ -344,10 +344,11 @@ module usb_rx#()(
         .isValid(pidValid)
     );
 
-    logic useCRC5;
+    logic useCRC16;
     // Needs thight timing -> use input buffer directly
-    // CRC5 is only used for token packets -> identified by 2 lsb bits, which are at this stage not yet at the lsb location
-    assign useCRC5 = inputBuf[2:1] == 2'b01;
+    // Only Data Packets use CRC16!
+    // Packet types are identifyable by 2 lsb bits, which are at this stage not yet at the lsb location
+    assign useCRC16 = inputBuf[2:1] == sie_defs_pkg::PID_DATA0[1:0];
 
     //TODO reuse
     usb_crc crcEngine (
@@ -355,7 +356,7 @@ module usb_rx#()(
         .RST(rxCRCReset), // Required at every new packet, can be a wire
         //TODO we need to exclude undesired fields too: this might already work as PID fields are excluded by design of the RST signal being high during PID reception
         .VALID(nonBitStuffedInput), // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-        .crc5_or_16(useCRC5), // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
+        .rxUseCRC16(useCRC16), // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
         .data(nrziDecodedInput),
         .validCRC(isValidCRC),
         .crc() //TODO only needed for transmission also ensure that it will be send in revere order (MSb first)!

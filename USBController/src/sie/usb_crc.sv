@@ -4,18 +4,18 @@ module usb_crc(
     input logic clk12,
     input logic RST, // Required at every new packet, can be a wire
     input logic VALID, // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-    input logic crc5_or_16, // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
+    input logic rxUseCRC16, // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
     input logic data,
     output logic validCRC,
     output logic [15:0] crc
 );
 
     logic [15:0] crcBuf;
-    logic useCRC5, crc5_in, crc16_in, crcX_in, crc5_valid, crc16_valid;
+    logic useCRC16, crc5_in, crc16_in, crcX_in, crc5_valid, crc16_valid;
 
     assign crc5_in = crcBuf[4] ^ data;
     assign crc16_in = crcBuf[15] ^ data;
-    assign crcX_in = useCRC5 ? crc5_in : crc16_in;
+    assign crcX_in = useCRC16 ? crc16_in : crc5_in;
 
     //TODO wtf this is send in MSb and not LSb as all other fields!
     // When the last bit of the checked field is sent, the CRC in the generator is inverted and sent to the checker MSb first
@@ -26,7 +26,7 @@ module usb_crc(
     localparam crc5_residual = 5'b0_1100;
     assign crc16_valid = crcBuf[15:0] == crc16_residual;
     assign crc5_valid = crcBuf[4:0] == crc5_residual;
-    assign validCRC = useCRC5 ? crc5_valid : crc16_valid;
+    assign validCRC = useCRC16 ? crc16_valid : crc5_valid;
 
     always_ff @(posedge clk12) begin
         // CRC calculation magic:
@@ -36,7 +36,7 @@ module usb_crc(
         // that XOR is one, then the remainder is XORed with the generator polynomial.
         if (RST) begin
             crcBuf <= {16{1'b1}};
-            useCRC5 <= crc5_or_16;
+            useCRC16 <= rxUseCRC16;
         end else if (VALID) begin
             // Shift and XOR with polynomial if crcX_in is 1 -> XOR with crcX_in
             // CRC5  polynomial: 0b0000_0000_0000_0101
