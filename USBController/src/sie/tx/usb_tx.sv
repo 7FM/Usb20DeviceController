@@ -38,7 +38,8 @@ module usb_tx#()(
     // State registers: one per line
     sie_defs_pkg::PID_Types txPID, next_txPID;
     TxStates txState, next_txState, txStateAdd1;
-    logic [7:0] txDataSerializerIn, txDataBufNewByte, next_txDataBufNewByte;
+    logic [7:0] txDataSerializerIn;
+    logic [7:0] txDataBufNewByte, next_txDataBufNewByte;
     logic txHasDataFetched, next_txHasDataFetched;
     logic txFetchedDataIsLast, next_txFetchedDataIsLast;
 
@@ -78,7 +79,7 @@ module usb_tx#()(
 
     logic txRstModules;
 
-    localparam TX_INIT_LATENCY = 4'd2; 
+    localparam TX_INIT_LATENCY = 4'd2;
     //TODO due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
     assign sending = txState > TX_WAIT_SEND_REQ + TX_INIT_LATENCY;
     assign txRstModules = txState == TX_WAIT_SEND_REQ;
