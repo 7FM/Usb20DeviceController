@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <getopt.h>
 #include <iostream> // Need std::cout
+#include <vector>
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
@@ -73,8 +74,8 @@ static void sanityChecks() {
 
 static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<true, PID_DATA0, static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
 
-int signalIdx;
-uint8_t delayCnt;
+static int signalIdx;
+static uint8_t delayCnt;
 
 static void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
     if (signalIdx + 1 < arraySize) {
@@ -86,13 +87,42 @@ static void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
     }
 }
 
+static std::vector<uint8_t> receivedData;
+static bool receivedLastByte = false;
+static bool keepPacket = false;
+static uint8_t acceptAfterXAvailableCycles = 5;
+static uint8_t delayedDataAccept = 0;
+
 static void receiveDeserializedInput() {
-    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
-    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
-    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
-    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
-    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
-    //TODO implement handshake procedure and store read data for a final validation that data was correctly received!
+    if (ptop->rxAcceptNewData && ptop->rxDataValid) {
+        receivedData.push_back(ptop->rxData);
+
+        if (ptop->rxIsLastByte) {
+            if (receivedLastByte) {
+                std::cerr << "Error: received bytes after last signal was set!" << std::endl;
+            } else {
+                keepPacket = ptop->keepPacket;
+                std::cout << "Received last byte! Overall packet size: " << receivedData.size() << std::endl;
+                std::cout << "Usb RX module keepPacket: " << keepPacket << std::endl;
+            }
+            receivedLastByte = true;
+        }
+
+        ptop->rxAcceptNewData = 0;
+        delayedDataAccept = 0;
+
+        // Increase accept delay to have some variance, but this will cause problems for very long transmissions!
+        ++acceptAfterXAvailableCycles;
+    } else {
+        if (ptop->rxDataValid) {
+            // New data is available but wait for x cycles before accepting!
+            if (acceptAfterXAvailableCycles == delayedDataAccept) {
+                ptop->rxAcceptNewData = 1;
+            }
+
+            ++delayedDataAccept;
+        }
+    }
 }
 
 /******************************************************************************/
@@ -183,6 +213,11 @@ int main(int argc, char **argv) {
         delete tfp;
 
     delete ptop;
+
+    std::cout << "Received Data:" << std::endl;
+    for (uint8_t data : receivedData) {
+        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+    }
 
     return 0;
 }
