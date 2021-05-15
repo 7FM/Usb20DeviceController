@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <iostream>
 #include <stdexcept>
+#include <vector>
 
 #define BIT_STUFF_AFTER_X_ONES 6
 
@@ -289,3 +291,33 @@ static constexpr auto createEOPSignal() {
 
 constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'0000)>(0, 1);
 constexpr auto usbEOPSignal = createEOPSignal();
+
+template <typename T>
+void receiveDeserializedInput(T ptop, std::vector<uint8_t> &receivedData, bool &receivedLastByte, bool &keepPacket, uint8_t &delayedDataAccept, uint8_t acceptAfterXAvailableCycles) {
+    if (ptop->rxAcceptNewData && ptop->rxDataValid) {
+        receivedData.push_back(ptop->rxData);
+
+        if (ptop->rxIsLastByte) {
+            if (receivedLastByte) {
+                std::cerr << "Error: received bytes after last signal was set!" << std::endl;
+            } else {
+                keepPacket = ptop->keepPacket;
+                std::cout << "Received last byte! Overall packet size: " << receivedData.size() << std::endl;
+                std::cout << "Usb RX module keepPacket: " << keepPacket << std::endl;
+            }
+            receivedLastByte = true;
+        }
+
+        ptop->rxAcceptNewData = 0;
+        delayedDataAccept = 0;
+    } else {
+        if (ptop->rxDataValid) {
+            // New data is available but wait for x cycles before accepting!
+            if (acceptAfterXAvailableCycles == delayedDataAccept) {
+                ptop->rxAcceptNewData = 1;
+            }
+
+            ++delayedDataAccept;
+        }
+    }
+}

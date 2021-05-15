@@ -1,11 +1,12 @@
 #include <cstdint>
 #include <getopt.h>
-#include <iostream> // Need std::cout
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
 #include "Vsim_usb_tx.h"       // basic Top header
 #include "Vsim_usb_tx__Syms.h" // all headers to access exposed internal signals
+
+#include "common/usb_utils.hpp" // Utils to create & read a usb packet
 
 #ifndef PHASE_LENGTH
 #define PHASE_LENGTH 5
@@ -15,6 +16,8 @@ static Vsim_usb_tx *ptop = nullptr; // Instantiation of module
 static VerilatedVcdC *tfp = nullptr;
 
 static vluint64_t main_time = 0; // Current simulation time
+
+static bool stopCondition();
 
 static void sanityChecks();
 static void onRisingEdge();
@@ -41,8 +44,10 @@ static void tick(int count, bool dump) {
 
 /******************************************************************************/
 
-static void run(uint64_t limit, bool dump = true) {
+static void run(uint64_t limit, bool dump, bool checkStopCondition = true) {
+    bool stop;
     do {
+        stop = checkStopCondition && stopCondition();
         ptop->CLK = 1;
         onRisingEdge();
         tick(PHASE_LENGTH, dump);
@@ -50,20 +55,36 @@ static void run(uint64_t limit, bool dump = true) {
         onFallingEdge();
         tick(PHASE_LENGTH, dump);
         sanityChecks();
-    } while (--limit);
+    } while (--limit && !stop);
 }
 
 /******************************************************************************/
 static void reset() {
-    // this module has nothing to reset
+    ptop->reqSendPacket = 0;
+    ptop->txIsLastByte = 0;
+    ptop->txDataValid = 0;
+    ptop->txData = 0;
+    ptop->rxAcceptNewData = 0;
 }
 
 /******************************************************************************/
 
+// Usb data receive state variables
+static std::vector<uint8_t> receivedData;
+static bool receivedLastByte = false;
+static bool keepPacket = false;
+static constexpr uint8_t acceptAfterXAvailableCycles = 5;
+static uint8_t delayedDataAccept = 0;
+
 static void sanityChecks() {
 }
 
+static bool stopCondition() {
+    return receivedLastByte;
+}
+
 static void onRisingEdge() {
+    receiveDeserializedInput(ptop, receivedData, receivedLastByte, keepPacket, delayedDataAccept, acceptAfterXAvailableCycles);
 }
 
 static void onFallingEdge() {
@@ -108,8 +129,10 @@ int main(int argc, char **argv) {
     if (start) {
         run(start, false);
     }
-    // Only dump transistion lines to new frame
-    run(800 * (525 + 1 - 479), true);
+    // Execute till stop condition
+    run(0, true);
+    // Execute a few more cycles
+    run(4 * 10, true, false);
 
     if (tfp)
         tfp->close();

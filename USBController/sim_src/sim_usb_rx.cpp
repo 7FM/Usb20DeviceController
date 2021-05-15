@@ -1,14 +1,12 @@
 #include <cstdint>
 #include <getopt.h>
-#include <iostream> // Need std::cout
-#include <vector>
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
 #include "Vsim_usb_rx.h"       // basic Top header
 #include "Vsim_usb_rx__Syms.h" // all headers to access exposed internal signals
 
-#include "usb_encoding_utils.hpp" // Utils to create a usb packet
+#include "common/usb_utils.hpp" // Utils to create & read a usb packet
 
 #ifndef PHASE_LENGTH
 #define PHASE_LENGTH 5
@@ -87,52 +85,21 @@ static void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
     }
 }
 
+// Usb data receive state variables
 static std::vector<uint8_t> receivedData;
 static bool receivedLastByte = false;
 static bool keepPacket = false;
-static uint8_t acceptAfterXAvailableCycles = 5;
+static constexpr uint8_t acceptAfterXAvailableCycles = 5;
 static uint8_t delayedDataAccept = 0;
-
-static void receiveDeserializedInput() {
-    if (ptop->rxAcceptNewData && ptop->rxDataValid) {
-        receivedData.push_back(ptop->rxData);
-
-        if (ptop->rxIsLastByte) {
-            if (receivedLastByte) {
-                std::cerr << "Error: received bytes after last signal was set!" << std::endl;
-            } else {
-                keepPacket = ptop->keepPacket;
-                std::cout << "Received last byte! Overall packet size: " << receivedData.size() << std::endl;
-                std::cout << "Usb RX module keepPacket: " << keepPacket << std::endl;
-            }
-            receivedLastByte = true;
-        }
-
-        ptop->rxAcceptNewData = 0;
-        delayedDataAccept = 0;
-
-        // Increase accept delay to have some variance, but this will cause problems for very long transmissions!
-        ++acceptAfterXAvailableCycles;
-    } else {
-        if (ptop->rxDataValid) {
-            // New data is available but wait for x cycles before accepting!
-            if (acceptAfterXAvailableCycles == delayedDataAccept) {
-                ptop->rxAcceptNewData = 1;
-            }
-
-            ++delayedDataAccept;
-        }
-    }
-}
 
 /******************************************************************************/
 
 static bool stopCondition() {
-    return signalIdx >= signalToReceive.size() && ptop->rxIsLastByte;
+    return signalIdx >= signalToReceive.size() && receivedLastByte;
 }
 
 static void onRisingEdge() {
-    receiveDeserializedInput();
+    receiveDeserializedInput(ptop, receivedData, receivedLastByte, keepPacket, delayedDataAccept, acceptAfterXAvailableCycles);
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
     applyUsbSignal(signalToReceive.data(), signalToReceive.size());
 #endif
