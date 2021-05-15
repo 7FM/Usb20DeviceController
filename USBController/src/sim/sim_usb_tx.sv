@@ -4,8 +4,7 @@
 module sim_usb_tx (
     input logic CLK,
 
-    // Data send interface
-    // synced with slower 12MHz domain!
+    // Data send interface: synced with clk48!
     input logic reqSendPacket,
     output logic txAcceptNewData,
     input logic txIsLastByte,
