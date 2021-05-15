@@ -292,32 +292,76 @@ static constexpr auto createEOPSignal() {
 constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'0000)>(0, 1);
 constexpr auto usbEOPSignal = createEOPSignal();
 
+typedef struct {
+    std::vector<uint8_t> receivedData;
+    bool receivedLastByte = false;
+    bool keepPacket = false;
+    uint8_t delayedDataAccept = 0;
+    const uint8_t acceptAfterXAvailableCycles = 5;
+} UsbReceiveState;
+
 template <typename T>
-void receiveDeserializedInput(T ptop, std::vector<uint8_t> &receivedData, bool &receivedLastByte, bool &keepPacket, uint8_t &delayedDataAccept, uint8_t acceptAfterXAvailableCycles) {
+void receiveDeserializedInput(T ptop, UsbReceiveState& usbRxState) {
     if (ptop->rxAcceptNewData && ptop->rxDataValid) {
-        receivedData.push_back(ptop->rxData);
+        usbRxState.receivedData.push_back(ptop->rxData);
 
         if (ptop->rxIsLastByte) {
-            if (receivedLastByte) {
+            if (usbRxState.receivedLastByte) {
                 std::cerr << "Error: received bytes after last signal was set!" << std::endl;
             } else {
-                keepPacket = ptop->keepPacket;
-                std::cout << "Received last byte! Overall packet size: " << receivedData.size() << std::endl;
-                std::cout << "Usb RX module keepPacket: " << keepPacket << std::endl;
+                usbRxState.keepPacket = ptop->keepPacket;
+                std::cout << "Received last byte! Overall packet size: " << usbRxState.receivedData.size() << std::endl;
+                std::cout << "Usb RX module keepPacket: " << usbRxState.keepPacket << std::endl;
             }
-            receivedLastByte = true;
+            usbRxState.receivedLastByte = true;
         }
 
         ptop->rxAcceptNewData = 0;
-        delayedDataAccept = 0;
+        usbRxState.delayedDataAccept = 0;
     } else {
         if (ptop->rxDataValid) {
             // New data is available but wait for x cycles before accepting!
-            if (acceptAfterXAvailableCycles == delayedDataAccept) {
+            if (usbRxState.acceptAfterXAvailableCycles == usbRxState.delayedDataAccept) {
                 ptop->rxAcceptNewData = 1;
             }
 
-            ++delayedDataAccept;
+            ++usbRxState.delayedDataAccept;
         }
+    }
+}
+
+typedef struct {
+    std::vector<uint8_t> dataToSend;
+    std::size_t transmitIdx = 0;
+    bool requestedSendPacket = false;
+} UsbTransmitState;
+
+template <typename T>
+void feedTransmitSerializer(T ptop, UsbTransmitState& usbTxState) {
+    if (usbTxState.requestedSendPacket) {
+        ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
+        ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
+
+        if (ptop->rxAcceptNewData) {
+            // clear send packet request, once send data is requested
+            // else we might trigger several packet sends which is illegal
+            ptop->reqSendPacket = 0;
+
+            if (ptop->txDataValid) {
+                // Triggered Handshake!
+                ptop->txDataValid = 0;
+                // Update index of data that should be send!
+                if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
+                    ++usbTxState.transmitIdx;
+                }
+            } else {
+                // Data was requested but not yet signaled that txData is valid, lets change the later
+                ptop->txDataValid = 1;
+            }
+        }
+    } else {
+        // Start send packet request
+        usbTxState.requestedSendPacket = true;
+        ptop->reqSendPacket = 1;
     }
 }

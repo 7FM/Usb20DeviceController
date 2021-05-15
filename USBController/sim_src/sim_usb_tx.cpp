@@ -60,31 +60,31 @@ static void run(uint64_t limit, bool dump, bool checkStopCondition = true) {
 
 /******************************************************************************/
 static void reset() {
+    // Data send/transmit interface
     ptop->reqSendPacket = 0;
     ptop->txIsLastByte = 0;
     ptop->txDataValid = 0;
     ptop->txData = 0;
+    // Data receive interface
     ptop->rxAcceptNewData = 0;
 }
 
 /******************************************************************************/
 
 // Usb data receive state variables
-static std::vector<uint8_t> receivedData;
-static bool receivedLastByte = false;
-static bool keepPacket = false;
-static constexpr uint8_t acceptAfterXAvailableCycles = 5;
-static uint8_t delayedDataAccept = 0;
+static UsbReceiveState rxState;
+static UsbTransmitState txState;
 
 static void sanityChecks() {
 }
 
 static bool stopCondition() {
-    return receivedLastByte;
+    return rxState.receivedLastByte;
 }
 
 static void onRisingEdge() {
-    receiveDeserializedInput(ptop, receivedData, receivedLastByte, keepPacket, delayedDataAccept, acceptAfterXAvailableCycles);
+    receiveDeserializedInput(ptop, rxState);
+    feedTransmitSerializer(ptop, txState);
 }
 
 static void onFallingEdge() {
@@ -126,11 +126,28 @@ int main(int argc, char **argv) {
     // start things going
     reset();
 
+    txState.dataToSend.push_back(PID_DATA0);
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
+    // Ensure that at least one bit stuffing is required!
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+
     if (start) {
         run(start, false);
     }
     // Execute till stop condition
-    run(0, true);
+    //run(0, true);
+    //TODO no data is retrieved! Find out WHY
+    //TODO no data is retrieved! Find out WHY
+    //TODO no data is retrieved! Find out WHY
+    //TODO no data is retrieved! Find out WHY
+    // Upper bound: 2000 Cycles
+    run(2000, true);
+    //TODO no data is retrieved! Find out WHY
+    //TODO no data is retrieved! Find out WHY
+    //TODO no data is retrieved! Find out WHY
     // Execute a few more cycles
     run(4 * 10, true, false);
 
@@ -143,6 +160,11 @@ int main(int argc, char **argv) {
         delete tfp;
 
     delete ptop;
+
+    std::cout << "Received Data:" << std::endl;
+    for (uint8_t data : rxState.receivedData) {
+        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+    }
 
     return 0;
 }

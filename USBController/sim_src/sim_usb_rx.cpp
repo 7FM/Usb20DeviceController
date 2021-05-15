@@ -86,20 +86,16 @@ static void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
 }
 
 // Usb data receive state variables
-static std::vector<uint8_t> receivedData;
-static bool receivedLastByte = false;
-static bool keepPacket = false;
-static constexpr uint8_t acceptAfterXAvailableCycles = 5;
-static uint8_t delayedDataAccept = 0;
+static UsbReceiveState rxState;
 
 /******************************************************************************/
 
 static bool stopCondition() {
-    return signalIdx >= signalToReceive.size() && receivedLastByte;
+    return signalIdx >= signalToReceive.size() && rxState.receivedLastByte;
 }
 
 static void onRisingEdge() {
-    receiveDeserializedInput(ptop, receivedData, receivedLastByte, keepPacket, delayedDataAccept, acceptAfterXAvailableCycles);
+    receiveDeserializedInput(ptop, rxState);
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
     applyUsbSignal(signalToReceive.data(), signalToReceive.size());
 #endif
@@ -116,9 +112,9 @@ static void reset() {
     // Set inputs to valid states
     ptop->USB_DP = 1;
     ptop->USB_DN = 0;
+
     ptop->outEN_reg = 0;
     ptop->ACK_USB_RST = 0;
-    //TODO create handshake stuff
     ptop->rxAcceptNewData = 0;
 
     // Simulation state
@@ -182,7 +178,7 @@ int main(int argc, char **argv) {
     delete ptop;
 
     std::cout << "Received Data:" << std::endl;
-    for (uint8_t data : receivedData) {
+    for (uint8_t data : rxState.receivedData) {
         std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
     }
 
