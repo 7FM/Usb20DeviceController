@@ -22,8 +22,10 @@ module usb_crc(
     assign crc = ~crcBuf;
 
     // When the last bit of the CRC is received by the checker and no errors have occurred, the remainder will be equal to the polynomial residual.
-    assign crc16_valid = crcBuf[15:0] == 16'b1000_0000_0000_1101;
-    assign crc5_valid = crcBuf[4:0] == 5'b0_1100;
+    localparam crc16_residual = 16'b1000_0000_0000_1101;
+    localparam crc5_residual = 5'b0_1100;
+    assign crc16_valid = crcBuf[15:0] == crc16_residual;
+    assign crc5_valid = crcBuf[4:0] == crc5_residual;
     assign validCRC = useCRC5 ? crc5_valid : crc16_valid;
 
     always_ff @(posedge clk12) begin
