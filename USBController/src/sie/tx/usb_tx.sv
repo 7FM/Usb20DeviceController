@@ -38,7 +38,7 @@ module usb_tx#()(
     // State registers: one per line
     sie_defs_pkg::PID_Types txPID, next_txPID;
     TxStates txState, next_txState, txStateAdd1;
-    logic [7:0] txtxData, txtxDataNewByte, next_txtxDataNewByte;
+    logic [7:0] txDataSerializerIn, txDataBufNewByte, next_txDataBufNewByte;
     logic txHasDataFetched, next_txHasDataFetched;
     logic txFetchedDataIsLast, next_txFetchedDataIsLast;
 
@@ -46,7 +46,7 @@ module usb_tx#()(
         dataOutP_reg = 1'b1;
         dataOutN_reg = 1'b0;
 
-        //txPID and txtxDataNewByte are dont cares with the other states
+        //txPID and txDataBufNewByte are dont cares with the other states
         txState = TX_WAIT_SEND_REQ;
         txHasDataFetched = 1'b0;
         txFetchedDataIsLast = 1'b0;
@@ -78,7 +78,8 @@ module usb_tx#()(
 
     logic txRstModules;
 
-    localparam TX_INIT_LATENCY = 4'd2;  //TODO due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
+    localparam TX_INIT_LATENCY = 4'd2; 
+    //TODO due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
     assign sending = txState > TX_WAIT_SEND_REQ + TX_INIT_LATENCY;
     assign txRstModules = txState == TX_WAIT_SEND_REQ;
 
@@ -91,9 +92,9 @@ module usb_tx#()(
         next_txPID = txPID;
         txSendSingleEnded = 1'b0;
         txGotNewData = txReqNewData; // Trigger automatically if the buffer gets empty
-        txtxData = txtxDataNewByte;
+        txDataSerializerIn = txDataBufNewByte;
 
-        next_txtxDataNewByte = txtxDataNewByte;
+        next_txDataBufNewByte = txDataBufNewByte;
         next_txHasDataFetched = txHasDataFetched;
         next_txFetchedDataIsLast = txFetchedDataIsLast;
 
@@ -105,14 +106,14 @@ module usb_tx#()(
         // Data handshake condition
         if (txAcceptNewData && txDataValid) begin
             //next_txHasDataFetched = 1'b1;
-            next_txtxDataNewByte = txData;
+            next_txDataBufNewByte = txData;
             next_txFetchedDataIsLast = txIsLastByte;
         end
     
         // State transitions
         unique case (txState)
             TX_WAIT_SEND_REQ: begin
-                txtxData = sie_defs_pkg::SYNC_VALUE;
+                txDataSerializerIn = sie_defs_pkg::SYNC_VALUE;
                 // force load SYNC_VALUE to start sending a packet!
                 txGotNewData = reqSendPacket;
                 if (reqSendPacket) begin
@@ -120,8 +121,8 @@ module usb_tx#()(
                 end
             end
             TX_SEND_SYNC: begin
-                // As PID will be sent next, it should be safe to assume that it is currently in txtxDataNewByte or will be set during this time
-                next_txPID = txtxDataNewByte[3:0];
+                // As PID will be sent next, it should be safe to assume that it is currently in txDataBufNewByte or will be set during this time
+                next_txPID = txDataBufNewByte[3:0];
 
                 // We can continue after SYNC was sent
                 if (txReqNewData) begin
@@ -143,7 +144,7 @@ module usb_tx#()(
                         end else begin
                             // CRC5 needs special treatment as it needs 3 data bits
                             // We need to patch the data that will be read as the last byte already contains the crc5!
-                            txtxData = {crc5, txtxDataNewByte[2:0]};
+                            txDataSerializerIn = {crc5, txDataBufNewByte[2:0]};
                             next_txState = TX_SEND_CRC5;
                         end
                     end
@@ -151,9 +152,9 @@ module usb_tx#()(
             end
             TX_SEND_DATA_CRC16_TRANSITION: begin
                 // During this state the final byte will be sent -> hence we get our final crc value
-                next_txtxDataNewByte = crc16[15:8];
+                next_txDataBufNewByte = crc16[15:8];
                 // Start sending the lower crc16 byte
-                txtxData = crc16[7:0];
+                txDataSerializerIn = crc16[7:0];
 
                 if (txReqNewData) begin
                     next_txState = txStateAdd1;
@@ -164,7 +165,7 @@ module usb_tx#()(
                     // Lower crc16 byte was send
                     next_txState = txStateAdd1;
                     // Finally also send the second crc16 byte
-                    //txtxData = txtxDataNewByte;
+                    //txDataSerializerIn = txDataBufNewByte;
                 end
             end
             TX_SEND_CRC5: begin
@@ -217,7 +218,7 @@ module usb_tx#()(
         // Data interface
         txHasDataFetched <= next_txHasDataFetched;
         txFetchedDataIsLast <= next_txFetchedDataIsLast;
-        txtxDataNewByte <= next_txtxDataNewByte;
+        txDataBufNewByte <= next_txDataBufNewByte;
 
         // Output data
         dataOutP_reg <= txDataOut;
@@ -234,7 +235,7 @@ module usb_tx#()(
         .clk12(transmitCLK),
         .EN(txNoBitStuffingNeeded),
         .NEW_IN(txGotNewData),
-        .dataIn(txtxData),
+        .dataIn(txDataSerializerIn),
         .OUT(txSerializerOut),
         .bufferEmpty(txReqNewData)
     );
