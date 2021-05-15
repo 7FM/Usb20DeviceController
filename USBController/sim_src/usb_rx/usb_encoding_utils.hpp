@@ -167,7 +167,10 @@ static constexpr void applyNrziEncode(uint8_t &nrziEncoderState, uint8_t dataBit
 }
 
 template <uint8_t... dataBytes>
-static constexpr uint16_t constExprCRC(CRC_Type crcType) {
+constexpr uint16_t constExprCRC(CRC_Type crcType);
+
+template <uint8_t... dataBytes>
+constexpr uint16_t constExprCRC(CRC_Type crcType) {
     uint16_t crcState = 0;
     calculateCRC(true, crcState, crcType, 0, 8);
 
@@ -194,12 +197,12 @@ static constexpr uint16_t constExprCRC(CRC_Type crcType) {
 }
 
 template <>
-constexpr uint16_t constExprCRC(CRC_Type crcType) {
+constexpr uint16_t constExprCRC<>(CRC_Type crcType) {
     return 0;
 }
 
 // Source: https://stackoverflow.com/questions/5438671/static-assert-on-initializer-listsize
-template <uint8_t pid, uint8_t... dataBytes, bool considerCRC = true>
+template <bool considerCRC, uint8_t pid, uint8_t... dataBytes>
 constexpr auto nrziEncode(uint8_t initialOneCount = 1, uint8_t encoderStartState = 0) {
     constexpr CRC_Type crcType = considerCRC ? getCRCTypeFromPID(static_cast<PID_Types>(pid), considerCRC) : CRC_INVALID;
     constexpr int crcBits = crcType == CRC5 ? 5 : (crcType == CRC16 ? 16 : 0);
@@ -209,7 +212,6 @@ constexpr auto nrziEncode(uint8_t initialOneCount = 1, uint8_t encoderStartState
     USBSignal<crcBits + lastDataBitCount + sizeof...(dataBytes) * 8 + requiredBitStuffings<pid, dataBytes..., static_cast<uint8_t>(crc & 0x0FF), static_cast<uint8_t>((crc >> 8) & 0x0FF)>()> signal;
     int signalIdx = 0;
 
-    int requiredBitStuffings = 0;
     uint8_t bitStuffingOneCounter = initialOneCount;
     uint8_t nrziEncoderState = encoderStartState;
 
@@ -253,8 +255,8 @@ constexpr auto nrziEncode(uint8_t initialOneCount = 1, uint8_t encoderStartState
 }
 
 template <class... SignalPart>
-static constexpr int determineSignalLength(const SignalPart &...signalParts) {
-    return (0 + ... + signalParts.size);
+static constexpr int determineSignalLength() {
+    return (0 + ... + SignalPart::size);
 }
 
 template <class SignalPart, std::size_t N>
@@ -267,7 +269,7 @@ static constexpr void constructSignalHelper(const SignalPart &signalPart, int &i
 
 template <class... SignalPart>
 constexpr auto constructSignal(const SignalPart &...signalParts) {
-    std::array<uint8_t, determineSignalLength(signalParts...) * 2> signal{};
+    std::array<uint8_t, determineSignalLength<SignalPart...>() * 2> signal{};
 
     int i = 0;
     (constructSignalHelper(signalParts, i, signal), ...);
@@ -285,5 +287,5 @@ static constexpr auto createEOPSignal() {
     return signal;
 }
 
-constexpr auto usbSyncSignal = nrziEncode<static_cast<uint8_t>(0b1000'0000), false>(0, 1);
+constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'0000)>(0, 1);
 constexpr auto usbEOPSignal = createEOPSignal();

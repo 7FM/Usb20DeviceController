@@ -71,7 +71,7 @@ static void sanityChecks() {
 
 /******************************************************************************/
 
-static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<PID_DATA0, static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
+static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<true, PID_DATA0, static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
 
 int signalIdx;
 uint8_t delayCnt;
