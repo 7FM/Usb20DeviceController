@@ -122,7 +122,6 @@ module usb_sie(
         // Inputs
         .clk48(clk48),
         .transmitCLK(txClk12),
-        .usbResetDetect(usbResetDetect),
         // Data interface
         .reqSendPacket(reqSendPacket), // Trigger sending a new packet
         .txIsLastByte(txIsLastByte), // Indicates that the applied sendData is the last byte to send

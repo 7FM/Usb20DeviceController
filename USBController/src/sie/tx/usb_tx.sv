@@ -4,7 +4,6 @@
 module usb_tx#()(
     input logic clk48,
     input logic transmitCLK,
-    input logic usbResetDetect, //TODO how to handle this signal? Is it even relevant during sending phase? I honestly do not think so
 
     // interface inputs
     //TODO currently this interface uses the slower tx clk12 domain... -> client needs to ensure that txAcceptNewData is not interpret multiple times as true without low phase
