@@ -138,6 +138,7 @@ module usb_rx#()(
     logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
     logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
+    logic rxCRCReset;
 
 
 `ifdef USE_DEBUG_LEDS
@@ -180,6 +181,7 @@ module usb_rx#()(
         rxInputShiftRegReset = 1'b0;
         rxNRZiDecodeReset = 1'b0;
         rxEopDetectorReset = 1'b1; // by default reset EOP detection
+        rxCRCReset = 1'b0;
 
         next_rxState = rxState;
         next_rxPID = rxPID;
@@ -212,6 +214,9 @@ module usb_rx#()(
                 // Also there may not be invalid differential pair signals as we expect the PID to be send!
                 // Sanity check: was PID correctly received?
                 next_dropPacket = dropPacket || receiveBitStuffingError || !isValidDPSignal || (inputBufFull && !pidValid);
+
+                // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
+                rxCRCReset = ~inputBufFull;
 
                 if (inputBufFull) begin
                     // Save the PID for further decisions
@@ -347,7 +352,7 @@ module usb_rx#()(
     //TODO reuse
     usb_crc crcEngine (
         .clk12(receiveCLK),
-        .RST(rxState == RX_GET_PID), // Required at every new packet, can be a wire
+        .RST(rxCRCReset), // Required at every new packet, can be a wire
         //TODO we need to exclude undesired fields too: this might already work as PID fields are excluded by design of the RST signal being high during PID reception
         .VALID(nonBitStuffedInput), // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
         .crc5_or_16(useCRC5), // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
