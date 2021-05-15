@@ -1,64 +1,72 @@
 [*]
 [*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
-[*] Sat May 15 13:35:40 2021
+[*] Sat May 15 15:38:14 2021
 [*]
 [dumpfile] "/home/deppian/hdl_revival/USBController/deadBeefRxReceive.vcd"
-[dumpfile_mtime] "Sat May 15 13:32:33 2021"
-[dumpfile_size] 47700
+[dumpfile_mtime] "Sat May 15 15:35:21 2021"
+[dumpfile_size] 48362
 [savefile] "/home/deppian/hdl_revival/USBController/usb_rx_signals.gtkw"
-[timestart] 2442
+[timestart] 1910
 [size] 1854 911
 [pos] -1 -1
-*-6.000000 2688 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-6.000000 2041 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.sim_usb_rx.
-[treeopen] TOP.sim_usb_rx.uut.
+[treeopen] TOP.sim_usb_rx.rxCon.
+[treeopen] TOP.sim_usb_rx.rxCon.uut.
 [sst_width] 228
-[signals_width] 301
+[signals_width] 390
 [sst_expanded] 1
-[sst_vpaned_height] 440
+[sst_vpaned_height] 319
 @28
 TOP.CLK
-TOP.sim_usb_rx.uut_input.dataInP
-TOP.sim_usb_rx.uut_input.dataInN
-TOP.sim_usb_rx.asyncRxCLK.readCLK12
-[color] 2
-TOP.sim_usb_rx.uut.eopDetected
-TOP.sim_usb_rx.uut.keepPacket
-TOP.sim_usb_rx.uut.byteWasNotReceived
+TOP.sim_usb_rx.rxCon.uut_input.dataInP
+TOP.sim_usb_rx.rxCon.uut_input.dataInN
+TOP.sim_usb_rx.rxCon.asyncRxCLK.readCLK12
+TOP.sim_usb_rx.rxCon.uut.eopDetected
 [color] 1
-TOP.sim_usb_rx.uut.dropPacket
-TOP.sim_usb_rx.uut.receiveBitStuffingError
-TOP.sim_usb_rx.uut.isValidDPSignal
-TOP.sim_usb_rx.uut.pidValid
-TOP.sim_usb_rx.uut.lastByteValidCRC
-TOP.sim_usb_rx.uut.usbResetDetect
+TOP.sim_usb_rx.rxCon.uut.keepPacket
+TOP.sim_usb_rx.rxCon.uut.dataNotYetRead
+TOP.sim_usb_rx.rxCon.uut.byteWasNotReceived
+TOP.sim_usb_rx.rxCon.uut.dropPacket
+TOP.sim_usb_rx.rxCon.uut.receiveBitStuffingError
+TOP.sim_usb_rx.rxCon.uut.isValidDPSignal
+TOP.sim_usb_rx.rxCon.uut.pidValid
+TOP.sim_usb_rx.rxCon.uut.lastByteValidCRC
+TOP.sim_usb_rx.rxCon.uut.usbResetDetect
 @22
-TOP.sim_usb_rx.uut.rxPID[3:0]
+TOP.sim_usb_rx.rxCon.uut.rxPID[3:0]
 @28
-TOP.sim_usb_rx.uut.rxState[1:0]
-TOP.sim_usb_rx.uut.syncDetect
+TOP.sim_usb_rx.rxCon.uut.rxState[1:0]
+TOP.sim_usb_rx.rxCon.uut.syncDetect
 [color] 3
-TOP.sim_usb_rx.uut.inputBufFull
-TOP.sim_usb_rx.uut.inputBuf[7:0]
-TOP.sim_usb_rx.uut.inputBufRescue[7:0]
-TOP.sim_usb_rx.uut.inputBufDelay1[7:0]
-TOP.sim_usb_rx.uut.inputBufDelay2[7:0]
-TOP.sim_usb_rx.uut.rxData[7:0]
-TOP.sim_usb_rx.uut.rxDataValid
-TOP.sim_usb_rx.uut.rxIsLastByte
+TOP.sim_usb_rx.rxCon.uut.inputBufFull
+TOP.sim_usb_rx.rxCon.uut.inputBuf[7:0]
+TOP.sim_usb_rx.rxCon.uut.inputBufRescue[7:0]
+TOP.sim_usb_rx.rxCon.uut.inputBufDelay1[7:0]
+TOP.sim_usb_rx.rxCon.uut.inputBufDelay2[7:0]
+TOP.sim_usb_rx.rxCon.uut.rxData[7:0]
+TOP.sim_usb_rx.rxCon.uut.rxDataValid
+TOP.sim_usb_rx.rxCon.uut.rxAcceptNewData
+TOP.sim_usb_rx.rxCon.uut.rxIsLastByte
+@c00022
+TOP.sim_usb_rx.rxCon.uut.isDataShiftReg[3:0]
+@28
+(0)TOP.sim_usb_rx.rxCon.uut.isDataShiftReg[3:0]
+(1)TOP.sim_usb_rx.rxCon.uut.isDataShiftReg[3:0]
+(2)TOP.sim_usb_rx.rxCon.uut.isDataShiftReg[3:0]
+(3)TOP.sim_usb_rx.rxCon.uut.isDataShiftReg[3:0]
+@1401200
+-group_end
 @22
-TOP.sim_usb_rx.uut.isDataShiftReg[3:0]
-TOP.sim_usb_rx.uut.isLastShiftReg[3:0]
+TOP.sim_usb_rx.rxCon.uut.isLastShiftReg[3:0]
 @28
-TOP.sim_usb_rx.uut.crcEngine.crcBuf[15:0]
-@29
-TOP.sim_usb_rx.uut.useCRC16
-@28
-TOP.sim_usb_rx.uut.rxCRCReset
-TOP.sim_usb_rx.uut.isValidCRC
-TOP.sim_usb_rx.uut.crcEngine.crcX_in
-TOP.sim_usb_rx.uut.nrziDecodedInput
-TOP.sim_usb_rx.uut.nonBitStuffedInput
+TOP.sim_usb_rx.rxCon.uut.crcEngine.crcBuf[15:0]
+TOP.sim_usb_rx.rxCon.uut.useCRC16
+TOP.sim_usb_rx.rxCon.uut.rxCRCReset
+TOP.sim_usb_rx.rxCon.uut.isValidCRC
+TOP.sim_usb_rx.rxCon.uut.crcEngine.crcX_in
+TOP.sim_usb_rx.rxCon.uut.nrziDecodedInput
+TOP.sim_usb_rx.rxCon.uut.nonBitStuffedInput
 [pattern_trace] 1
 [pattern_trace] 0
