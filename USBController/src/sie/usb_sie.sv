@@ -56,6 +56,7 @@ module usb_sie(
     // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
     assign rxClkGenRST = outEN_reg; //TODO change the rst -> then it can be used for tx as well!
     logic rxClk12;
+    logic txClk12;
 
     DPPL #() asyncRxCLK (
         .clk48(clk48),
@@ -63,6 +64,13 @@ module usb_sie(
         .a(dataInP),
         .b(dataInP_negedge),
         .readCLK12(rxClk12)
+    );
+
+    clock_gen #(
+        .DIVIDE_LOG_2($clog2(4))
+    ) clkDiv4 (
+        .inCLK(clk48),
+        .outCLK(txClk12)
     );
 
     // =====================================================================================================
@@ -113,6 +121,7 @@ module usb_sie(
     usb_tx#() usbTxModules(
         // Inputs
         .clk48(clk48),
+        .transmitCLK(txClk12),
         .usbResetDetect(usbResetDetect),
         // Data interface
         .reqSendPacket(reqSendPacket), // Trigger sending a new packet

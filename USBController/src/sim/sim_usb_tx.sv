@@ -9,6 +9,7 @@ module sim_usb_tx (
     input logic usbResetDetect,
     input logic reqSendPacket,
 
+    // Data send interface
     // synced with slower 12MHz domain!
     output logic txAcceptNewData,
     input logic txIsLastByte,
@@ -21,8 +22,18 @@ module sim_usb_tx (
     logic dataOutN_reg;
     logic dataOutP_reg;
 
+    logic txClk12;
+
+    clock_gen #(
+        .DIVIDE_LOG_2($clog2(4))
+    ) clkDiv4 (
+        .inCLK(CLK),
+        .outCLK(txClk12)
+    );
+
     usb_tx uut(
         .clk48(CLK),
+        .transmitCLK(txClk12),
         .usbResetDetect(usbResetDetect),
 
         .reqSendPacket(reqSendPacket),

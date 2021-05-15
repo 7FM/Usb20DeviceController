@@ -14,6 +14,7 @@ set_frequency clk12 12
 set_frequency readCLK12 12
 set_frequency receiveCLK 12
 set_frequency rxClk12 12
+set_frequency txClk12 12
 set_frequency clk48 48
 
 # Player control at PMOD1

@@ -3,6 +3,7 @@
 
 module usb_tx#()(
     input logic clk48,
+    input logic transmitCLK,
     input logic usbResetDetect, //TODO how to handle this signal? Is it even relevant during sending phase? I honestly do not think so
 
     // interface inputs
@@ -34,8 +35,6 @@ module usb_tx#()(
         TX_SEND_EOP_3,
         TX_RST_REGS
     } TxStates;
-
-    logic transmitCLK;
 
     // State registers: one per line
     sie_defs_pkg::PID_Types txPID, next_txPID;
@@ -225,13 +224,6 @@ module usb_tx#()(
         dataOutP_reg <= txDataOut;
         dataOutN_reg <= txSendSingleEnded ~^ txDataOut;
     end
-
-    clock_gen #(
-        .DIVIDE_LOG_2($clog2(4))
-    ) clkDiv4 (
-        .inCLK(clk48),
-        .outCLK(transmitCLK)
-    );
 
     //=======================================================
     //======================= Stage 0 =======================
