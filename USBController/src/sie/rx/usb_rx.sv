@@ -68,14 +68,17 @@ module usb_rx#()(
 
     logic dataNotYetRead, next_dataNotYetRead; //TODO check handshake & update accordingly!
 
-    assign rxDataValid = dataNotYetRead;
-
-    //TODO keepPacket
-
-    logic [1:0] inputBufFull_clk48_sync;
-    always_ff @(posedge receiveCLK) begin
-        inputBufFull_clk48_sync <= {inputBufFull, inputBufFull_clk48_sync[1]};
+    logic prev_inputBufFull;
+    logic prev_receiveCLK;
+    always_ff @(posedge clk48) begin
+        prev_inputBufFull <= inputBufFull;
+        prev_receiveCLK <= receiveCLK;
     end
+
+    logic rxDataSwapPhase, next_rxDataSwapPhase;
+
+    //TODO during data change phase, this needs to go low else, the data might be read while the underlying registers are changed!
+    assign rxDataValid = dataNotYetRead && ~rxDataSwapPhase;
 
     logic byteWasNotReceived, next_byteWasNotReceived;
     assign keepPacket = ~(dropPacket || byteWasNotReceived);
@@ -83,12 +86,14 @@ module usb_rx#()(
     always_comb begin
         next_dataNotYetRead = dataNotYetRead;
         next_byteWasNotReceived = byteWasNotReceived;
+        next_rxDataSwapPhase = rxDataSwapPhase || (~prev_receiveCLK && ~receiveCLK && prev_inputBufFull);
 
-        if (rxDataValid) begin
+        if (rxDataValid && rxAcceptNewData) begin
             // If handshake condition is met -> data was read
-            next_dataNotYetRead = ~rxAcceptNewData;
-        end else if (~inputBufFull_clk48_sync[0] && inputBufFull_clk48_sync[1]) begin
-            // Only execute this on posedge of inputBufFull (synchronized via receiveCLK)
+            next_dataNotYetRead = 1'b0;
+        end if (prev_inputBufFull && ~inputBufFull) begin
+            // Only execute this on negedge of inputBufFull (synchronized via clk48)
+            next_rxDataSwapPhase = 1'b0;
             if (isDataShiftReg[3]) begin
                 // New data is available
                 next_dataNotYetRead = 1'b1;
@@ -103,7 +108,9 @@ module usb_rx#()(
     //===================================================
     initial begin
         byteWasNotReceived = 1'b0;
-        inputBufFull_clk48_sync = 2'b0;
+        prev_inputBufFull = 1'b0;
+        prev_receiveCLK = 1'b0;
+        rxDataSwapPhase = 1'b0;
         dataNotYetRead = 1'b0;
         isLastShiftReg = 4'b0;
         isDataShiftReg = 4'b0;
@@ -114,9 +121,11 @@ module usb_rx#()(
         if (outEN_reg) begin
             dataNotYetRead <= 1'b0;
             byteWasNotReceived <= 1'b0;
+            rxDataSwapPhase <= 1'b0;
         end else begin
             dataNotYetRead <= next_dataNotYetRead;
             byteWasNotReceived <= next_byteWasNotReceived;
+            rxDataSwapPhase <= next_rxDataSwapPhase;
         end
     end
 
