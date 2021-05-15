@@ -14,11 +14,6 @@ module usb_sie(
     inout logic USB_DN,
 `endif
     output logic USB_PULLUP
-`ifdef USE_DEBUG_LEDS
-    ,output logic LED_R,
-    output logic LED_G,
-    output logic LED_B
-`endif
 );
 
     // Source: https://beyondlogic.org/usbnutshell/usb2.shtml
@@ -100,12 +95,6 @@ module usb_sie(
         .rxDataValid(rxDataValid), // rxData contains valid & new data
         .rxData(rxData), // data to be retrieved
         .keepPacket(keepPacket) // should be tested when rxIsLastByte set to check whether an retrival error occurred
-
-    `ifdef USE_DEBUG_LEDS
-        ,.LED_R(LED_R),
-         .LED_G(LED_G),
-         .LED_B(LED_B)
-    `endif
     );
 
     // =====================================================================================================

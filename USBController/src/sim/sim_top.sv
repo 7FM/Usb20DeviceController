@@ -8,11 +8,6 @@ module sim_top (
     input logic USB_DN,
     output logic USB_DN_OUT,
     output logic USB_PULLUP
-`ifdef USE_DEBUG_LEDS
-    ,output logic LED_R,
-    output logic LED_G,
-    output logic LED_B
-`endif
 );
 
     top uut(
@@ -22,11 +17,6 @@ module sim_top (
         .USB_DN(USB_DN),
         .USB_DN_OUT(USB_DN_OUT),
         .USB_PULLUP(USB_PULLUP)
-`ifdef USE_DEBUG_LEDS
-        ,.LED_R(LED_R),
-        .LED_G(LED_G),
-        .LED_B(LED_B)
-`endif
     );
 endmodule
 `endif

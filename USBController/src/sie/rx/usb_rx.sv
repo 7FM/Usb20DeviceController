@@ -18,12 +18,6 @@ module usb_rx#()(
     output logic [7:0] rxData, // data to be retrieved
 
     output logic keepPacket // should be tested when rxIsLastByte set to check whether an retrival error occurred
-
-`ifdef USE_DEBUG_LEDS
-    ,output logic LED_R,
-    output logic LED_G,
-    output logic LED_B
-`endif
 );
 
     typedef enum logic [1:0] {
@@ -148,21 +142,6 @@ module usb_rx#()(
     logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
     logic rxCRCReset;
-
-
-`ifdef USE_DEBUG_LEDS
-    initial begin
-        LED_R = 1'b0;
-        LED_G = 1'b0;
-        LED_B = 1'b0;
-    end
-
-    always_ff @(posedge clk48) begin
-        // Do not reset values once target signal value was achieved
-        LED_R <= LED_R || dropPacket;
-        LED_B <= LED_B || usbResetDetect;
-    end
-`endif
 
     //TODO is a RST even needed? sync signal should automagically cause the required resets
     assign rxBitUnstuffingReset = 1'b0;

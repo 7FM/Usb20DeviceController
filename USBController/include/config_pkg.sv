@@ -15,9 +15,6 @@ localparam PLL_CLK_BYPASS = 1'b0;
 // enable by IO block provided registered inputs for the differential input pins
 `define DP_REGISTERED_INPUT
 
-// Debug LEDs to show different types of errors!
-`define USE_DEBUG_LEDS
-
 endpackage
 
 `endif
