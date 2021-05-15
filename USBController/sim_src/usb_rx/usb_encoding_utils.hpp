@@ -112,7 +112,7 @@ static constexpr void calculateCRC(bool initCRC, uint16_t &crcState, CRC_Type cr
         uint8_t d = static_cast<uint8_t>((data >> (i * 8)) & 0x0FF);
 
         for (int j = (bitsInData > 8 ? 8 : bitsInData); j > 0; --j, d >>= 1) {
-            uint16_t dataInBit = (data & 1) ^ ((crcState >> shiftAmount) & 1);
+            uint16_t dataInBit = (d & 1) ^ ((crcState >> shiftAmount) & 1);
             crcState <<= 1;
 
             if (dataInBit == 1) {
