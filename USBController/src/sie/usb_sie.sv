@@ -109,7 +109,7 @@ module usb_sie(
     // TRANSMIT Modules
     // =====================================================================================================
 
-    logic reqSendPacket; //TODO
+    logic txReqSendPacket; //TODO
 
     logic txIsLastByte; //TODO
     logic txDataValid; //TODO
@@ -123,7 +123,7 @@ module usb_sie(
         .clk48(clk48),
         .transmitCLK(txClk12),
         // Data interface
-        .reqSendPacket(reqSendPacket), // Trigger sending a new packet
+        .txReqSendPacket(txReqSendPacket), // Trigger sending a new packet
         .txIsLastByte(txIsLastByte), // Indicates that the applied sendData is the last byte to send
         .txDataValid(txDataValid), // Indicates that sendData contains valid & new data
         .txData(txData), // Data to be send: First byte should be PID, followed by the user data bytes

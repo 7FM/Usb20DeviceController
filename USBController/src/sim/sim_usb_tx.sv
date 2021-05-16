@@ -5,7 +5,7 @@ module sim_usb_tx (
     input logic CLK,
 
     // Data send interface: synced with clk48!
-    input logic reqSendPacket,
+    input logic txReqSendPacket,
     output logic txAcceptNewData,
     input logic txIsLastByte,
     input logic txDataValid,
@@ -41,7 +41,7 @@ module sim_usb_tx (
         .clk48(CLK),
         .transmitCLK(txClk12),
 
-        .reqSendPacket(reqSendPacket),
+        .txReqSendPacket(txReqSendPacket),
         .txAcceptNewData(txAcceptNewData),
         .txIsLastByte(txIsLastByte),
         .txDataValid(txDataValid),

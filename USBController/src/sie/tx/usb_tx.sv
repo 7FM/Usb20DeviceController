@@ -7,7 +7,7 @@ module usb_tx#()(
 
     // interface inputs
     // Data input interface: synced with clk48!
-    input logic reqSendPacket, // Trigger sending a new packet
+    input logic txReqSendPacket, // Trigger sending a new packet
 
     output logic txAcceptNewData, // indicates that the send buffer can be filled
     input logic txIsLastByte, // Indicates that the applied txData is the last byte to send
@@ -54,6 +54,7 @@ module usb_tx#()(
     logic [7:0] txDataBufNewByte, next_txDataBufNewByte;
     logic txHasDataFetched, next_txHasDataFetched;
     logic txFetchedDataIsLast, next_txFetchedDataIsLast;
+    logic reqSendPacket;
     logic prev_txReqNewData;
 
     initial begin
@@ -61,12 +62,17 @@ module usb_tx#()(
         txHasDataFetched = 1'b0;
         txFetchedDataIsLast = 1'b0;
         prev_txReqNewData = 1'b0;
+        reqSendPacket = 1'b0;
     end
 
     assign txAcceptNewData = ~txHasDataFetched;
 
     always_ff @(posedge clk48) begin
         prev_txReqNewData <= txReqNewData;
+        // If reqSendPacket was set, wait until the state machine in the slower domain as received the signal
+        // and changed the state -> we can clear the flag
+        // else if reqSendPacket is not set, check the interface request line
+        reqSendPacket <= reqSendPacket ? txState == TX_WAIT_SEND_REQ : txReqSendPacket;
     end
 
     always_comb begin
