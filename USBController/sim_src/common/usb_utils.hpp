@@ -342,7 +342,7 @@ void feedTransmitSerializer(T ptop, UsbTransmitState& usbTxState) {
         ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
         ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
 
-        if (ptop->rxAcceptNewData) {
+        if (ptop->txAcceptNewData) {
             // clear send packet request, once send data is requested
             // else we might trigger several packet sends which is illegal
             ptop->reqSendPacket = 0;
