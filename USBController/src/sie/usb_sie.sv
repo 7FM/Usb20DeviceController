@@ -4,6 +4,8 @@
 // USB Serial Interface Engine(SIE)
 module usb_sie(
     input logic clk48,
+
+    // Raw usb pins
 `ifdef RUN_SIM
     input logic USB_DP,
     input logic USB_DN,
@@ -13,7 +15,29 @@ module usb_sie(
     inout logic USB_DP,
     inout logic USB_DN,
 `endif
-    output logic USB_PULLUP
+    output logic USB_PULLUP,
+
+    // Serial Engine Services:
+    // General signals that are important for upper protocol layers: synced with clk48!
+    output logic usbResetDetect, // Indicate that a usb reset detect signal was retrieved!
+    input logic ackUsbResetDetect, // Acknowledge that usb reset was seen and handled!
+
+    // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
+    // Data Receive Interface: synced with clk48!
+    //TODO port for reset receive module, required to reset the receive clock to synchronize with incoming signals!
+    input logic rxAcceptNewData, // Caller indicates to be able to retrieve the next data byte
+    output logic [7:0] rxData, // data to be retrieved
+    output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
+    output logic rxDataValid, // rxData contains valid & new data
+    output logic keepPacket, // should be tested when rxIsLastByte set to check whether an retrival error occurred
+
+    // Data Transmit Interface: synced with clk48!
+    input logic txReqSendPacket, // Caller requests sending a new packet
+    input logic txDataValid, // Indicates that txData contains valid & new data
+    input logic txIsLastByte, // Indicates that the applied txData is the last byte to send (is read during handshake: txDataValid && txAcceptNewData)
+    input logic [7:0] txData, // Data to be send: First byte should be PID, followed by the user data bytes, CRC is calculated and send automagically
+    output logic txAcceptNewData // indicates that the send buffer can be filled
+    //TODO port to indicate that the packet was sent!
 );
 
     // Source: https://beyondlogic.org/usbnutshell/usb2.shtml
@@ -21,6 +45,8 @@ module usb_sie(
     assign USB_PULLUP = 1'b1;
 
     logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge, dataInN, outEN_reg;
+
+    logic txIsSending;
 
     usb_dp usbDifferentialPair(
         .clk48(clk48),
@@ -30,7 +56,7 @@ module usb_sie(
         .pinP_OUT(USB_DP_OUT),
         .pinN_OUT(USB_DN_OUT),
 `endif
-        .OUT_EN(outEN_reg), //TODO this needs to interact with the sending signal of usb_tx
+        .OUT_EN(txIsSending),
         .dataOutP(dataOutP_reg),
         .dataOutN(dataOutN_reg),
         .dataInP(dataInP),
@@ -42,13 +68,6 @@ module usb_sie(
         //TODO set logic is required
         outEN_reg = 1'b0; // Start in receiving mode
     end
-
-    //TODO how can we detect that nothing is plugged into our USB port??? / got detached?
-    // -> this needs to be considered as state too!
-
-    //TODO this is important for the device state & initialization
-    //TODO requires explicit reset!
-    logic usbResetDetect; //TODO export
 
     logic rxClkGenRST;
     // TODO we could only reset on switch to receive mode!
@@ -77,16 +96,6 @@ module usb_sie(
     // RECEIVE Modules
     // =====================================================================================================
 
-    logic ackUsbResetDetect; //TODO
-
-    // Data output interface: synced with clk48!
-    logic rxAcceptNewData; //TODO: Backend indicates that it is able to retrieve the next data byte
-    logic rxIsLastByte; //TODO: indicates that the current byte at rxData is the last one
-    logic rxDataValid; //TODO: rxData contains valid & new data
-    logic [7:0] rxData; //TODO: data to be retrieved
-    logic keepPacket; //TODO: should be tested when rxIsLastByte set to check whether an retrival error occurred
-
-
     usb_rx#() usbRxModules(
         .clk48(clk48),
         .receiveCLK(rxClk12),
@@ -109,15 +118,6 @@ module usb_sie(
     // TRANSMIT Modules
     // =====================================================================================================
 
-    logic txReqSendPacket; //TODO
-
-    logic txIsLastByte; //TODO
-    logic txDataValid; //TODO
-    logic [7:0] txData; //TODO
-
-    logic isSending;//TODO
-    logic txAcceptNewData;//TODO
-
     usb_tx#() usbTxModules(
         // Inputs
         .clk48(clk48),
@@ -129,7 +129,7 @@ module usb_sie(
         .txData(txData), // Data to be send: First byte should be PID, followed by the user data bytes
         // interface output signals
         .txAcceptNewData(txAcceptNewData), // indicates that the send buffer can be filled
-        .sending(isSending), // indicates that currently data is transmitted
+        .sending(txIsSending), // indicates that currently data is transmitted
 
         // Outputs
         .dataOutN_reg(dataOutN_reg), 
