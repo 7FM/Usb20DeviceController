@@ -301,7 +301,7 @@ typedef struct {
 } UsbReceiveState;
 
 template <typename T>
-void receiveDeserializedInput(T ptop, UsbReceiveState& usbRxState) {
+void receiveDeserializedInput(T ptop, UsbReceiveState &usbRxState) {
     if (ptop->rxAcceptNewData && ptop->rxDataValid) {
         usbRxState.receivedData.push_back(ptop->rxData);
 
@@ -337,31 +337,34 @@ typedef struct {
 } UsbTransmitState;
 
 template <typename T>
-void feedTransmitSerializer(T ptop, UsbTransmitState& usbTxState) {
+void feedTransmitSerializer(T ptop, UsbTransmitState &usbTxState) {
     if (usbTxState.requestedSendPacket) {
         ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
-        ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
+        if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
+            ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
+        }
 
         if (ptop->txAcceptNewData) {
-            // clear send packet request, once send data is requested
-            // else we might trigger several packet sends which is illegal
-            ptop->reqSendPacket = 0;
-
             if (ptop->txDataValid) {
+                // clear send packet request, once send data is requested
+                // else we might trigger several packet sends which is illegal
+                ptop->txReqSendPacket = 0;
+
                 // Triggered Handshake!
                 ptop->txDataValid = 0;
                 // Update index of data that should be send!
-                if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
-                    ++usbTxState.transmitIdx;
-                }
+                ++usbTxState.transmitIdx;
             } else {
-                // Data was requested but not yet signaled that txData is valid, lets change the later
-                ptop->txDataValid = 1;
+                // Only signal data is valid if there is still data left to send!
+                if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
+                    // Data was requested but not yet signaled that txData is valid, lets change the later
+                    ptop->txDataValid = 1;
+                }
             }
         }
     } else {
         // Start send packet request
         usbTxState.requestedSendPacket = true;
-        ptop->reqSendPacket = 1;
+        ptop->txReqSendPacket = 1;
     }
 }

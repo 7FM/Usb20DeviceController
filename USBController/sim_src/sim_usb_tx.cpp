@@ -61,7 +61,7 @@ static void run(uint64_t limit, bool dump, bool checkStopCondition = true) {
 /******************************************************************************/
 static void reset() {
     // Data send/transmit interface
-    ptop->reqSendPacket = 0;
+    ptop->txReqSendPacket = 0;
     ptop->txIsLastByte = 0;
     ptop->txDataValid = 0;
     ptop->txData = 0;
@@ -138,16 +138,7 @@ int main(int argc, char **argv) {
         run(start, false);
     }
     // Execute till stop condition
-    //run(0, true);
-    //TODO no data is retrieved! Find out WHY
-    //TODO no data is retrieved! Find out WHY
-    //TODO no data is retrieved! Find out WHY
-    //TODO no data is retrieved! Find out WHY
-    // Upper bound: 2000 Cycles
-    run(2000, true);
-    //TODO no data is retrieved! Find out WHY
-    //TODO no data is retrieved! Find out WHY
-    //TODO no data is retrieved! Find out WHY
+    run(0, true);
     // Execute a few more cycles
     run(4 * 10, true, false);
 
