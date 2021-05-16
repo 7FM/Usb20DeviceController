@@ -45,6 +45,7 @@ module usb_tx#()(
         dataOutP_reg = 1'b1;
         dataOutN_reg = 1'b0;
         txState = TX_WAIT_SEND_REQ;
+        sending = 1'b0;
     end
 
 //=========================================================================================
@@ -136,9 +137,6 @@ module usb_tx#()(
 
     logic txRstModules;
 
-    localparam TX_INIT_LATENCY = 4'd2;
-    //TODO due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
-    assign sending = txState > TX_WAIT_SEND_REQ + TX_INIT_LATENCY;
     assign txRstModules = txState == TX_WAIT_SEND_REQ;
 
     always_comb begin
@@ -256,6 +254,9 @@ module usb_tx#()(
         txPID <= next_txPID;
 
         // Output data
+        // due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
+        // As this is only one stage, we can easily account for the latency by making the 'sending' signal a register instead of a wire
+        sending <= txState > TX_WAIT_SEND_REQ && txState < TX_RST_REGS;
         dataOutP_reg <= txDataOut;
         dataOutN_reg <= txSendSingleEnded ~^ txDataOut;
     end
