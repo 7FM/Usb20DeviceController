@@ -134,10 +134,6 @@ $(foreach sim_top,$(sim_tops), \
 	$(eval $(GEN_SIM_RULES)) \
 )
 
-test:
-	@echo $(sim_tops)
-
-#sim_%: $(V_DIR)/$*/Vsim_%
 sim: sim_$(TOP_MODULE)
 
 clean:
