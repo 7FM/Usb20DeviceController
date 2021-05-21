@@ -64,4 +64,26 @@ module usb#()(
         .txAcceptNewData(txAcceptNewData) // indicates that the send buffer can be filled
     );
 
+    usb_pe #() usbProtocolEngine(
+        .clk48(clk48),
+
+        .usbResetDetect,
+        .ackUsbResetDetect,
+
+        // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
+        // Data Receive Interface: synced with clk48!
+        .rxAcceptNewData(rxAcceptNewData),
+        .rxData(rxData),
+        .rxIsLastByte(rxIsLastByte),
+        .rxDataValid(rxDataValid),
+        .keepPacket(keepPacket),
+
+        // Data Transmit Interface: synced with clk48!
+        .txReqSendPacket(txReqSendPacket),
+        .txDataValid(txDataValid),
+        .txIsLastByte(txIsLastByte),
+        .txData(txData),
+        .txAcceptNewData(txAcceptNewData)
+    );
+
 endmodule

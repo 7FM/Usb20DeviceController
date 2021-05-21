@@ -2,7 +2,7 @@
 `include "sie_defs_pkg.sv"
 
 // USB Serial Interface Engine(SIE)
-module usb_sie(
+module usb_sie (
     input logic clk48,
 
     // Raw usb pins
