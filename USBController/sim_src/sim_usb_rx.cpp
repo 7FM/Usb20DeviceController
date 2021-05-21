@@ -3,6 +3,7 @@
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
+#define TOP_MODULE Vsim_usb_rx
 #include "Vsim_usb_rx.h"       // basic Top header
 #include "Vsim_usb_rx__Syms.h" // all headers to access exposed internal signals
 
@@ -17,7 +18,7 @@
 
 #define APPLY_USB_SIGNAL_ON_RISING_EDGE 0
 
-static Vsim_usb_rx *ptop = nullptr; // Instantiation of module
+static TOP_MODULE *ptop = nullptr; // Instantiation of module
 static VerilatedVcdC *tfp = nullptr;
 
 static vluint64_t main_time = 0; // Current simulation time
@@ -126,7 +127,7 @@ static void reset() {
 /******************************************************************************/
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
-    ptop = new Vsim_usb_rx; // Create instance
+    ptop = new TOP_MODULE; // Create instance
 
     int verbose = 0;
     int start = 0;
@@ -149,9 +150,11 @@ int main(int argc, char **argv) {
                 break;
             case ':':
                 std::cout << "option needs a value" << std::endl;
+                goto exitAndCleanup;
                 break;
             case '?': //used for some unknown options
                 std::cout << "unknown option: " << optopt << std::endl;
+                goto exitAndCleanup;
                 break;
         }
     }
@@ -167,6 +170,13 @@ int main(int argc, char **argv) {
     // Execute a few more cycles
     run(4 * 10, true, false);
 
+    std::cout << "Received Data:" << std::endl;
+    for (uint8_t data : rxState.receivedData) {
+        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+    }
+
+exitAndCleanup:
+
     if (tfp)
         tfp->close();
 
@@ -177,10 +187,6 @@ int main(int argc, char **argv) {
 
     delete ptop;
 
-    std::cout << "Received Data:" << std::endl;
-    for (uint8_t data : rxState.receivedData) {
-        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
-    }
 
     return 0;
 }
