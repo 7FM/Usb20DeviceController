@@ -3,7 +3,9 @@
 
 // USB Protocol Engine (PE)
 module usb_pe #(
-    parameter ENDPOINTS = 1
+    parameter ENDPOINTS = 1,
+    parameter EP_ADDR_WID = 9,
+    parameter EP_DATA_WID = 8
 )(
     input logic clk48,
 
@@ -23,7 +25,16 @@ module usb_pe #(
     output logic txDataValid,
     output logic txIsLastByte,
     output logic [7:0] txData,
-    input logic txAcceptNewData
+    input logic txAcceptNewData,
+
+    // Endpoint interfaces
+    input logic [0:ENDPOINTS-1] EP_IN_popData,
+    output logic [0:ENDPOINTS-1] EP_IN_dataAvailable,
+    output logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_IN_dataOut,
+
+    input logic [0:ENDPOINTS-1] EP_OUT_dataValid,
+    output logic [0:ENDPOINTS-1] EP_OUT_full,
+    input logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataIn
 );
 
 /*
@@ -42,6 +53,110 @@ Device Transaction State Machine Hierarchy Overview:
       (- Dev_HS_ping: if pid == PID_SPECIAL_PING) <- For HighSpeed devices
 
 */
+
+    logic WRITE_EN; //TODO
+    logic READ_EN; //TODO
+    logic [$clog2(ENDPOINTS):0] epSelect;
+
+    // Used for received data
+    logic [EP_ADDR_WID-1:0] wdata;
+    // Used for data to be output
+    logic [EP_ADDR_WID-1:0] rdata;
+
+    logic [0:ENDPOINTS-1] EP_IN_dataValid;
+    logic [0:ENDPOINTS-1] EP_IN_full;
+    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_IN_dataIn;
+
+    logic [0:ENDPOINTS-1] EP_OUT_popData;
+    logic [0:ENDPOINTS-1] EP_OUT_dataAvailable;
+    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataOut;
+
+    assign rdata = EP_OUT_dataOut[((epSelect+1) * EP_DATA_WID) - 1:epSelect * EP_DATA_WID];
+
+    generate
+        genvar i;
+        for (i = 0; i < ENDPOINTS; i = i + 1) begin
+
+            assign EP_IN_dataValid[i] = WRITE_EN && i == epSelect;
+            assign EP_IN_dataIn[i] = wdata;
+            BRAM_FIFO #(
+                .EP_ADDR_WID(EP_ADDR_WID),
+                .EP_DATA_WID(EP_DATA_WID)
+            ) fifoXIn(
+                .CLK(clk48),
+                .dataValid(EP_IN_dataValid[i]),
+                .full(EP_IN_full[i]),
+                .dataIn(EP_IN_dataIn[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID]),
+
+                .popData(EP_IN_popData[i]),
+                .dataAvailable(EP_IN_dataAvailable[i]),
+                .dataOut(EP_IN_dataOut[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID])
+            );
+
+            assign EP_OUT_popData[i] = READ_EN && i == epSelect;
+            BRAM_FIFO #(
+                .EP_ADDR_WID(EP_ADDR_WID),
+                .EP_DATA_WID(EP_DATA_WID)
+            ) fifoXOut(
+                .CLK(clk48),
+                .dataValid(EP_OUT_dataValid[i]),
+                .full(EP_OUT_full[i]),
+                .dataIn(EP_OUT_dataIn[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID]),
+
+                .popData(EP_OUT_popData[i]),
+                .dataAvailable(EP_OUT_dataAvailable[i]),
+                .dataOut(EP_OUT_dataOut[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID])
+            );
+        end
+    endgenerate
+
+//====================================================================================
+//===============================RX Interface=========================================
+//====================================================================================
+
+    //localparam RX_BUF_SIZE = 8;
+    //logic [7:0] rxBuf [0:RX_BUF_SIZE-1]; //TODO we need to export the data!
+
+    assign wdata = rxData;
+
+    logic canReceive; //TODO
+
+    logic rxHandshake;
+    logic packetReceived;
+
+    assign rxHandshake = canReceive && rxDataValid;
+    assign packetReceived = rxHandshake && txIsLastByte;
+    assign rxAcceptNewData = canReceive;
+
+    logic receiveDone;
+
+    always_comb begin
+        WRITE_EN = rxHandshake;
+        if (receiveDone) begin
+            // After the last byte was received, we need to store the amount of 
+        end
+    end
+
+    always_ff @(posedge clk48) begin
+        if (rxHandshake) begin
+            if (EP_IN_full[epSelect]) begin
+                //TODO treat overflow as error
+            end
+            receiveDone <= txIsLastByte;
+        end
+    end
+
+//====================================================================================
+//===============================TX Interface=========================================
+//====================================================================================
+
+//TODO
+//TODO
+//TODO
+//TODO
+//TODO
+
+//====================================================================================
 
     typedef enum logic[2:0] {
         PE_RST_RX_CLK,
