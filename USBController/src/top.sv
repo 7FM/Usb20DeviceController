@@ -15,7 +15,8 @@ module top (
 );
     logic clk48;
 
-`ifndef RUN_SIM
+`ifndef FALLBACK_DEVICE
+`ifdef LATTICE_ICE_40
     SB_PLL40_PAD #(
         .FEEDBACK_PATH("SIMPLE"),
         .DIVR(config_pkg::PLL_CLK_DIVR),
@@ -28,6 +29,9 @@ module top (
         .PACKAGEPIN(CLK),
         .PLLOUTCORE(clk48)
     );
+`else
+    // Device not supported
+`endif
 `else
     assign clk48 = CLK;
 `endif

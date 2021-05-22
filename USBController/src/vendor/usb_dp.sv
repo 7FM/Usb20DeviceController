@@ -54,7 +54,7 @@ module usb_dp(
     `define USB_DP_ADD_NEGEDGE_SYNC_BLOCK
     localparam DOUBLE_FLOP_SHIFT_REG_LENGTH = 2;
 `else
-`ifdef RUN_SIM
+`ifdef FALLBACK_DEVICE
     `define USB_DP_ADD_NEGEDGE_SYNC_BLOCK
     localparam DOUBLE_FLOP_SHIFT_REG_LENGTH = 2;
 `else
@@ -69,8 +69,8 @@ module usb_dp(
     logic [DOUBLE_FLOP_SHIFT_REG_LENGTH-1:0] doubleFlopP, doubleFlopN;
     logic [DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH-1:0] doubleFlopP_negedge;
 
-`ifndef RUN_SIM
-
+`ifndef FALLBACK_DEVICE
+`ifdef LATTICE_ICE_40
     SB_IO #(
 `ifndef DP_REGISTERED_INPUT
         .PIN_TYPE(6'b1010_01) // tristatable output and normal input
@@ -107,11 +107,16 @@ module usb_dp(
         .INPUT_CLK(clk48)
 `endif
     );
-
-`else // SIMULATION CASE
+`endif
+`else // Fallback CASE
     // Tristate output logic
+`ifdef RUN_SIM
     assign pinP_OUT = OUT_EN ? dataOutP : 1'bz;
     assign pinN_OUT = OUT_EN ? dataOutN : 1'bz;
+`else
+    assign pinP = OUT_EN ? dataOutP : 1'bz;
+    assign pinN = OUT_EN ? dataOutN : 1'bz;
+`endif
 
     assign inP = pinP;
     assign inN = pinN;
