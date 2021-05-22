@@ -95,7 +95,7 @@ static constexpr void calculateCRC(bool initCRC, uint16_t &crcState, CRC_Type cr
     constexpr uint16_t crc5_polynom = 0b0'0101;
     constexpr uint16_t crc16_polynom = 0b1000'0000'0000'0101;
     constexpr uint16_t crc5_residual = 0b0'1100;
-    constexpr uint16_t crc16_residual = 0b1000'0000'0000'1101;
+    //constexpr uint16_t crc16_residual = 0b1000'0000'0000'1101;
 
     if (crcType != CRC5 && crcType != CRC16) {
         crcState = crc5_residual;
