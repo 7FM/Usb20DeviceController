@@ -6,8 +6,6 @@ module sim_usb_rx_connection (
     input logic USB_DP,
     input logic USB_DN,
     input logic outEN_reg,
-    input logic ACK_USB_RST,
-    output logic usbResetDetect,
 
     // Data output interface: synced with clk48!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
@@ -20,7 +18,10 @@ module sim_usb_rx_connection (
 
     logic dataInP;
     logic dataInP_negedge;
-    logic dataInN;
+
+    logic isValidDPSignal;
+    logic eopDetected;
+    logic ACK_EOP;
 
     usb_dp uut_input(
         .clk48(CLK),
@@ -33,7 +34,12 @@ module sim_usb_rx_connection (
         .dataOutN(),
         .dataInP(dataInP),
         .dataInP_negedge(dataInP_negedge),
-        .dataInN(dataInN)
+        // Service signals
+        .isValidDPSignal(isValidDPSignal),
+        .eopDetected(eopDetected),
+        .ACK_EOP(ACK_EOP),
+        .usbResetDetected(),
+        .ACK_USB_RST()
     );
 
     logic rxClkGenRST;
@@ -56,10 +62,10 @@ module sim_usb_rx_connection (
         .receiveCLK(rxClk12),
 
         .dataInP(dataInP),
-        .dataInN(dataInN),
+        .isValidDPSignal(isValidDPSignal),
+        .eopDetected(eopDetected),
+        .ACK_EOP(ACK_EOP),
         .outEN_reg(outEN_reg),
-        .ACK_USB_RST(ACK_USB_RST),
-        .usbResetDetect(usbResetDetect),
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one

@@ -19,8 +19,7 @@ module sim_usb_tx (
     output logic rxDataValid, // rxData contains valid & new data
     output logic [7:0] rxData, // data to be retrieved
 
-    output logic keepPacket,
-    output logic usbResetDetect
+    output logic keepPacket
 );
 
     logic USB_DP, USB_DN;
@@ -63,8 +62,6 @@ module sim_usb_tx (
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
         .outEN_reg(1'b0),
-        .ACK_USB_RST(1'b0),
-        .usbResetDetect(usbResetDetect),
 
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData),

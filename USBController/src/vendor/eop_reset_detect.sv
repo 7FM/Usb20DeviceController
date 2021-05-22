@@ -1,7 +1,7 @@
 // Detect end of packet and reset signals
 module eop_reset_detect(
     input logic clk48,
-    input logic RST,
+    input logic ACK_EOP,
     input logic dataInP,
     input logic dataInN,
     input logic ACK_USB_RST,
@@ -86,7 +86,7 @@ module eop_reset_detect(
             usb_reset <= nextUsbReset;
         end
 
-        if (RST) begin
+        if (ACK_EOP) begin
             state <= IDLE;
             eop <= 1'b0;
         end else begin

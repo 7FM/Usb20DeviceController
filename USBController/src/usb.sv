@@ -14,7 +14,7 @@ module usb#()(
     output logic USB_PULLUP
 );
 
-    logic usbResetDetect;
+    logic usbResetDetected;
     logic ackUsbResetDetect;
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -44,7 +44,7 @@ module usb#()(
 `endif
         .USB_PULLUP(USB_PULLUP),
 
-        .usbResetDetect(usbResetDetect), // Indicate that a usb reset detect signal was retrieved!
+        .usbResetDetected(usbResetDetected), // Indicate that a usb reset detect signal was retrieved!
         .ackUsbResetDetect(ackUsbResetDetect), // Acknowledge that usb reset was seen and handled!
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -67,8 +67,8 @@ module usb#()(
     usb_pe #() usbProtocolEngine(
         .clk48(clk48),
 
-        .usbResetDetect,
-        .ackUsbResetDetect,
+        .usbResetDetected(usbResetDetected),
+        .ackUsbResetDetect(ackUsbResetDetect),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
         // Data Receive Interface: synced with clk48!

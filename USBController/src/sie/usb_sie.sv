@@ -19,7 +19,7 @@ module usb_sie (
 
     // Serial Engine Services:
     // General signals that are important for upper protocol layers: synced with clk48!
-    output logic usbResetDetect, // Indicate that a usb reset detect signal was retrieved!
+    output logic usbResetDetected, // Indicate that a usb reset detect signal was retrieved!
     input logic ackUsbResetDetect, // Acknowledge that usb reset was seen and handled!
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -44,9 +44,14 @@ module usb_sie (
     // Pin connected to USB_DP with 1.5K Ohm resistor -> indicate to be a full speed device: 12 Mbit/s
     assign USB_PULLUP = 1'b1;
 
+    logic isValidDPSignal;
+
     logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge, dataInN, outEN_reg;
 
     logic txIsSending;
+
+    logic eopDetected;
+    logic ACK_EOP;
 
     usb_dp usbDifferentialPair(
         .clk48(clk48),
@@ -61,7 +66,12 @@ module usb_sie (
         .dataOutN(dataOutN_reg),
         .dataInP(dataInP),
         .dataInP_negedge(dataInP_negedge),
-        .dataInN(dataInN)
+        // Service signals
+        .isValidDPSignal(isValidDPSignal),
+        .eopDetected(eopDetected),
+        .ACK_EOP(ACK_EOP),
+        .usbResetDetected(usbResetDetected),
+        .ACK_USB_RST(ackUsbResetDetect)
     );
 
     initial begin
@@ -101,11 +111,10 @@ module usb_sie (
         .receiveCLK(rxClk12),
 
         .dataInP(dataInP),
-        .dataInN(dataInN),
+        .isValidDPSignal(isValidDPSignal),
+        .eopDetected(eopDetected),
+        .ACK_EOP(ACK_EOP),
         .outEN_reg(outEN_reg),
-        // Usb reset detection
-        .ACK_USB_RST(ackUsbResetDetect),
-        .usbResetDetect(usbResetDetect),
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one

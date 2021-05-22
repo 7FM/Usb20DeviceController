@@ -7,7 +7,7 @@ module usb_pe #(
 )(
     input logic clk48,
 
-    input logic usbResetDetect,
+    input logic usbResetDetected,
     output logic ackUsbResetDetect,
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!

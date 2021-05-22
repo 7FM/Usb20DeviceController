@@ -6,10 +6,10 @@ module usb_rx#()(
     input logic receiveCLK,
 
     input logic dataInP,
-    input logic dataInN,
+    input logic isValidDPSignal,
+    input logic eopDetected,
+    output logic ACK_EOP,
     input logic outEN_reg,
-    input logic ACK_USB_RST,
-    output logic usbResetDetect,
 
     // Data output interface: synced with clk48!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
@@ -32,10 +32,6 @@ module usb_rx#()(
     logic receiveBitStuffingError;
     logic pidValid;
     logic isValidCRC;
-
-    logic isValidDPSignal;
-
-    assign isValidDPSignal = dataInN ^ dataInP;
 
     // State variables
     RxStates rxState;
@@ -132,13 +128,13 @@ module usb_rx#()(
 
     // Detections
     logic nonBitStuffedInput;
-    logic eopDetected;
     logic syncDetect;
 
     // Reset signals
     logic rxInputShiftRegReset;
 
     logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
+    assign ACK_EOP = rxEopDetectorReset;
     logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
     logic rxCRCReset;
@@ -280,16 +276,6 @@ module usb_rx#()(
         isLastShiftReg <= next_isLastShiftReg;
         isDataShiftReg <= next_isDataShiftReg;
     end
-
-    eop_reset_detect eopAndResetDetect(
-        .clk48(clk48),
-        .RST(rxEopDetectorReset),
-        .dataInP(dataInP),
-        .dataInN(dataInN),
-        .eop(eopDetected),
-        .usb_reset(usbResetDetect),
-        .ACK_USB_RST(ACK_USB_RST)
-    );
 
     nrzi_decoder nrziDecoder(
         .clk12(receiveCLK),

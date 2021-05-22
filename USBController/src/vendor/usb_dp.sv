@@ -2,6 +2,8 @@
 
 module usb_dp(
     input logic clk48,
+
+    // Pins
 `ifdef RUN_SIM
     input logic pinP,
     output logic pinP_OUT,
@@ -11,14 +13,37 @@ module usb_dp(
     inout logic pinP,
     inout logic pinN,
 `endif
+
+    // Data signals
     input logic OUT_EN,
     input logic dataOutP,
     input logic dataOutN,
     output logic dataInP,
     output logic dataInP_negedge,
-    output logic dataInN
+
+    // Service signals
+    output logic isValidDPSignal,
+    output logic eopDetected,
+    input logic ACK_EOP,
+    output logic usbResetDetected,
+    input logic ACK_USB_RST
 );
 
+    // Service signals
+    logic dataInN;
+    assign isValidDPSignal = dataInN ^ dataInP;
+
+    eop_reset_detect eopAndResetDetect(
+        .clk48(clk48),
+        .dataInP(dataInP),
+        .dataInN(dataInN),
+        .eop(eopDetected),
+        .ACK_EOP(ACK_EOP),
+        .usb_reset(usbResetDetected),
+        .ACK_USB_RST(ACK_USB_RST)
+    );
+
+    // Input & output logic
     logic inP, inP_negedge, inN;
 
 `ifdef USB_DP_ADD_NEGEDGE_SYNC_BLOCK
