@@ -30,7 +30,7 @@ module BRAM_FIFO #(
         .wdata(dataIn),
 
         .raddr(readCounter),
-        .wdata(dataOut),
+        .rdata(dataOut),
     );
 
     initial begin
