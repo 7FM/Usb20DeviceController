@@ -1,6 +1,10 @@
 `include "config_pkg.sv"
 
-module usb#()(
+module usb#(
+    parameter ENDPOINTS = 1,
+    parameter EP_ADDR_WID = 9,
+    parameter EP_DATA_WID = 8
+)(
     input logic clk48,
 `ifdef RUN_SIM
     input logic USB_DP,
@@ -64,6 +68,16 @@ module usb#()(
         .txAcceptNewData(txAcceptNewData) // indicates that the send buffer can be filled
     );
 
+    //TODO export
+    // Endpoint interfaces
+    logic [0:ENDPOINTS-1] EP_IN_popData;
+    logic [0:ENDPOINTS-1] EP_IN_dataAvailable;
+    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_IN_dataOut;
+
+    logic [0:ENDPOINTS-1] EP_OUT_dataValid;
+    logic [0:ENDPOINTS-1] EP_OUT_full;
+    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataIn;
+
     usb_pe #() usbProtocolEngine(
         .clk48(clk48),
 
@@ -83,7 +97,14 @@ module usb#()(
         .txDataValid(txDataValid),
         .txIsLastByte(txIsLastByte),
         .txData(txData),
-        .txAcceptNewData(txAcceptNewData)
-    );
+        .txAcceptNewData(txAcceptNewData),
 
+        // Endpoint interfaces
+        .EP_IN_popData(EP_IN_popData),
+        .EP_IN_dataAvailable(EP_IN_dataAvailable),
+        .EP_IN_dataOut(EP_IN_dataOut),
+        .EP_OUT_dataValid(EP_OUT_dataValid),
+        .EP_OUT_full(EP_OUT_full),
+        .EP_OUT_dataIn(EP_OUT_dataIn)
+    );
 endmodule
