@@ -50,6 +50,7 @@ module sim_usb_tx (
         .data(txCRCInput),
         /* verilator lint_off PINCONNECTEMPTY */
         .validCRC(),
+        /* verilator lint_on PINCONNECTEMPTY */
         .crc(crc)
     );
 

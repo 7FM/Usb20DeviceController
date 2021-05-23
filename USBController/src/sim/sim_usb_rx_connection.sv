@@ -28,14 +28,18 @@ module sim_usb_rx_connection (
         .pinP(USB_DP),
         /* verilator lint_off PINCONNECTEMPTY */
         .pinP_OUT(),
+        /* verilator lint_on PINCONNECTEMPTY */
         .pinN(USB_DN),
         /* verilator lint_off PINCONNECTEMPTY */
         .pinN_OUT(),
+        /* verilator lint_on PINCONNECTEMPTY */
         .OUT_EN(1'b0),
         /* verilator lint_off PINCONNECTEMPTY */
         .dataOutP(),
+        /* verilator lint_on PINCONNECTEMPTY */
         /* verilator lint_off PINCONNECTEMPTY */
         .dataOutN(),
+        /* verilator lint_on PINCONNECTEMPTY */
         .dataInP(dataInP),
         .dataInP_negedge(dataInP_negedge),
         // Service signals
@@ -44,8 +48,10 @@ module sim_usb_rx_connection (
         .ACK_EOP(ACK_EOP),
         /* verilator lint_off PINCONNECTEMPTY */
         .usbResetDetected(),
+        /* verilator lint_on PINCONNECTEMPTY */
         /* verilator lint_off PINCONNECTEMPTY */
         .ACK_USB_RST()
+        /* verilator lint_on PINCONNECTEMPTY */
     );
 
     logic rxClkGenRST;
@@ -78,6 +84,7 @@ module sim_usb_rx_connection (
         .validCRC(isValidCRC),
         /* verilator lint_off PINCONNECTEMPTY */
         .crc()
+        /* verilator lint_on PINCONNECTEMPTY */
     );
 
     usb_rx uut(
