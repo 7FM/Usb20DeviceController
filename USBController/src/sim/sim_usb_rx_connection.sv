@@ -5,7 +5,7 @@ module sim_usb_rx_connection (
     input logic CLK,
     input logic USB_DP,
     input logic USB_DN,
-    input logic outEN_reg,
+    input logic rxRST,
 
     // Data output interface: synced with clk48!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
@@ -29,7 +29,7 @@ module sim_usb_rx_connection (
         .pinP_OUT(),
         .pinN(USB_DN),
         .pinN_OUT(),
-        .OUT_EN(outEN_reg),
+        .OUT_EN(1'b0),
         .dataOutP(),
         .dataOutN(),
         .dataInP(dataInP),
@@ -46,7 +46,7 @@ module sim_usb_rx_connection (
     // TODO we could only reset on switch to receive mode!
     // -> this would allow us to reuse the clk signal for transmission too!
     // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
-    assign rxClkGenRST = outEN_reg; //TODO change the rst -> then it can be used for tx as well!
+    assign rxClkGenRST = rxRST; //TODO change the rst -> then it can be used for tx as well!
     logic rxClk12;
 
     DPPL #() asyncRxCLK (
@@ -57,15 +57,37 @@ module sim_usb_rx_connection (
         .readCLK12(rxClk12)
     );
 
+    logic rxCRCReset;
+    logic rxUseCRC16;
+    logic rxCRCInput;
+    logic rxCRCInputValid;
+    logic isValidCRC;
+
+    usb_crc crcEngine (
+        .clk12(rxClk12),
+        .RST(rxCRCReset),
+        .VALID(rxCRCInputValid),
+        .rxUseCRC16(rxUseCRC16),
+        .data(rxCRCInput),
+        .validCRC(isValidCRC),
+        .crc()
+    );
+
     usb_rx uut(
         .clk48(CLK),
         .receiveCLK(rxClk12),
+        .rxRST(rxRST),
+
+        .rxCRCReset(rxCRCReset),
+        .rxUseCRC16(rxUseCRC16),
+        .rxCRCInput(rxCRCInput),
+        .rxCRCInputValid(rxCRCInputValid),
+        .isValidCRC(isValidCRC),
 
         .dataInP(dataInP),
         .isValidDPSignal(isValidDPSignal),
         .eopDetected(eopDetected),
         .ACK_EOP(ACK_EOP),
-        .outEN_reg(outEN_reg),
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one

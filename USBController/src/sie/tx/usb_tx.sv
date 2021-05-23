@@ -5,6 +5,13 @@ module usb_tx#()(
     input logic clk48,
     input logic transmitCLK,
 
+
+    output logic txCRCReset,
+    output logic txUseCRC16,
+    output logic txCRCInput,
+    output logic txCRCInputValid,
+    input logic [15:0] reversedCRC16,
+
     // interface inputs
     // Data input interface: synced with clk48!
     input logic txReqSendPacket, // Trigger sending a new packet
@@ -116,7 +123,7 @@ module usb_tx#()(
     // Combinatoric logic
     assign txStateAdd1 = txState + 1;
 
-    logic [15:0] reversedCRC16, crc16; 
+    logic [15:0] crc16;
     logic [4:0] crc5;
     assign crc5 = {reversedCRC16[0], reversedCRC16[1], reversedCRC16[2], reversedCRC16[3], reversedCRC16[4]};
     assign crc16 = {crc5, reversedCRC16[5], reversedCRC16[6], reversedCRC16[7], reversedCRC16[8], reversedCRC16[9], reversedCRC16[10], reversedCRC16[11], reversedCRC16[12], reversedCRC16[13], reversedCRC16[14], reversedCRC16[15]};
@@ -277,23 +284,11 @@ module usb_tx#()(
         .bufferEmpty(txReqNewData)
     );
 
-
-    usb_crc crcEngine (
-        .clk12(transmitCLK),
-        //TODO we need to exclude undesired fields too: might be controlled with the rst signal
-        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
-        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
-        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
-        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
-        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
-        //TODO for rx logic state comparison as reset signal was to delayed! -> likely needs to be set in state transition logic
-        .RST(txState == TX_SEND_PID), // Required at every new packet, can be a wire
-        .VALID(txNoBitStuffingNeeded), // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-        .rxUseCRC16(useCRC16),
-        .data(txSerializerOut),
-        .crc(reversedCRC16),
-        .validCRC() // This pin is unused for tx purposes
-    );
+    // CRC signals
+    assign txCRCReset = txState == TX_SEND_PID;
+    assign txCRCInputValid = txNoBitStuffingNeeded;
+    assign txCRCInput = txSerializerOut;
+    assign txUseCRC16 = useCRC16;
 
     logic txBitStuffedData;
     usb_bit_stuff txBitStuffing(

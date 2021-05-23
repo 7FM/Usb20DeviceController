@@ -114,7 +114,7 @@ static void reset() {
     ptop->USB_DP = 1;
     ptop->USB_DN = 0;
 
-    ptop->outEN_reg = 0;
+    ptop->rxRST = 0;
     ptop->rxAcceptNewData = 0;
 
     // Simulation state

@@ -5,7 +5,7 @@ module sim_usb_rx (
     input logic CLK,
     input logic USB_DP,
     input logic USB_DN,
-    input logic outEN_reg,
+    input logic rxRST,
 
     // Data output interface: synced with clk48!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
@@ -20,7 +20,7 @@ module sim_usb_rx (
         .CLK(CLK),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
-        .outEN_reg(outEN_reg),
+        .rxRST(rxRST),
         .rxAcceptNewData(rxAcceptNewData),
         .rxIsLastByte(rxIsLastByte),
         .rxDataValid(rxDataValid),

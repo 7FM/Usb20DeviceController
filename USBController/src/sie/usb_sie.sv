@@ -95,26 +95,71 @@ module usb_sie (
         .readCLK12(rxClk12)
     );
 
+    /*
     clock_gen #(
         .DIVIDE_LOG_2($clog2(4))
     ) clkDiv4 (
         .inCLK(clk48),
         .outCLK(txClk12)
+    );*/
+
+    assign txClk12 = rxClk12;
+
+    logic crcReset;
+    logic rxCRCReset;
+    logic txCRCReset;
+
+    logic useCRC16;
+    logic rxUseCRC16;
+    logic txUseCRC16;
+
+    logic crcInput;
+    logic rxCRCInput;
+    logic txCRCInput;
+
+    logic crcInputValid;
+    logic rxCRCInputValid;
+    logic txCRCInputValid;
+
+    logic isValidCRC;
+    logic [15:0] crc;
+
+    assign useCRC16 = txIsSending ? txUseCRC16 : rxUseCRC16;
+    assign crcReset = txIsSending ? txCRCReset : rxCRCReset;
+    assign crcInput = txIsSending ? txCRCInput : rxCRCInput;
+    assign crcInputValid = txIsSending ? txCRCInputValid : rxCRCInputValid;
+
+    usb_crc crcEngine (
+        .clk12(rxClk12),
+        .RST(crcReset),
+        .VALID(crcInputValid),
+        .rxUseCRC16(useCRC16),
+        .data(crcInput),
+        .validCRC(isValidCRC),
+        .crc(crc)
     );
 
     // =====================================================================================================
     // RECEIVE Modules
     // =====================================================================================================
 
+    logic rxRST = txIsSending; //TODO
+
     usb_rx#() usbRxModules(
         .clk48(clk48),
         .receiveCLK(rxClk12),
+        .rxRST(rxRST),
+
+        .rxCRCReset(rxCRCReset),
+        .rxUseCRC16(rxUseCRC16),
+        .rxCRCInput(rxCRCInput),
+        .rxCRCInputValid(rxCRCInputValid),
+        .isValidCRC(isValidCRC),
 
         .dataInP(dataInP),
         .isValidDPSignal(isValidDPSignal),
         .eopDetected(eopDetected),
         .ACK_EOP(ACK_EOP),
-        .outEN_reg(outEN_reg),
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one
@@ -131,6 +176,13 @@ module usb_sie (
         // Inputs
         .clk48(clk48),
         .transmitCLK(txClk12),
+
+        .txCRCReset(txCRCReset),
+        .txUseCRC16(txUseCRC16),
+        .txCRCInput(txCRCInput),
+        .txCRCInputValid(txCRCInputValid),
+        .reversedCRC16(crc),
+
         // Data interface
         .txReqSendPacket(txReqSendPacket), // Trigger sending a new packet
         .txIsLastByte(txIsLastByte), // Indicates that the applied sendData is the last byte to send

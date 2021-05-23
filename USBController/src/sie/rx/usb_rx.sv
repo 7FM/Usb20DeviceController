@@ -4,12 +4,18 @@
 module usb_rx#()(
     input logic clk48,
     input logic receiveCLK,
+    input logic rxRST,
+
+    output logic rxCRCReset,
+    output logic rxUseCRC16,
+    output logic rxCRCInput,
+    output logic rxCRCInputValid,
+    input logic isValidCRC,
 
     input logic dataInP,
     input logic isValidDPSignal,
     input logic eopDetected,
     output logic ACK_EOP,
-    input logic outEN_reg,
 
     // Data output interface: synced with clk48!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
@@ -31,7 +37,6 @@ module usb_rx#()(
     // Error handling relevant signals
     logic receiveBitStuffingError;
     logic pidValid;
-    logic isValidCRC;
 
     // State variables
     RxStates rxState;
@@ -108,7 +113,7 @@ module usb_rx#()(
 
     // Use faster clock domain for the handshaking logic
     always_ff @(posedge clk48) begin
-        if (outEN_reg) begin
+        if (rxRST) begin
             dataNotYetRead <= 1'b0;
             byteWasNotReceived <= 1'b0;
             rxDataSwapPhase <= 1'b0;
@@ -137,7 +142,6 @@ module usb_rx#()(
     assign ACK_EOP = rxEopDetectorReset;
     logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
-    logic rxCRCReset;
 
     //TODO is a RST even needed? sync signal should automagically cause the required resets
     assign rxBitUnstuffingReset = 1'b0;
@@ -318,22 +322,11 @@ module usb_rx#()(
         .isValid(pidValid)
     );
 
-    logic useCRC16;
     // Needs thight timing -> use input buffer directly
     // Only Data Packets use CRC16!
     // Packet types are identifyable by 2 lsb bits, which are at this stage not yet at the lsb location
-    assign useCRC16 = inputBuf[2:1] == sie_defs_pkg::PID_DATA0[1:0];
-
-    //TODO reuse
-    usb_crc crcEngine (
-        .clk12(receiveCLK),
-        .RST(rxCRCReset), // Required at every new packet, can be a wire
-        //TODO we need to exclude undesired fields too: this might already work as PID fields are excluded by design of the RST signal being high during PID reception
-        .VALID(nonBitStuffedInput), // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-        .rxUseCRC16(useCRC16), // Indicate which CRC should type should be calculated/checked, needs to be set when RST is set high
-        .data(nrziDecodedInput),
-        .validCRC(isValidCRC),
-        .crc() //TODO only needed for transmission also ensure that it will be send in revere order (MSb first)!
-    );
+    assign rxUseCRC16 = inputBuf[2:1] == sie_defs_pkg::PID_DATA0[1:0];
+    assign rxCRCInputValid = nonBitStuffedInput;
+    assign rxCRCInput = nrziDecodedInput;
 
 endmodule

@@ -36,9 +36,31 @@ module sim_usb_tx (
         .outCLK(txClk12)
     );
 
+    logic txCRCReset;
+    logic txUseCRC16;
+    logic txCRCInput;
+    logic txCRCInputValid;
+    logic [15:0] crc;
+
+    usb_crc crcEngine (
+        .clk12(txClk12),
+        .RST(txCRCReset),
+        .VALID(txCRCInputValid),
+        .rxUseCRC16(txUseCRC16),
+        .data(txCRCInput),
+        .validCRC(),
+        .crc(crc)
+    );
+
     usb_tx uut(
         .clk48(CLK),
         .transmitCLK(txClk12),
+
+        .txCRCReset(txCRCReset),
+        .txUseCRC16(txUseCRC16),
+        .txCRCInput(txCRCInput),
+        .txCRCInputValid(txCRCInputValid),
+        .reversedCRC16(crc),
 
         .txReqSendPacket(txReqSendPacket),
         .txAcceptNewData(txAcceptNewData),
@@ -61,7 +83,7 @@ module sim_usb_tx (
         .CLK(CLK),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
-        .outEN_reg(1'b0),
+        .rxRST(1'b0),
 
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData),
