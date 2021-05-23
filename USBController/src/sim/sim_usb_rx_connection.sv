@@ -26,11 +26,15 @@ module sim_usb_rx_connection (
     usb_dp uut_input(
         .clk48(CLK),
         .pinP(USB_DP),
+        /* verilator lint_off PINCONNECTEMPTY */
         .pinP_OUT(),
         .pinN(USB_DN),
+        /* verilator lint_off PINCONNECTEMPTY */
         .pinN_OUT(),
         .OUT_EN(1'b0),
+        /* verilator lint_off PINCONNECTEMPTY */
         .dataOutP(),
+        /* verilator lint_off PINCONNECTEMPTY */
         .dataOutN(),
         .dataInP(dataInP),
         .dataInP_negedge(dataInP_negedge),
@@ -38,7 +42,9 @@ module sim_usb_rx_connection (
         .isValidDPSignal(isValidDPSignal),
         .eopDetected(eopDetected),
         .ACK_EOP(ACK_EOP),
+        /* verilator lint_off PINCONNECTEMPTY */
         .usbResetDetected(),
+        /* verilator lint_off PINCONNECTEMPTY */
         .ACK_USB_RST()
     );
 
@@ -70,6 +76,7 @@ module sim_usb_rx_connection (
         .rxUseCRC16(rxUseCRC16),
         .data(rxCRCInput),
         .validCRC(isValidCRC),
+        /* verilator lint_off PINCONNECTEMPTY */
         .crc()
     );
 

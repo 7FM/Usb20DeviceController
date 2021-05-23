@@ -48,6 +48,7 @@ module sim_usb_tx (
         .VALID(txCRCInputValid),
         .rxUseCRC16(txUseCRC16),
         .data(txCRCInput),
+        /* verilator lint_off PINCONNECTEMPTY */
         .validCRC(),
         .crc(crc)
     );
