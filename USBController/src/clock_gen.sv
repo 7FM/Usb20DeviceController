@@ -20,6 +20,7 @@ module clock_gen #(
 
 endmodule
 
+/* verilator lint_off DECLFILENAME */
 module simpleDFlipFlopCLK(
     input logic CLK,
     output logic outCLK
@@ -34,3 +35,4 @@ module simpleDFlipFlopCLK(
     end
 
 endmodule
+/* verilator lint_on DECLFILENAME */
