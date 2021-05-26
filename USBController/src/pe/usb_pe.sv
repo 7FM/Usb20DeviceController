@@ -37,6 +37,29 @@ module usb_pe #(
     input logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataIn
 );
 
+    //logic suspended;
+    typedef enum logic[1:0] {
+        DEVICE_NOT_RESET = 0, // Ignore all transactions except reset signal
+        DEVICE_RESET, // Responds to device and configuration descriptor requests & return information, uses default address
+        DEVICE_ADDR_ASSIGNED, // responds to requests to default control pipe with default address as long as no address was assigned
+        DEVICE_CONFIGURED // processed a SetConfiguration() request with non zero configuration value & endpoints data toggles are set to DATA0. Now the device functions may be used
+    } DeviceState;
+/* Request Error:
+When a request is received by a device that is not defined for the device, is inappropriate for the current
+setting of the device, or has values that are not compatible with the request, then a Request Error exists.
+The device deals with the Request Error by returning a STALL PID in response to the next Data stage
+transaction or in the Status stage of the message. It is preferred that the STALL PID be returned at the next
+Data stage transaction, as this avoids unnecessary bus activity
+*/
+// Setup Packet consists of 8 bytes: page 248ff.
+    typedef struct packed {
+        logic [7:0] bmRequestType,
+        logic [7:0] bRequest,
+        logic [15:0] wValue,
+        logic [15:0] wIndex,
+        logic [15:0] wLength,
+    } SetupPacket;
+
 /*
 Device Transaction State Machine Hierarchy Overview:
 
