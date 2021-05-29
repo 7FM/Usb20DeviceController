@@ -44,21 +44,21 @@ module usb_pe #(
         DEVICE_ADDR_ASSIGNED, // responds to requests to default control pipe with default address as long as no address was assigned
         DEVICE_CONFIGURED // processed a SetConfiguration() request with non zero configuration value & endpoints data toggles are set to DATA0. Now the device functions may be used
     } DeviceState;
-/* Request Error:
-When a request is received by a device that is not defined for the device, is inappropriate for the current
-setting of the device, or has values that are not compatible with the request, then a Request Error exists.
-The device deals with the Request Error by returning a STALL PID in response to the next Data stage
-transaction or in the Status stage of the message. It is preferred that the STALL PID be returned at the next
-Data stage transaction, as this avoids unnecessary bus activity
-*/
-// Setup Packet consists of 8 bytes: page 248ff.
-    typedef struct packed {
-        logic [7:0] bmRequestType,
-        logic [7:0] bRequest,
-        logic [15:0] wValue,
-        logic [15:0] wIndex,
-        logic [15:0] wLength,
-    } SetupPacket;
+    /* Request Error:
+    When a request is received by a device that is not defined for the device, is inappropriate for the current
+    setting of the device, or has values that are not compatible with the request, then a Request Error exists.
+    The device deals with the Request Error by returning a STALL PID in response to the next Data stage
+    transaction or in the Status stage of the message. It is preferred that the STALL PID be returned at the next
+    Data stage transaction, as this avoids unnecessary bus activity
+    */
+    /* Handling of an INVALID Feature Select, Descriptor Type, Request Type
+    If an unsupported or invalid request is made to a USB device, the device responds by returning STALL in
+    the Data or Status stage of the request. If the device detects the error in the Setup stage, it is preferred that
+    the device returns STALL at the earlier of the Data or Status stage. Receipt of an unsupported or invalid
+    request does NOT cause the optional Halt feature on the control pipe to be set.
+    */
+
+
 
 /*
 Device Transaction State Machine Hierarchy Overview:
