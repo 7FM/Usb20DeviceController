@@ -1,27 +1,26 @@
 [*]
 [*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
-[*] Sun May 16 15:02:12 2021
+[*] Sun May 30 17:37:18 2021
 [*]
-[dumpfile] "/home/deppian/hdl_revival/USBController/txSendRxReceive.vcd"
-[dumpfile_mtime] "Sun May 16 15:01:21 2021"
-[dumpfile_size] 151031
+[dumpfile] "/home/deppian/hdl_revival/USBController/txSendRxReceive2.vcd"
+[dumpfile_mtime] "Sun May 30 17:33:00 2021"
+[dumpfile_size] 57303
 [savefile] "/home/deppian/hdl_revival/USBController/usb_tx_signals.gtkw"
-[timestart] 1
+[timestart] 1453
 [size] 1862 911
 [pos] -1 -1
-*-6.000000 6451 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-6.000000 1611 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.sim_usb_tx.
 [treeopen] TOP.sim_usb_tx.usbDeserializer.
 [treeopen] TOP.sim_usb_tx.uut.
 [sst_width] 300
-[signals_width] 240
+[signals_width] 316
 [sst_expanded] 1
-[sst_vpaned_height] 249
+[sst_vpaned_height] 443
 @28
 TOP.sim_usb_tx.CLK
 TOP.sim_usb_tx.usbDeserializer.uut.dataInP
-TOP.sim_usb_tx.usbDeserializer.uut.dataInN
 TOP.sim_usb_tx.usbDeserializer.rxClk12
 TOP.sim_usb_tx.usbDeserializer.uut.syncDetect
 TOP.sim_usb_tx.usbDeserializer.uut.eopDetected
@@ -60,6 +59,10 @@ TOP.sim_usb_tx.uut.txSerializerOut
 TOP.sim_usb_tx.uut.txNoBitStuffingNeeded
 TOP.sim_usb_tx.uut.txBitStuffedData
 TOP.sim_usb_tx.uut.txNRZiEncodedData
+TOP.sim_usb_tx.uut.txDataOut
+@25
+TOP.sim_usb_tx.uut.txBitStuffing.oneCounter[2:0]
+@28
 TOP.sim_usb_tx.dataOutP_reg
 TOP.sim_usb_tx.dataOutN_reg
 TOP.sim_usb_tx.txClk12
@@ -68,10 +71,8 @@ TOP.sim_usb_tx.sending
 TOP.sim_usb_tx.uut.txPID[3:0]
 @28
 TOP.sim_usb_tx.uut.useCRC16
-TOP.sim_usb_tx.uut.crcEngine.crcBuf[15:0]
-@29
+TOP.sim_usb_tx.txCRCReset
 TOP.sim_usb_tx.uut.crc16[15:0]
-@28
 TOP.sim_usb_tx.uut.crc5[4:0]
 [pattern_trace] 1
 [pattern_trace] 0
