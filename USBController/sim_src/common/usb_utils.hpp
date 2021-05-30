@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <array>
 
 #define BIT_STUFF_AFTER_X_ONES 6
 
@@ -90,54 +91,69 @@ constexpr CRC_Type getCRCTypeFromPID(PID_Types pid, bool allowInvalid = false) {
     return CRC_INVALID;
 }
 
+#define CALCULATE_CRC_FUN_BODY()                                                            \
+    constexpr uint16_t crc5_polynom = 0b0'0101;                                             \
+    constexpr uint16_t crc16_polynom = 0b1000'0000'0000'0101;                               \
+    constexpr uint16_t crc5_residual = 0b0'1100;                                            \
+    /*constexpr uint16_t crc16_residual = 0b1000'0000'0000'1101;*/                          \
+                                                                                            \
+    if (crcType != CRC5 && crcType != CRC16) {                                              \
+        return crc5_residual;                                                               \
+    }                                                                                       \
+                                                                                            \
+    if (initCRC) {                                                                          \
+        return static_cast<uint16_t>(-1);                                                   \
+    }                                                                                       \
+                                                                                            \
+    const uint8_t shiftAmount = crcType == CRC16 ? 15 : 4;                                  \
+    const uint16_t crc_polynom = crcType == CRC16 ? crc16_polynom : crc5_polynom;           \
+                                                                                            \
+    for (int i = 0; i < sizeof(T) && bitsInData > 0; ++i, bitsInData -= 8) {                \
+        uint8_t d = static_cast<uint8_t>((data >> (i * 8)) & 0x0FF);                        \
+                                                                                            \
+        for (int j = (bitsInData > 8 ? 8 : bitsInData); j > 0; --j, d >>= 1) {              \
+            uint16_t dataInBit = (d & 1) ^ ((crcState >> shiftAmount) & 1);                 \
+            crcState <<= 1;                                                                 \
+                                                                                            \
+            if (dataInBit == 1) {                                                           \
+                crcState ^= crc_polynom;                                                    \
+            }                                                                               \
+        }                                                                                   \
+    }                                                                                       \
+                                                                                            \
+    /* Ensure that only as many bits are used as needed for the chosen CRC*/                \
+    crcState &= static_cast<uint16_t>((static_cast<uint32_t>(1) << (shiftAmount + 1)) - 1); \
+                                                                                            \
+    return crcState
+
 template <typename T>
-static constexpr void calculateCRC(bool initCRC, uint16_t &crcState, CRC_Type crcType, const T data, int bitsInData) {
-    constexpr uint16_t crc5_polynom = 0b0'0101;
-    constexpr uint16_t crc16_polynom = 0b1000'0000'0000'0101;
-    constexpr uint16_t crc5_residual = 0b0'1100;
-    //constexpr uint16_t crc16_residual = 0b1000'0000'0000'1101;
-
-    if (crcType != CRC5 && crcType != CRC16) {
-        crcState = crc5_residual;
-        return;
-    }
-
-    if (initCRC) {
-        crcState = static_cast<uint16_t>(-1);
-        return;
-    }
-
-    const uint8_t shiftAmount = crcType == CRC16 ? 15 : 4;
-    const uint16_t crc_polynom = crcType == CRC16 ? crc16_polynom : crc5_polynom;
-
-    for (int i = 0; i < sizeof(T) && bitsInData > 0; ++i, bitsInData -= 8) {
-        uint8_t d = static_cast<uint8_t>((data >> (i * 8)) & 0x0FF);
-
-        for (int j = (bitsInData > 8 ? 8 : bitsInData); j > 0; --j, d >>= 1) {
-            uint16_t dataInBit = (d & 1) ^ ((crcState >> shiftAmount) & 1);
-            crcState <<= 1;
-
-            if (dataInBit == 1) {
-                crcState ^= crc_polynom;
-            }
-        }
-    }
-
-    // Ensure that only as many bits are used as needed for the chosen CRC
-    crcState &= static_cast<uint16_t>((static_cast<uint32_t>(1) << (shiftAmount + 1)) - 1);
+static uint16_t calculateCRC(bool initCRC, uint16_t crcState, CRC_Type crcType, const T data, int bitsInData) {
+    CALCULATE_CRC_FUN_BODY();
 }
 
-static constexpr bool needsBitStuffing(uint8_t &oneCounter, uint8_t dataBit) {
-    if (dataBit == 1) {
-        ++oneCounter;
-        if (oneCounter >= BIT_STUFF_AFTER_X_ONES) {
-            oneCounter = 0;
-            return true;
-        }
-    } else {
-        oneCounter = 0;
-    }
-    return false;
+template <typename T>
+static constexpr uint16_t calculateCRC_constExpr(bool initCRC, uint16_t crcState, CRC_Type crcType, const T data, int bitsInData) {
+    CALCULATE_CRC_FUN_BODY();
+}
+
+#define NEEDS_BIT_STUFFING_FUN_BODY()               \
+    if (dataBit == 1) {                             \
+        ++oneCounter;                               \
+        if (oneCounter >= BIT_STUFF_AFTER_X_ONES) { \
+            oneCounter = 0;                         \
+            return true;                            \
+        }                                           \
+    } else {                                        \
+        oneCounter = 0;                             \
+    }                                               \
+    return false
+
+bool needsBitStuffing(uint8_t &oneCounter, uint8_t dataBit) {
+    NEEDS_BIT_STUFFING_FUN_BODY();
+}
+
+constexpr bool needsBitStuffing_constExpr(uint8_t &oneCounter, uint8_t dataBit) {
+    NEEDS_BIT_STUFFING_FUN_BODY();
 }
 
 template <uint8_t... dataBytes>
@@ -148,7 +164,7 @@ static constexpr int requiredBitStuffings() {
     for (uint8_t data : {dataBytes...}) {
         for (int i = 0; i < sizeof(data) * 8; ++i) {
 
-            if (needsBitStuffing(ones, data & 1)) {
+            if (needsBitStuffing_constExpr(ones, data & 1)) {
                 ++requiredBitStuffing;
             }
 
@@ -160,47 +176,69 @@ static constexpr int requiredBitStuffings() {
     return requiredBitStuffing;
 }
 
-static constexpr void applyNrziEncode(uint8_t &nrziEncoderState, uint8_t dataBit, uint8_t *dp, uint8_t *dn) {
-    // XNOR first bit
-    nrziEncoderState = 1 ^ (nrziEncoderState ^ dataBit);
-
-    *dp = nrziEncoderState;
-    *dn = 1 ^ nrziEncoderState;
-}
-
 template <uint8_t... dataBytes>
 constexpr uint16_t constExprCRC(CRC_Type crcType);
 
+#define CRC_HELPER_FUN_BODY(crcFunName)                                                  \
+    uint16_t crcState = 0;                                                               \
+    crcState = crcFunName<uint8_t>(true, crcState, crcType, static_cast<uint8_t>(0), 8); \
+                                                                                         \
+    int dataIdx = 0;                                                                     \
+    int lastDataBitCount = crcType == CRC5 ? 3 : 8;                                      \
+                                                                                         \
+    for (uint8_t data : bytes) {                                                         \
+        int bitsInData = dataIdx < byteCount - 1 ? sizeof(data) * 8 : lastDataBitCount;  \
+                                                                                         \
+        crcState = crcFunName<uint8_t>(false, crcState, crcType, data, bitsInData);      \
+        ++dataIdx;                                                                       \
+    }                                                                                    \
+                                                                                         \
+    crcState = ~crcState;                                                                \
+    uint16_t correctlyEncodedCRC = 0;                                                    \
+                                                                                         \
+    for (int i = crcType == CRC5 ? 5 : (crcType == CRC16 ? 16 : 0); i > 0; --i) {        \
+        correctlyEncodedCRC <<= 1;                                                       \
+        correctlyEncodedCRC |= crcState & 1;                                             \
+        crcState >>= 1;                                                                  \
+    }                                                                                    \
+                                                                                         \
+    return correctlyEncodedCRC
+
+template <class Bytes>
+uint16_t calculateDataCRC(CRC_Type crcType, Bytes bytes, int byteCount) {
+    CRC_HELPER_FUN_BODY(calculateCRC);
+}
+
+template <class Bytes>
+static constexpr uint16_t constExprCRC_helper(CRC_Type crcType, Bytes bytes, int byteCount) {
+    CRC_HELPER_FUN_BODY(calculateCRC_constExpr);
+}
+
 template <uint8_t... dataBytes>
 constexpr uint16_t constExprCRC(CRC_Type crcType) {
-    uint16_t crcState = 0;
-    calculateCRC<uint8_t>(true, crcState, crcType, static_cast<uint8_t>(0), 8);
-
-    int dataIdx = 0;
-    int lastDataBitCount = crcType == CRC5 ? 3 : 8;
-
-    for (uint8_t data : {dataBytes...}) {
-        int bitsInData = dataIdx < sizeof...(dataBytes) - 1 ? sizeof(data) * 8 : lastDataBitCount;
-
-        calculateCRC<uint8_t>(false, crcState, crcType, data, bitsInData);
-        ++dataIdx;
-    }
-
-    crcState = ~crcState;
-    uint16_t correctlyEncodedCRC = 0;
-
-    for (int i = crcType == CRC5 ? 5 : (crcType == CRC16 ? 16 : 0); i > 0; --i) {
-        correctlyEncodedCRC <<= 1;
-        correctlyEncodedCRC |= crcState & 1;
-        crcState >>= 1;
-    }
-
-    return correctlyEncodedCRC;
+    return constExprCRC_helper<std::initializer_list<uint8_t>>(crcType, {dataBytes...}, sizeof...(dataBytes));
 }
 
 template <>
 constexpr uint16_t constExprCRC<>(CRC_Type crcType) {
     return 0;
+}
+
+#define APPLY_NRZI_ENCODE_FUN_BODY()                     \
+    /* XNOR first bit*/                                  \
+    nrziEncoderState = 1 ^ (nrziEncoderState ^ dataBit); \
+                                                         \
+    *dp = nrziEncoderState;                              \
+    *dn = 1 ^ nrziEncoderState
+
+/*
+static void applyNrziEncode(uint8_t &nrziEncoderState, uint8_t dataBit, uint8_t *dp, uint8_t *dn) {
+    APPLY_NRZI_ENCODE_FUN_BODY();
+}
+*/
+
+static constexpr void applyNrziEncode_constExpr(uint8_t &nrziEncoderState, uint8_t dataBit, uint8_t *dp, uint8_t *dn) {
+    APPLY_NRZI_ENCODE_FUN_BODY();
 }
 
 // Source: https://stackoverflow.com/questions/5438671/static-assert-on-initializer-listsize
@@ -227,12 +265,12 @@ constexpr auto nrziEncode(uint8_t initialOneCount = 1, uint8_t encoderStartState
             // Next data bit
             data >>= 1;
 
-            applyNrziEncode(nrziEncoderState, dataBit, signal.dp + signalIdx, signal.dn + signalIdx);
+            applyNrziEncode_constExpr(nrziEncoderState, dataBit, signal.dp + signalIdx, signal.dn + signalIdx);
 
-            if (needsBitStuffing(bitStuffingOneCounter, dataBit)) {
+            if (needsBitStuffing_constExpr(bitStuffingOneCounter, dataBit)) {
                 // If the allowed amount of consecutive one's are exceeded a 0 needs to be stuffed into the signal!
                 ++signalIdx;
-                applyNrziEncode(nrziEncoderState, 0, signal.dp + signalIdx, signal.dn + signalIdx);
+                applyNrziEncode_constExpr(nrziEncoderState, 0, signal.dp + signalIdx, signal.dn + signalIdx);
             }
         }
         ++dataIdx;
@@ -244,12 +282,12 @@ constexpr auto nrziEncode(uint8_t initialOneCount = 1, uint8_t encoderStartState
         // Next data bit
         crcCopy >>= 1;
 
-        applyNrziEncode(nrziEncoderState, dataBit, signal.dp + signalIdx, signal.dn + signalIdx);
+        applyNrziEncode_constExpr(nrziEncoderState, dataBit, signal.dp + signalIdx, signal.dn + signalIdx);
 
-        if (needsBitStuffing(bitStuffingOneCounter, dataBit)) {
+        if (needsBitStuffing_constExpr(bitStuffingOneCounter, dataBit)) {
             // If the allowed amount of consecutive one's are exceeded a 0 needs to be stuffed into the signal!
             ++signalIdx;
-            applyNrziEncode(nrziEncoderState, 0, signal.dp + signalIdx, signal.dn + signalIdx);
+            applyNrziEncode_constExpr(nrziEncoderState, 0, signal.dp + signalIdx, signal.dn + signalIdx);
         }
     }
 
