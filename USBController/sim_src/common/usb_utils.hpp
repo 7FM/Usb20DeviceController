@@ -221,6 +221,7 @@ constexpr uint16_t constExprCRC(CRC_Type crcType) {
 
 template <>
 constexpr uint16_t constExprCRC<>(CRC_Type crcType) {
+    // If there is no data then its crc is 0
     return 0;
 }
 

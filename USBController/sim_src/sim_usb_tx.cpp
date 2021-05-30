@@ -133,6 +133,26 @@ int main(int argc, char **argv) {
     reset();
 
     //TODO test different packet types!
+
+    /*
+    txState.dataToSend.push_back(PID_DATA0);
+    // Single byte packet that triggers the CRC bitstuffing at end edge case!
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
+    std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xF9)>(CRC_Type::CRC16)) << std::endl;
+    */
+    /*
+    txState.dataToSend.push_back(PID_DATA0);
+    // Two byte packet that triggers the CRC bitstuffing at end edge case!
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+    txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
+    std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xFF), static_cast<uint8_t>(0xFA)>(CRC_Type::CRC16)) << std::endl;
+    */
+    /*
+    txState.dataToSend.push_back(PID_DATA0);
+    // Another edge case: empty data packet!
+    std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<>(CRC_Type::CRC16)) << std::endl;
+    */
+    ///*
     txState.dataToSend.push_back(PID_DATA0);
     txState.dataToSend.push_back(static_cast<uint8_t>(0x11));
     txState.dataToSend.push_back(static_cast<uint8_t>(0x22));
@@ -177,6 +197,7 @@ int main(int argc, char **argv) {
                 static_cast<uint8_t>(0xFF)
             >(CRC16))
     << std::endl;
+    //*/
 
     if (start) {
         run(start, false);
