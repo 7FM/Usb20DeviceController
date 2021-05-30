@@ -224,17 +224,12 @@ module usb_tx#()(
                     end
                 end
             end
-            TX_SEND_CRC16: begin
+            TX_SEND_CRC16, TX_SEND_CRC5: begin
                 if (txReqNewData) begin
-                    // Lower crc16 byte was send
+                    // CRC16 byte 1: Lower crc16 byte was send
+                    // CRC5: We can continue after CRC5 with remaining 3 data bits was sent
+                    // CRC16 byte 2: the second CRC16 byte was sent (is reused)
                     next_txState = txStateAdd1;
-                end
-            end
-            TX_SEND_CRC5: begin
-                // We can continue after CRC5 with remaining 3 data bits was sent OR the second CRC16 byte was sent (is reused)
-                if (txReqNewData) begin
-                    next_txState = txStateAdd1;
-                    //TODO set send data for EOP to work!
                 end
             end
             TX_EOP_BITSTUFFING_EDGECASE: begin
