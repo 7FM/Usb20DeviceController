@@ -97,7 +97,6 @@ module usb_tx#()(
 
         // Data handshake condition
         if (txAcceptNewData && txDataValid) begin
-            //next_txHasDataFetched = 1'b1;
             next_txDataBufNewByte = txData;
             next_txFetchedDataIsLast = txIsLastByte;
         end else if (sendingLastDataByte) begin
@@ -107,7 +106,6 @@ module usb_tx#()(
         if (txState == TX_RST_REGS) begin
             // Reset important state register: should be same as after a RST or in the initial block
             next_txFetchedDataIsLast = 1'b0;
-            next_txHasDataFetched = 1'b1;
         end
     end
 
