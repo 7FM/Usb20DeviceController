@@ -61,17 +61,6 @@ static void run(uint64_t limit, bool dump, bool checkStopCondition = true) {
 }
 
 /******************************************************************************/
-static void reset() {
-    // Data send/transmit interface
-    ptop->txReqSendPacket = 0;
-    ptop->txIsLastByte = 0;
-    ptop->txDataValid = 0;
-    ptop->txData = 0;
-    // Data receive interface
-    ptop->rxAcceptNewData = 0;
-}
-
-/******************************************************************************/
 
 // Usb data receive state variables
 static UsbReceiveState rxState;
@@ -90,6 +79,19 @@ static void onRisingEdge() {
 }
 
 static void onFallingEdge() {
+}
+
+static void reset() {
+    // Data send/transmit interface
+    ptop->txReqSendPacket = 0;
+    ptop->txIsLastByte = 0;
+    ptop->txDataValid = 0;
+    ptop->txData = 0;
+    // Data receive interface
+    ptop->rxAcceptNewData = 0;
+
+    rxState.reset();
+    txState.reset();
 }
 
 /******************************************************************************/

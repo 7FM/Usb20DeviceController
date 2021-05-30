@@ -336,6 +336,13 @@ typedef struct {
     bool keepPacket = false;
     uint8_t delayedDataAccept = 0;
     const uint8_t acceptAfterXAvailableCycles = 5;
+
+    void reset() {
+        receivedData.clear();
+        receivedLastByte = false;
+        keepPacket = false;
+        delayedDataAccept = 0;
+    }
 } UsbReceiveState;
 
 template <typename T>
@@ -372,6 +379,12 @@ typedef struct {
     std::vector<uint8_t> dataToSend;
     std::size_t transmitIdx = 0;
     bool requestedSendPacket = false;
+
+    void reset() {
+        dataToSend.clear();
+        transmitIdx = 0;
+        requestedSendPacket = false;
+    }
 } UsbTransmitState;
 
 template <typename T>
