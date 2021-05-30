@@ -34,7 +34,7 @@ module usb_crc(
         // For each data bit sent or received, the high order bit of the current remainder is XORed with
         // the data bit and then the remainder is shifted left one bit and the low-order bit set to zero. If the result of
         // that XOR is one, then the remainder is XORed with the generator polynomial.
-        if (VALID) begin
+        if (!RST && VALID) begin
             // Shift and XOR with polynomial if crcX_in is 1 -> XOR with crcX_in
             // CRC5  polynomial: 0b0000_0000_0000_0101
             // CRC16 polynomial: 0b1000_0000_0000_0101

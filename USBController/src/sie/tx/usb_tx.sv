@@ -33,9 +33,9 @@ module usb_tx#()(
         TX_SEND_SYNC,
         TX_SEND_PID,
         TX_SEND_DATA,
-        TX_SEND_DATA_CRC16_TRANSITION,
         TX_SEND_CRC16,
         TX_SEND_CRC5,
+        TX_EOP_BITSTUFFING_EDGECASE,
         TX_SEND_EOP_1,
         TX_SEND_EOP_2,
         TX_SEND_EOP_3,
@@ -45,7 +45,7 @@ module usb_tx#()(
     // State registers: one per line
     sie_defs_pkg::PID_Types txPID, next_txPID;
     TxStates txState, next_txState, txStateAdd1;
-    logic [7:0] txDataSerializerIn;
+    logic sendingLastDataByte, next_sendingLastDataByte;
 
 
     initial begin
@@ -53,6 +53,7 @@ module usb_tx#()(
         dataOutN_reg = 1'b0;
         txState = TX_WAIT_SEND_REQ;
         sending = 1'b0;
+        sendingLastDataByte = 1'b0;
     end
 
 //=========================================================================================
@@ -77,7 +78,7 @@ module usb_tx#()(
 
     always_ff @(posedge clk48) begin
         prev_txReqNewData <= txReqNewData;
-        // If reqSendPacket was set, wait until the state machine in the slower domain as received the signal
+        // If reqSendPacket was set, wait until the state machine in the slower domain has received the signal
         // and changed the state -> we can clear the flag
         // else if reqSendPacket is not set, check the interface request line
         reqSendPacket <= reqSendPacket ? txState == TX_WAIT_SEND_REQ : txReqSendPacket;
@@ -99,7 +100,7 @@ module usb_tx#()(
             //next_txHasDataFetched = 1'b1;
             next_txDataBufNewByte = txData;
             next_txFetchedDataIsLast = txIsLastByte;
-        end else if (txState == TX_SEND_DATA_CRC16_TRANSITION) begin
+        end else if (sendingLastDataByte) begin
             // During this state the final byte will be sent -> hence we get our final crc value
             next_txDataBufNewByte = crc16[15:8];
         end else if (txState == TX_RST_REGS) begin
@@ -138,12 +139,15 @@ module usb_tx#()(
     logic txReqNewData;
     logic txGotNewData;
 
+    logic txNoBitStuffingNeeded;
     logic txNRZiEncodedData;
 
     logic txSendSingleEnded;
     logic txDataOut;
 
     logic txRstModules;
+
+    logic [7:0] txDataSerializerIn;
 
     assign txRstModules = txState == TX_WAIT_SEND_REQ;
 
@@ -157,7 +161,20 @@ module usb_tx#()(
         txSendSingleEnded = 1'b0;
         txGotNewData = txReqNewData; // Trigger automatically if the buffer gets empty
         txDataSerializerIn = txDataBufNewByte;
-    
+        next_sendingLastDataByte = (sendingLastDataByte ^ txReqNewData) && txFetchedDataIsLast;
+
+        if (sendingLastDataByte) begin
+            // the final byte is currently sent -> hence we get our final crc value
+            if (useCRC16) begin
+                // Start sending the lower crc16 byte
+                txDataSerializerIn = crc16[7:0];
+            end else begin
+                // CRC5 needs special treatment as it needs 3 data bits
+                // We need to patch the data that will be read as the last byte already contains the crc5!
+                txDataSerializerIn = {crc5, txDataBufNewByte[2:0]};
+            end
+        end
+
         // State transitions
         unique case (txState)
             TX_WAIT_SEND_REQ: begin
@@ -180,40 +197,37 @@ module usb_tx#()(
             end
             TX_SEND_PID: begin
                 if (txReqNewData) begin
-                    next_txState = noDataAndCrcStage? TX_SEND_EOP_1 : txStateAdd1;
-                    //TODO set send data for EOP to work!
+                    // If there is no data & crc stage then the EOP bit stuffing edge case can not arrise!
+                    if (noDataAndCrcStage) begin
+                        next_txState = TX_EOP_BITSTUFFING_EDGECASE;
+                    end else begin
+                        next_txState = txStateAdd1;
+                        if (sendingLastDataByte) begin
+                            if (useCRC16) begin
+                                next_txState = TX_SEND_CRC16;
+                            end else begin
+                                next_txState = TX_SEND_CRC5;
+                            end
+                        end
+                    end
                 end
             end
             TX_SEND_DATA: begin
                 if (txReqNewData) begin
                     // Loop in this state until the last byte will be sent next
-                    if (txFetchedDataIsLast) begin
+                    if (sendingLastDataByte) begin
                         if (useCRC16) begin
                             next_txState = txStateAdd1;
                         end else begin
-                            // CRC5 needs special treatment as it needs 3 data bits
-                            // We need to patch the data that will be read as the last byte already contains the crc5!
-                            txDataSerializerIn = {crc5, txDataBufNewByte[2:0]};
                             next_txState = TX_SEND_CRC5;
                         end
                     end
-                end
-            end
-            TX_SEND_DATA_CRC16_TRANSITION: begin
-                // During this state the final byte will be sent -> hence we get our final crc value
-                // Start sending the lower crc16 byte
-                txDataSerializerIn = crc16[7:0];
-
-                if (txReqNewData) begin
-                    next_txState = txStateAdd1;
                 end
             end
             TX_SEND_CRC16: begin
                 if (txReqNewData) begin
                     // Lower crc16 byte was send
                     next_txState = txStateAdd1;
-                    // Finally also send the second crc16 byte
-                    //txDataSerializerIn = txDataBufNewByte;
                 end
             end
             TX_SEND_CRC5: begin
@@ -223,18 +237,17 @@ module usb_tx#()(
                     //TODO set send data for EOP to work!
                 end
             end
-            TX_SEND_EOP_1, TX_SEND_EOP_2: begin
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
-                //TODO we need to handle the edge case where a zero bit is stuffed right before the EOP signal!!!
+            TX_EOP_BITSTUFFING_EDGECASE: begin
+                // Ensure that the last bit is sent as expected
 
+                if (txNoBitStuffingNeeded) begin
+                    // no bit stuffing -> we can start sending EOP signal next!
+                    next_txState = TX_SEND_EOP_1;
+                end else begin
+                    // We need bit stuffing! -> stay in this state to ensure that the stuffed bit is send too
+                end
+            end
+            TX_SEND_EOP_1, TX_SEND_EOP_2: begin
                 // special handling for SE0 signals
                 txDataOut = 1'b0;
                 txSendSingleEnded = 1'b1;
@@ -260,6 +273,7 @@ module usb_tx#()(
         // State
         txState <= next_txState;
         txPID <= next_txPID;
+        sendingLastDataByte <= next_sendingLastDataByte;
 
         // Output data
         // due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
@@ -273,7 +287,6 @@ module usb_tx#()(
     //======================= Stage 0 =======================
     //=======================================================
 
-    logic txNoBitStuffingNeeded;
     logic txSerializerOut;
     output_shift_reg #() outputSerializer(
         .clk12(transmitCLK),
