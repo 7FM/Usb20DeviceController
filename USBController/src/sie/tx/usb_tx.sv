@@ -68,7 +68,7 @@ module usb_tx#()(
 
     initial begin
         //txPID and txDataBufNewByte are dont cares with the other states
-        txHasDataFetched = 1'b0;
+        txHasDataFetched = 1'b1;
         txFetchedDataIsLast = 1'b0;
         prev_txReqNewData = 1'b0;
         reqSendPacket = 1'b0;
@@ -103,10 +103,11 @@ module usb_tx#()(
         end else if (sendingLastDataByte) begin
             // During this state the final byte will be sent -> hence we get our final crc value
             next_txDataBufNewByte = crc16[15:8];
-        end else if (txState == TX_RST_REGS) begin
+        end
+        if (txState == TX_RST_REGS) begin
             // Reset important state register: should be same as after a RST or in the initial block
             next_txFetchedDataIsLast = 1'b0;
-            next_txHasDataFetched = 1'b0;
+            next_txHasDataFetched = 1'b1;
         end
     end
 
