@@ -4,6 +4,8 @@
 module sim_usb_tx (
     input logic CLK,
 
+    input logic rxRST,
+
     // Data send interface: synced with clk48!
     input logic txReqSendPacket,
     output logic txAcceptNewData,
@@ -76,8 +78,6 @@ module sim_usb_tx (
         .dataOutP_reg(dataOutP_reg)
     );
 
-    // assign USB_DP = sending ? dataOutP_reg : 1'bx;
-    // assign USB_DN = sending ? dataOutN_reg : 1'bx;
     assign USB_DP = sending ? dataOutP_reg : 1'b1;
     assign USB_DN = sending ? dataOutN_reg : 1'b0;
 
@@ -85,7 +85,7 @@ module sim_usb_tx (
         .CLK(CLK),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
-        .rxRST(1'b0),
+        .rxRST(rxRST),
 
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData),
