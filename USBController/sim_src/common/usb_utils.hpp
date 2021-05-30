@@ -174,7 +174,7 @@ constexpr uint16_t constExprCRC(CRC_Type crcType);
 template <uint8_t... dataBytes>
 constexpr uint16_t constExprCRC(CRC_Type crcType) {
     uint16_t crcState = 0;
-    calculateCRC(true, crcState, crcType, 0, 8);
+    calculateCRC<uint8_t>(true, crcState, crcType, static_cast<uint8_t>(0), 8);
 
     int dataIdx = 0;
     int lastDataBitCount = crcType == CRC5 ? 3 : 8;
@@ -182,7 +182,7 @@ constexpr uint16_t constExprCRC(CRC_Type crcType) {
     for (uint8_t data : {dataBytes...}) {
         int bitsInData = dataIdx < sizeof...(dataBytes) - 1 ? sizeof(data) * 8 : lastDataBitCount;
 
-        calculateCRC(false, crcState, crcType, data, bitsInData);
+        calculateCRC<uint8_t>(false, crcState, crcType, data, bitsInData);
         ++dataIdx;
     }
 
