@@ -135,7 +135,7 @@ package usb_dev_req_pkg;
         GET_CONFIGURATION = 8,
         SET_CONFIGURATION = 9,
         GET_INTERFACE = 10,
-        SET_CONFIGURATION = 11,
+        SET_INTERFACE = 11,
         SYNCH_FRAME = 12,
         IMPL_SPECIFIC_13_255
     } RequestCode;
@@ -145,7 +145,7 @@ package usb_dev_req_pkg;
         RECIP_INTERFACE = 1,
         RECIP_ENDPOINT = 2,
         RECIP_OTHER = 3,
-        RESERVED_4_31,
+        RESERVED_4_31
     } Recipient;
 
     typedef enum logic[1:0] {
@@ -157,7 +157,7 @@ package usb_dev_req_pkg;
 
     typedef struct packed {
         logic dataTransHostToDev;
-        RequestType type;
+        RequestType reqType;
         Recipient recipient;
     } BmRequestType;
 
