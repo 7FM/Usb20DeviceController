@@ -90,6 +90,17 @@ static void reset() {
     // Data receive interface
     ptop->rxAcceptNewData = 0;
 
+    ptop->rxRST = 1;
+    // Give modules some time to settle
+    int resetCycles = 10;
+    do {
+        ptop->CLK = 1;
+        tick(PHASE_LENGTH, true);
+        ptop->CLK = 0;
+        tick(PHASE_LENGTH, true);
+    } while (--resetCycles);
+    ptop->rxRST = 0;
+
     rxState.reset();
     txState.reset();
 }
@@ -130,87 +141,101 @@ int main(int argc, char **argv) {
     }
 
     // start things going
-    reset();
+    for (int it = 0; true; ++it) {
+        reset();
 
-    //TODO test different packet types!
+        //TODO test different packet types!
 
-    /*
-    txState.dataToSend.push_back(PID_DATA0);
-    // Single byte packet that triggers the CRC bitstuffing at end edge case!
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
-    std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xF9)>(CRC_Type::CRC16)) << std::endl;
-    */
-    /*
-    txState.dataToSend.push_back(PID_DATA0);
-    // Two byte packet that triggers the CRC bitstuffing at end edge case!
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
-    std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xFF), static_cast<uint8_t>(0xFA)>(CRC_Type::CRC16)) << std::endl;
-    */
-    /*
-    txState.dataToSend.push_back(PID_DATA0);
-    // Another edge case: empty data packet!
-    std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<>(CRC_Type::CRC16)) << std::endl;
-    */
-    ///*
-    txState.dataToSend.push_back(PID_DATA0);
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x11));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x22));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x33));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x44));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x55));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x66));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x77));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x88));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0x99));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xAA));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xBB));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xCC));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xDD));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
-    // Ensure that at least one bit stuffing is required!
-    txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+        if (it == 0) {
 
-    std::cout << "Expected CRC: " <<
-        std::bitset<16>(
-            constExprCRC<
-                static_cast<uint8_t>(0x11),
-                static_cast<uint8_t>(0x22),
-                static_cast<uint8_t>(0x33),
-                static_cast<uint8_t>(0x44),
-                static_cast<uint8_t>(0x55),
-                static_cast<uint8_t>(0x66),
-                static_cast<uint8_t>(0x77),
-                static_cast<uint8_t>(0x88),
-                static_cast<uint8_t>(0x99),
-                static_cast<uint8_t>(0xAA),
-                static_cast<uint8_t>(0xBB),
-                static_cast<uint8_t>(0xCC),
-                static_cast<uint8_t>(0xDD),
-                static_cast<uint8_t>(0xDE),
-                static_cast<uint8_t>(0xAD),
-                static_cast<uint8_t>(0xBE),
-                static_cast<uint8_t>(0xEF),
-                static_cast<uint8_t>(0xFF)
-            >(CRC16))
-    << std::endl;
-    //*/
+            txState.dataToSend.push_back(PID_DATA0);
+            // Single byte packet that triggers the CRC bitstuffing at end edge case!
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
+            std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+            std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xF9)>(CRC_Type::CRC16)) << std::endl;
 
-    if (start) {
-        run(start, false);
+        } else if (it == 1) {
+
+            txState.dataToSend.push_back(PID_DATA0);
+            // Two byte packet that triggers the CRC bitstuffing at end edge case!
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
+            std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+            std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xFF), static_cast<uint8_t>(0xFA)>(CRC_Type::CRC16)) << std::endl;
+
+        } else if (it == 2) {
+        
+            txState.dataToSend.push_back(PID_DATA0);
+            // Another edge case: empty data packet!
+            std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+            std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<>(CRC_Type::CRC16)) << std::endl;
+
+        } else if (it == 3) {
+
+            txState.dataToSend.push_back(PID_DATA0);
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x11));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x22));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x33));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x44));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x55));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x66));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x77));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x88));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0x99));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xAA));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xBB));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xCC));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xDD));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
+            // Ensure that at least one bit stuffing is required!
+            txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+
+            std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+            std::cout << "Expected CRC: " <<
+                std::bitset<16>(
+                    constExprCRC<
+                        static_cast<uint8_t>(0x11),
+                        static_cast<uint8_t>(0x22),
+                        static_cast<uint8_t>(0x33),
+                        static_cast<uint8_t>(0x44),
+                        static_cast<uint8_t>(0x55),
+                        static_cast<uint8_t>(0x66),
+                        static_cast<uint8_t>(0x77),
+                        static_cast<uint8_t>(0x88),
+                        static_cast<uint8_t>(0x99),
+                        static_cast<uint8_t>(0xAA),
+                        static_cast<uint8_t>(0xBB),
+                        static_cast<uint8_t>(0xCC),
+                        static_cast<uint8_t>(0xDD),
+                        static_cast<uint8_t>(0xDE),
+                        static_cast<uint8_t>(0xAD),
+                        static_cast<uint8_t>(0xBE),
+                        static_cast<uint8_t>(0xEF),
+                        static_cast<uint8_t>(0xFF)
+                    >(CRC16))
+            << std::endl;
+        } else {
+            std::cout << "No more test packets left" << std::endl;
+            goto exitAndCleanup;
+        }
+
+        if (start) {
+            run(start, false);
+        }
+        // Execute till stop condition
+        run(0, true);
+        // Execute a few more cycles
+        run(4 * 10, true, false);
+
+        std::cout << "Received Data:" << std::endl;
+        for (uint8_t data : rxState.receivedData) {
+            std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+        }
     }
-    // Execute till stop condition
-    run(0, true);
-    // Execute a few more cycles
-    run(4 * 10, true, false);
 
-    std::cout << "Received Data:" << std::endl;
-    for (uint8_t data : rxState.receivedData) {
-        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
-    }
 
 exitAndCleanup:
 
