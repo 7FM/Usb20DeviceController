@@ -39,10 +39,10 @@ package usb_dev_req_pkg;
     8'b0000_0000  | SET_CONFIGURATION  | Configuration Value | Zero         | Zero       | None
     -----------------------------------------------------------------------------------------------------------
     8'b1000_0000  | GET_DESCRIPTOR     | Descriptor Type     | Zero OR      | Descriptor | Descriptor
-                |                    | Descriptor Index    | Language ID  | Length     |
+                  |                    | Descriptor Index    | Language ID  | Length     |
     -----------------------------------------------------------------------------------------------------------
     8'b0000_0000  | SET_DESCRIPTOR     | Descriptor Type &   | Zero OR      | Zero       | None
-                |                    | Descriptor Index    | Language ID  |            |
+                  |                    | Descriptor Index    | Language ID  |            |
     -----------------------------------------------------------------------------------------------------------
     8'b0000_0000  | SET_ADDRESS        | Device Address      | Zero         | Zero       | None
     ===========================================================================================================
@@ -119,7 +119,57 @@ package usb_dev_req_pkg;
     } DescriptorType;
 //=========================================================================================================================
 
-//TODO GET_INTERFACE page 254ff.
+    /* GET_INTERFACE
+    wValue = 0
+    wIndex = interface index
+    This request returns the selected alternate setting for the specified interface
+    If the interface specified does not exist, then the device responds with a Request Error
+
+    if wValue != 0 || wLength != 0 -> device behaviour is not specified
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: not specified
+    - DEVICE_ADDR_ASSIGNED: repsonse with request error
+    - DEVICE_CONFIGURED: valid
+    */
+
+//=========================================================================================================================
+
+    /* GET_STATUS
+    This requests returns the status for the specified recipient
+    if an interface or an endpoint is specified that does not exist, then the device responds with a Request Error.
+
+    if wValue != 0 || wLength != 2 || (deviceRequest && wIndex != 0) -> device behaviour not specified
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: not specified
+    - DEVICE_ADDR_ASSIGNED: if interface != 0 || endpoint != 0 -> Request error
+    - DEVICE_CONFIGURED: valid
+
+    Returned Data Format: 2 bytes
+
+    - For a device: 
+        d0 = Self Powered (0 on reset): indicates if the device is currently self-powered d0 == 1'b0 -> powered by usb-bus.
+                                        May NOT be changed by SetFeature/ClearFeature
+        d1 = Remote Wakeup (0 on reset): indicates whether the device is currently enabled to request remote wakeup.
+                                            CAN be modified with SetFeature/ClearFeature with the DEVICE_REMOTE_WAKEUP feature selector
+        d2-d15 = reserved (0 on reset)
+
+    - For an interface:
+        d0-d15 = reserved (0 on reset)
+
+    - For an endpoint:
+        d0 = Halt (0 on reset): required to be implemented for interrupt & bulk endpoint types! indicates whether the endpoint is currently halted.
+                                Optionally settable with SetFeature(ENDPOINT_HALT) and clearable with ClearFeature(ENDPOINT_HALT) -> endpoint no longer responds with STALL
+                                ClearFeature(ENDPOINT_HALT) always reinitializes data toggle to DATA0!
+                                Halt flag is reset to zero at each SetConfiguration or SetInterface request
+        d1-d15 = reserved (0 on reset)
+    */
+
+//=========================================================================================================================
+
+    /* SET_ADDRESS page 256ff.
+    */
 
 //=========================================================================================================================
 
