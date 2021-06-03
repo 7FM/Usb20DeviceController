@@ -56,7 +56,7 @@ package usb_dev_req_pkg;
     A ClearFeature() request that references a feature that cannot be cleared, that does not exist, or that
     references an interface or endpoint that does not exist, will cause the device to respond with a Request Error.
 
-    If wLength is non-zero, then the device behavior is not specified
+    If wLength is non-zero, then the device behaviour is not specified
 
     DeviceState dependent behaviour:
     - DEVICE_RESET: not specified -> lets just ignore it
@@ -65,6 +65,10 @@ package usb_dev_req_pkg;
 
     Misc: Test_Mode feature cannot be cleared by CLEAR_FEATURE!
     */
+
+    /* SET_FEATURE: TODO page 258ff.
+    */
+
     typedef enum logic[15:0] {
         ENDPOINT_HALT = 0, // For recipient == endpoint only
         DEVICE_REMOTE_WAKEUP = 1, // For recipient == device only
@@ -75,12 +79,27 @@ package usb_dev_req_pkg;
 //=========================================================================================================================
 
     /* GET_CONFIGURATION:
-    If wValue != 0, wIndex != 0, or wLength != 1, then the device behavior is not specified.
+    If wValue != 0, wIndex != 0, or wLength != 1, then the device behaviour is not specified.
 
     DeviceState dependent behaviour:
     - DEVICE_RESET: not specified -> return current configuration value as in the other states: bConfigurationValue
     - DEVICE_ADDR_ASSIGNED: returns 0
     - DEVICE_CONFIGURED: return non-zero bConfigurationValue that was set
+    */
+
+    /* SET_CONFIGURATION:
+    if wIndex != 0 || wLength != 0 || wValue[15:8] != 0 -> behaviour is not specified
+
+    wValue[7:0] = configuration value
+    if the configuration value is 0 then the device state changes back to DEVICE_ADDR_ASSIGNED
+    else the configuration value has to match an configuration descriptor!
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: not specified
+    - DEVICE_ADDR_ASSIGNED: if configuration value == 0 -> stay to DEVICE_ADDR_ASSIGNED state
+                            else if configuration value mathces an configuration descriptor change state to DEVICE_CONFIGURED
+                            else request ERROR
+    - DEVICE_CONFIGURED: same logic as DEVICE_ADDR_ASSIGNED
     */
 
 //=========================================================================================================================
@@ -104,6 +123,26 @@ package usb_dev_req_pkg;
     - DEVICE_RESET: valid
     - DEVICE_ADDR_ASSIGNED: valid
     - DEVICE_CONFIGURED: valid
+    */
+
+    /* SET_DESCRIPTOR: OPTIONAL
+    wValue[15:8] = descriptor type
+    wValue[7:0] = descriptor index
+    Descriptor index is used to select a specific descriptor if DescriptorType == DESC_CONFIGURATION OR DescriptorType == DESC_STRING
+    For other STANDARD descriptors the index must be 0
+
+    wIndex specifies the Language ID if DescriptorType == DESC_STRING else zero
+
+    wLength specifies the number of bytes to transfer to the device
+
+    The only allowed descriptor types are DESC_DEVICE, DESC_CONFIGURATION and DESC_STRING
+
+    If this request is not supported (as it is optional) -> respond with request error
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: not specified
+    - DEVICE_ADDR_ASSIGNED: if supported -> valid
+    - DEVICE_CONFIGURED: if supported -> valid
     */
 
     typedef enum logic[7:0] {
@@ -168,7 +207,7 @@ package usb_dev_req_pkg;
 
 //=========================================================================================================================
 
-    /* SET_ADDRESS page 256ff.
+    /* SET_ADDRESS
     wValue = device address
 
     Transaction stages:
