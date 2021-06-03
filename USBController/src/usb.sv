@@ -71,14 +71,22 @@ module usb#(
     //TODO export
     // Endpoint interfaces
     logic [0:ENDPOINTS-1] EP_IN_popData;
+    logic [0:ENDPOINTS-1] EP_IN_popTransDone;
+    logic [0:ENDPOINTS-1] EP_IN_popTransSuccess;
     logic [0:ENDPOINTS-1] EP_IN_dataAvailable;
-    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_IN_dataOut;
+    logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_dataOut;
 
     logic [0:ENDPOINTS-1] EP_OUT_dataValid;
+    logic [0:ENDPOINTS-1] EP_OUT_fillTransDone;
+    logic [0:ENDPOINTS-1] EP_OUT_fillTransSuccess;
     logic [0:ENDPOINTS-1] EP_OUT_full;
-    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataIn;
+    logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn;
 
-    usb_pe #() usbProtocolEngine(
+    usb_pe #(
+        .ENDPOINTS(ENDPOINTS),
+        .EP_DATA_WID(EP_DATA_WID),
+        .EP_ADDR_WID(EP_ADDR_WID)
+    ) usbProtocolEngine(
         .clk48(clk48),
 
         .usbResetDetected(usbResetDetected),
@@ -101,9 +109,14 @@ module usb#(
 
         // Endpoint interfaces
         .EP_IN_popData(EP_IN_popData),
+        .EP_IN_popTransDone(EP_IN_popTransDone),
+        .EP_IN_popTransSuccess(EP_IN_popTransSuccess),
         .EP_IN_dataAvailable(EP_IN_dataAvailable),
         .EP_IN_dataOut(EP_IN_dataOut),
+
         .EP_OUT_dataValid(EP_OUT_dataValid),
+        .EP_OUT_fillTransDone(EP_OUT_fillTransDone),
+        .EP_OUT_fillTransSuccess(EP_OUT_fillTransSuccess),
         .EP_OUT_full(EP_OUT_full),
         .EP_OUT_dataIn(EP_OUT_dataIn)
     );

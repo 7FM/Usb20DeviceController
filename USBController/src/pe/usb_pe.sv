@@ -29,12 +29,16 @@ module usb_pe #(
 
     // Endpoint interfaces
     input logic [0:ENDPOINTS-1] EP_IN_popData,
+    input logic [0:ENDPOINTS-1] EP_IN_popTransDone,
+    input logic [0:ENDPOINTS-1] EP_IN_popTransSuccess,
     output logic [0:ENDPOINTS-1] EP_IN_dataAvailable,
-    output logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_IN_dataOut,
+    output logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_dataOut,
 
     input logic [0:ENDPOINTS-1] EP_OUT_dataValid,
+    input logic [0:ENDPOINTS-1] EP_OUT_fillTransDone,
+    input logic [0:ENDPOINTS-1] EP_OUT_fillTransSuccess,
     output logic [0:ENDPOINTS-1] EP_OUT_full,
-    input logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataIn
+    input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn
 );
 
     //logic suspended;
@@ -77,56 +81,79 @@ Device Transaction State Machine Hierarchy Overview:
 
 */
 
-    logic WRITE_EN; //TODO
-    logic READ_EN; //TODO
-    logic [$clog2(ENDPOINTS):0] epSelect;
+    logic [$clog2(ENDPOINTS):0] epSelect; //TODO
 
     // Used for received data
-    logic [EP_ADDR_WID-1:0] wdata;
+    logic writeFifoFull;
+    logic WRITE_EN; //TODO
+    logic [EP_DATA_WID-1:0] wdata; //TODO
+    logic fillTransDone; //TODO
+    logic fillTransSuccess; //TODO
     // Used for data to be output
-    logic [EP_ADDR_WID-1:0] rdata;
+    logic readDataAvailable;
+    logic READ_EN; //TODO
+    logic [EP_DATA_WID-1:0] rdata; //TODO
+    logic popTransDone; //TODO
+    logic popTransSuccess; //TODO
 
-    logic [0:ENDPOINTS-1] EP_IN_dataValid;
-    logic [0:ENDPOINTS-1] EP_IN_full;
-    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_IN_dataIn;
+    logic [ENDPOINTS-1:0] EP_IN_full;
 
-    logic [0:ENDPOINTS-1] EP_OUT_popData;
-    logic [0:ENDPOINTS-1] EP_OUT_dataAvailable;
-    logic [(EP_DATA_WID-1) * ENDPOINTS:0] EP_OUT_dataOut;
+    logic [ENDPOINTS-1:0] EP_OUT_dataAvailable;
+    logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataOut;
 
-    assign rdata = EP_OUT_dataOut[((epSelect+1) * EP_DATA_WID) - 1:epSelect * EP_DATA_WID];
+    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(EP_DATA_WID)) rdataMux (
+        .dataSelect(epSelect),
+        .dataVec(EP_OUT_dataOut),
+        .data(rdata)
+    );
+    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) fifoFullMux (
+        .dataSelect(epSelect),
+        .dataVec(EP_IN_full),
+        .data(writeFifoFull)
+    );
+    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) readDataAvailableMux (
+        .dataSelect(epSelect),
+        .dataVec(EP_OUT_dataAvailable),
+        .data(readDataAvailable)
+    );
 
     generate
         genvar i;
         for (i = 0; i < ENDPOINTS; i = i + 1) begin
-
-            assign EP_IN_dataValid[i] = WRITE_EN && i == epSelect;
-            assign EP_IN_dataIn[i] = wdata;
             BRAM_FIFO #(
                 .EP_ADDR_WID(EP_ADDR_WID),
                 .EP_DATA_WID(EP_DATA_WID)
             ) fifoXIn(
                 .CLK(clk48),
-                .dataValid(EP_IN_dataValid[i]),
+
+                .dataValid(WRITE_EN && i == epSelect),
+                .fillTransDone(fillTransDone),
+                .fillTransSuccess(fillTransSuccess),
                 .full(EP_IN_full[i]),
-                .dataIn(EP_IN_dataIn[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID]),
+                .dataIn(wdata),
 
                 .popData(EP_IN_popData[i]),
+                .popTransDone(EP_IN_popTransDone[i]),
+                .popTransSuccess(EP_IN_popTransSuccess[i]),
                 .dataAvailable(EP_IN_dataAvailable[i]),
                 .dataOut(EP_IN_dataOut[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID])
             );
 
-            assign EP_OUT_popData[i] = READ_EN && i == epSelect;
             BRAM_FIFO #(
                 .EP_ADDR_WID(EP_ADDR_WID),
                 .EP_DATA_WID(EP_DATA_WID)
             ) fifoXOut(
                 .CLK(clk48),
+
                 .dataValid(EP_OUT_dataValid[i]),
+                .fillTransDone(EP_OUT_fillTransDone[i]),
+                .fillTransSuccess(EP_OUT_fillTransSuccess[i]),
                 .full(EP_OUT_full[i]),
                 .dataIn(EP_OUT_dataIn[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID]),
 
-                .popData(EP_OUT_popData[i]),
+                .popData(READ_EN && i == epSelect),
+                .popTransDone(popTransDone),
+                .popTransSuccess(popTransSuccess),
                 .dataAvailable(EP_OUT_dataAvailable[i]),
                 .dataOut(EP_OUT_dataOut[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID])
             );
