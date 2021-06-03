@@ -169,6 +169,23 @@ package usb_dev_req_pkg;
 //=========================================================================================================================
 
     /* SET_ADDRESS page 256ff.
+    wValue = device address
+
+    Transaction stages:
+    Setup packet
+    Data packet (optional)
+    Status packet (in opposite direction than data stage or from device to host in case of no data stage)
+
+    Stages after the initial setup packet assume the SAME device address as the setup packet
+    -> device changes its address AFTER the status stage is completed SUCCESSFULLY!
+    Note that for all other requests the operation indicated must be completed BEFORE the status stage!
+
+    If wValue > 127 || wIndex != 0 || wLength != 0 -> device behaviour is not specified
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: valid: changes state to DEVICE_ADDR_ASSIGNED iff wValue != 0
+    - DEVICE_ADDR_ASSIGNED: valid: if wValue = 0 -> change back in device reset state! Else overwrite current addr
+    - DEVICE_CONFIGURED: not specified
     */
 
 //=========================================================================================================================

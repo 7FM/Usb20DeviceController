@@ -48,6 +48,9 @@ module usb_pe #(
         DEVICE_ADDR_ASSIGNED, // responds to requests to default control pipe with default address as long as no address was assigned
         DEVICE_CONFIGURED // processed a SetConfiguration() request with non zero configuration value & endpoints data toggles are set to DATA0. Now the device functions may be used
     } DeviceState;
+
+    logic [6:0] deviceAddr;
+
     /* Request Error:
     When a request is received by a device that is not defined for the device, is inappropriate for the current
     setting of the device, or has values that are not compatible with the request, then a Request Error exists.
