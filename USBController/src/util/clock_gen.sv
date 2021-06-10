@@ -1,3 +1,5 @@
+`include "util_macros.sv"
+
 module clock_gen #(
     parameter DIVIDE_LOG_2=0
 ) (
@@ -20,7 +22,7 @@ module clock_gen #(
 
 endmodule
 
-/* verilator lint_off DECLFILENAME */
+`MUTE_LINT(DECLFILENAME)
 module simpleDFlipFlopCLK(
     input logic CLK,
     output logic outCLK
@@ -35,4 +37,4 @@ module simpleDFlipFlopCLK(
     end
 
 endmodule
-/* verilator lint_on DECLFILENAME */
+`UNMUTE_LINT(DECLFILENAME)

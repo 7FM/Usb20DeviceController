@@ -1,4 +1,5 @@
 `include "config_pkg.sv"
+`include "util_macros.sv"
 
 `ifdef RUN_SIM
 module sim_usb_tx (
@@ -50,9 +51,7 @@ module sim_usb_tx (
         .VALID(txCRCInputValid),
         .rxUseCRC16(txUseCRC16),
         .data(txCRCInput),
-        /* verilator lint_off PINCONNECTEMPTY */
-        .validCRC(),
-        /* verilator lint_on PINCONNECTEMPTY */
+        `MUTE_PIN_CONNECT_EMPTY(validCRC),
         .crc(crc)
     );
 

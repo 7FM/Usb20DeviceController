@@ -1,4 +1,5 @@
 `include "config_pkg.sv"
+`include "util_macros.sv"
 
 `ifdef RUN_SIM
 module sim_usb_rx_connection (
@@ -26,32 +27,20 @@ module sim_usb_rx_connection (
     usb_dp uut_input(
         .clk48(CLK),
         .pinP(USB_DP),
-        /* verilator lint_off PINCONNECTEMPTY */
-        .pinP_OUT(),
-        /* verilator lint_on PINCONNECTEMPTY */
+        `MUTE_PIN_CONNECT_EMPTY(pinP_OUT),
         .pinN(USB_DN),
-        /* verilator lint_off PINCONNECTEMPTY */
-        .pinN_OUT(),
-        /* verilator lint_on PINCONNECTEMPTY */
+        `MUTE_PIN_CONNECT_EMPTY(pinN_OUT),
         .OUT_EN(1'b0),
-        /* verilator lint_off PINCONNECTEMPTY */
-        .dataOutP(),
-        /* verilator lint_on PINCONNECTEMPTY */
-        /* verilator lint_off PINCONNECTEMPTY */
-        .dataOutN(),
-        /* verilator lint_on PINCONNECTEMPTY */
+        `MUTE_PIN_CONNECT_EMPTY(dataOutP),
+        `MUTE_PIN_CONNECT_EMPTY(dataOutN),
         .dataInP(dataInP),
         .dataInP_negedge(dataInP_negedge),
         // Service signals
         .isValidDPSignal(isValidDPSignal),
         .eopDetected(eopDetected),
         .ACK_EOP(ACK_EOP),
-        /* verilator lint_off PINCONNECTEMPTY */
-        .usbResetDetected(),
-        /* verilator lint_on PINCONNECTEMPTY */
-        /* verilator lint_off PINCONNECTEMPTY */
-        .ACK_USB_RST()
-        /* verilator lint_on PINCONNECTEMPTY */
+        `MUTE_PIN_CONNECT_EMPTY(usbResetDetected),
+        `MUTE_PIN_CONNECT_EMPTY(ACK_USB_RST)
     );
 
     logic rxClkGenRST;
@@ -82,9 +71,7 @@ module sim_usb_rx_connection (
         .rxUseCRC16(rxUseCRC16),
         .data(rxCRCInput),
         .validCRC(isValidCRC),
-        /* verilator lint_off PINCONNECTEMPTY */
-        .crc()
-        /* verilator lint_on PINCONNECTEMPTY */
+        `MUTE_PIN_CONNECT_EMPTY(crc)
     );
 
     usb_rx uut(
