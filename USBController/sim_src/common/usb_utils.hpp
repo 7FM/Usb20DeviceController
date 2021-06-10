@@ -331,7 +331,7 @@ static constexpr auto createEOPSignal() {
 constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'0000)>(0, 1);
 constexpr auto usbEOPSignal = createEOPSignal();
 
-typedef struct {
+struct UsbReceiveState {
     std::vector<uint8_t> receivedData;
     bool receivedLastByte = false;
     bool keepPacket = false;
@@ -344,7 +344,7 @@ typedef struct {
         keepPacket = false;
         delayedDataAccept = 0;
     }
-} UsbReceiveState;
+};
 
 template <typename T>
 void receiveDeserializedInput(T ptop, UsbReceiveState &usbRxState) {
@@ -376,7 +376,7 @@ void receiveDeserializedInput(T ptop, UsbReceiveState &usbRxState) {
     }
 }
 
-typedef struct {
+struct UsbTransmitState {
     std::vector<uint8_t> dataToSend;
     std::size_t transmitIdx = 0;
     bool requestedSendPacket = false;
@@ -386,7 +386,7 @@ typedef struct {
         transmitIdx = 0;
         requestedSendPacket = false;
     }
-} UsbTransmitState;
+};
 
 template <typename T>
 void feedTransmitSerializer(T ptop, UsbTransmitState &usbTxState) {
