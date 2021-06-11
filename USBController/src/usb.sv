@@ -21,6 +21,8 @@ module usb#(
     logic usbResetDetected;
     logic ackUsbResetDetect;
 
+    logic isSendingPhase;
+
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
     // Data Receive Interface: synced with clk48!
     logic rxAcceptNewData;
@@ -48,8 +50,12 @@ module usb#(
 `endif
         .USB_PULLUP(USB_PULLUP),
 
+        // Serial Engine Services:
         .usbResetDetected(usbResetDetected), // Indicate that a usb reset detect signal was retrieved!
         .ackUsbResetDetect(ackUsbResetDetect), // Acknowledge that usb reset was seen and handled!
+
+        // State information
+        .isSendingPhase(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
         // Data Receive Interface: synced with clk48!
@@ -89,8 +95,12 @@ module usb#(
     ) usbProtocolEngine(
         .clk48(clk48),
 
+        // Serial Engine Services:
         .usbResetDetected(usbResetDetected),
         .ackUsbResetDetect(ackUsbResetDetect),
+
+        // State information
+        .isSendingPhase(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
         // Data Receive Interface: synced with clk48!

@@ -74,21 +74,45 @@ module sim_usb_rx_connection (
         `MUTE_PIN_CONNECT_EMPTY(crc)
     );
 
+    logic rxBitStuffRst;
+    logic rxNoBitStuffExpected;
+    logic rxBitStuffError;
+    logic rxBitStuffDataIn;
+
+    usb_bit_stuffing_wrapper bitStuffWrap (
+        .clk12(rxClk12),
+        .RST(rxBitStuffRst),
+        .isSendingPhase(1'b0),
+        .dataIn(rxBitStuffDataIn),
+        .ready_valid(rxNoBitStuffExpected),
+        `MUTE_PIN_CONNECT_EMPTY(dataOut),
+        .error(rxBitStuffError)
+    );
+
     usb_rx uut(
         .clk48(CLK),
         .receiveCLK(rxClk12),
         .rxRST(rxRST),
 
+        // CRC interface
         .rxCRCReset(rxCRCReset),
         .rxUseCRC16(rxUseCRC16),
         .rxCRCInput(rxCRCInput),
         .rxCRCInputValid(rxCRCInputValid),
         .isValidCRC(isValidCRC),
 
+        // Bit stuff interface
+        .rxBitStuffRst(rxBitStuffRst),
+        .rxBitStuffData(rxBitStuffDataIn),
+        .expectNonBitStuffedInput(rxNoBitStuffExpected),
+        .rxBitStuffError(rxBitStuffError),
+
+        // Serial frontend interface
         .dataInP(dataInP),
         .isValidDPSignal(isValidDPSignal),
         .eopDetected(eopDetected),
         .ACK_EOP(ACK_EOP),
+
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one

@@ -6,12 +6,20 @@ module usb_rx#()(
     input logic receiveCLK,
     input logic rxRST,
 
+    // CRC interface
     output logic rxCRCReset,
     output logic rxUseCRC16,
     output logic rxCRCInput,
     output logic rxCRCInputValid,
     input logic isValidCRC,
 
+    // Bit stuffing interface
+    output logic rxBitStuffRst,
+    output logic rxBitStuffData,
+    input logic expectNonBitStuffedInput,
+    input logic rxBitStuffError,
+
+    // Serial frontend input
     input logic dataInP,
     input logic isValidDPSignal,
     input logic eopDetected,
@@ -33,9 +41,7 @@ module usb_rx#()(
         RX_RST_DPLL
     } RxStates;
 
-    // TODO errror handling
     // Error handling relevant signals
-    logic receiveBitStuffingError;
     logic pidValid;
 
     // State variables
@@ -48,6 +54,10 @@ module usb_rx#()(
     logic nrziDecodedInput;
     logic [7:0] inputBuf;
     logic inputBufFull;
+
+    assign rxBitStuffData = nrziDecodedInput;
+    //TODO is a RST even needed? sync signal should automagically cause the required resets
+    assign rxBitStuffRst = 1'b0;
 
 //=========================================================================================
 //=====================================Interface Start=====================================
@@ -132,7 +142,6 @@ module usb_rx#()(
 //=========================================================================================
 
     // Detections
-    logic nonBitStuffedInput;
     logic syncDetect;
 
     // Reset signals
@@ -140,11 +149,7 @@ module usb_rx#()(
 
     logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
     assign ACK_EOP = rxEopDetectorReset;
-    logic rxBitUnstuffingReset;
     logic rxNRZiDecodeReset;
-
-    //TODO is a RST even needed? sync signal should automagically cause the required resets
-    assign rxBitUnstuffingReset = 1'b0;
 
 
     //===================================================
@@ -201,7 +206,7 @@ module usb_rx#()(
                 // After Sync was detected, we always need valid bit stuffing!
                 // Also there may not be invalid differential pair signals as we expect the PID to be send!
                 // Sanity check: was PID correctly received?
-                next_dropPacket = dropPacket || receiveBitStuffingError || !isValidDPSignal || (inputBufFull && !pidValid);
+                next_dropPacket = dropPacket || rxBitStuffError || !isValidDPSignal || (inputBufFull && !pidValid);
 
                 // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
                 rxCRCReset = ~inputBufFull;
@@ -221,7 +226,7 @@ module usb_rx#()(
 
                 // After Sync was detected, we always need valid bit stuffing!
                 // Sanity check: does the CRC match?
-                next_dropPacket = dropPacket || receiveBitStuffingError || (eopDetected && !lastByteValidCRC);
+                next_dropPacket = dropPacket || rxBitStuffError || (eopDetected && !lastByteValidCRC);
 
                 // We need the EOP detection -> clear RST flag
                 rxEopDetectorReset = 1'b0;
@@ -288,15 +293,6 @@ module usb_rx#()(
         .OUT(nrziDecodedInput)
     );
 
-    //TODO reuse
-    usb_bit_unstuff receiveBitUnstuffing(
-        .clk12(receiveCLK),
-        .RST(rxBitUnstuffingReset),
-        .data(nrziDecodedInput),
-        .valid(nonBitStuffedInput),
-        .error(receiveBitStuffingError)
-    );
-
     logic _syncDetect;
     sync_detect #(
         .SYNC_VALUE(sie_defs_pkg::SYNC_VALUE)
@@ -309,7 +305,7 @@ module usb_rx#()(
     input_shift_reg #() inputDeserializer(
         .clk12(receiveCLK),
         .RST(rxInputShiftRegReset),
-        .EN(nonBitStuffedInput),
+        .EN(expectNonBitStuffedInput),
         .IN(nrziDecodedInput),
         .dataOut(inputBuf),
         .bufferFull(inputBufFull)
@@ -326,7 +322,7 @@ module usb_rx#()(
     // Only Data Packets use CRC16!
     // Packet types are identifyable by 2 lsb bits, which are at this stage not yet at the lsb location
     assign rxUseCRC16 = inputBuf[2:1] == sie_defs_pkg::PID_DATA0[1:0];
-    assign rxCRCInputValid = nonBitStuffedInput;
+    assign rxCRCInputValid = expectNonBitStuffedInput;
     assign rxCRCInput = nrziDecodedInput;
 
 endmodule

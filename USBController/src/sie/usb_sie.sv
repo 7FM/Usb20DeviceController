@@ -22,9 +22,11 @@ module usb_sie (
     output logic usbResetDetected, // Indicate that a usb reset detect signal was retrieved!
     input logic ackUsbResetDetect, // Acknowledge that usb reset was seen and handled!
 
+    // State information
+    input logic isSendingPhase,
+
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
     // Data Receive Interface: synced with clk48!
-    //TODO port for reset receive module, required to reset the receive clock to synchronize with incoming signals!
     input logic rxAcceptNewData, // Caller indicates to be able to retrieve the next data byte
     output logic [7:0] rxData, // data to be retrieved
     output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
@@ -46,13 +48,14 @@ module usb_sie (
 
     logic isValidDPSignal;
 
-    logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge, dataInN, outEN_reg;
+    logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge, dataInN;
 
     logic txIsSending;
 
     logic eopDetected;
     logic ACK_EOP;
 
+    // Serial frontend which handles the differential input and detects differential encoding errors, EOP and USB resets
     usb_dp usbDifferentialPair(
         .clk48(clk48),
         .pinP(USB_DP),
@@ -74,16 +77,21 @@ module usb_sie (
         .ACK_USB_RST(ackUsbResetDetect)
     );
 
+    logic prevIsSendingPhase;
+    always_ff @(posedge clk48) begin
+        prevIsSendingPhase <= isSendingPhase;
+    end
+
     initial begin
-        //TODO set logic is required
-        outEN_reg = 1'b0; // Start in receiving mode
+        prevIsSendingPhase = 1'b0; // Start in receiving mode
     end
 
     logic rxClkGenRST;
-    // TODO we could only reset on switch to receive mode!
-    // -> this would allow us to reuse the clk signal for transmission too!
+    // Reset on switch to receive mode!
+    // -> this allows us to reuse the clk signal for transmission too!
     // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
-    assign rxClkGenRST = outEN_reg; //TODO change the rst -> then it can be used for tx as well!
+    assign rxClkGenRST = prevIsSendingPhase && ~isSendingPhase;
+
     logic rxClk12;
     logic txClk12;
 
@@ -94,14 +102,6 @@ module usb_sie (
         .b(dataInP_negedge),
         .readCLK12(rxClk12)
     );
-
-    /*
-    clock_gen #(
-        .DIVIDE_LOG_2($clog2(4))
-    ) clkDiv4 (
-        .inCLK(clk48),
-        .outCLK(txClk12)
-    );*/
 
     assign txClk12 = rxClk12;
 
@@ -124,10 +124,10 @@ module usb_sie (
     logic isValidCRC;
     logic [15:0] crc;
 
-    assign useCRC16 = txIsSending ? txUseCRC16 : rxUseCRC16;
-    assign crcReset = txIsSending ? txCRCReset : rxCRCReset;
-    assign crcInput = txIsSending ? txCRCInput : rxCRCInput;
-    assign crcInputValid = txIsSending ? txCRCInputValid : rxCRCInputValid;
+    assign useCRC16 = isSendingPhase ? txUseCRC16 : rxUseCRC16;
+    assign crcReset = isSendingPhase ? txCRCReset : rxCRCReset;
+    assign crcInput = isSendingPhase ? txCRCInput : rxCRCInput;
+    assign crcInputValid = isSendingPhase ? txCRCInputValid : rxCRCInputValid;
 
     usb_crc crcEngine (
         .clk12(rxClk12),
@@ -139,27 +139,67 @@ module usb_sie (
         .crc(crc)
     );
 
+    logic bitStuffRst;
+    logic rxBitStuffRst;
+    logic txBitStuffRst;
+
+    logic bitStuffNot_Expected_Required;
+    logic rxNoBitStuffExpected;
+    assign rxNoBitStuffExpected = bitStuffNot_Expected_Required;
+    logic txNoBitStuffingNeeded;
+    assign txNoBitStuffingNeeded = bitStuffNot_Expected_Required;
+
+    logic rxBitStuffError;
+
+    logic bitStuffDataIn;
+    logic rxBitStuffDataIn;
+    logic txBitStuffDataIn;
+
+    logic txBitStuffDataOut;
+
+    assign bitStuffRst = isSendingPhase ? txBitStuffRst : rxBitStuffRst;
+    assign bitStuffDataIn = isSendingPhase ? txBitStuffDataIn : rxBitStuffDataIn;
+
+    usb_bit_stuffing_wrapper bitStuffWrap (
+        .clk12(rxClk12),
+        .RST(bitStuffRst),
+        .isSendingPhase(isSendingPhase),
+        .dataIn(bitStuffDataIn),
+        .ready_valid(bitStuffNot_Expected_Required),
+        .dataOut(txBitStuffDataOut),
+        .error(rxBitStuffError)
+    );
+
     // =====================================================================================================
     // RECEIVE Modules
     // =====================================================================================================
 
-    logic rxRST = txIsSending; //TODO
+    logic rxRST = isSendingPhase; //TODO
 
     usb_rx#() usbRxModules(
         .clk48(clk48),
         .receiveCLK(rxClk12),
         .rxRST(rxRST),
 
+        // CRC interface
         .rxCRCReset(rxCRCReset),
         .rxUseCRC16(rxUseCRC16),
         .rxCRCInput(rxCRCInput),
         .rxCRCInputValid(rxCRCInputValid),
         .isValidCRC(isValidCRC),
 
+        // Bit stuff interface
+        .rxBitStuffRst(rxBitStuffRst),
+        .rxBitStuffData(rxBitStuffDataIn),
+        .expectNonBitStuffedInput(rxNoBitStuffExpected),
+        .rxBitStuffError(rxBitStuffError),
+
+        // Serial frontend interface
         .dataInP(dataInP),
         .isValidDPSignal(isValidDPSignal),
         .eopDetected(eopDetected),
         .ACK_EOP(ACK_EOP),
+
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one
@@ -177,11 +217,18 @@ module usb_sie (
         .clk48(clk48),
         .transmitCLK(txClk12),
 
+        // CRC interface
         .txCRCReset(txCRCReset),
         .txUseCRC16(txUseCRC16),
         .txCRCInput(txCRCInput),
         .txCRCInputValid(txCRCInputValid),
         .reversedCRC16(crc),
+
+        // Bit stuff interface
+        .txBitStuffRst(txBitStuffRst),
+        .txBitStuffDataIn(txBitStuffDataIn),
+        .txBitStuffDataOut(txBitStuffDataOut),
+        .txNoBitStuffingNeeded(txNoBitStuffingNeeded),
 
         // Data interface
         .txReqSendPacket(txReqSendPacket), // Trigger sending a new packet
@@ -190,14 +237,15 @@ module usb_sie (
         .txData(txData), // Data to be send: First byte should be PID, followed by the user data bytes
         // interface output signals
         .txAcceptNewData(txAcceptNewData), // indicates that the send buffer can be filled
-        .sending(txIsSending), // indicates that currently data is transmitted
 
-        // Outputs
+        // Serial frontend interface
+        .sending(txIsSending), // indicates that currently data is transmitted
         .dataOutN_reg(dataOutN_reg), 
         .dataOutP_reg(dataOutP_reg)
     );
 
     /*
+    //TODO split collected documentation and move it to the appropriate SV modules!
     Differential Signal:
                                  __   _     _   _     ____
                             D+ :   \_/ \___/ \_/ \___/

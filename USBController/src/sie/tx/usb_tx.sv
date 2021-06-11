@@ -5,12 +5,18 @@ module usb_tx#()(
     input logic clk48,
     input logic transmitCLK,
 
-
+    // CRC interface
     output logic txCRCReset,
     output logic txUseCRC16,
     output logic txCRCInput,
     output logic txCRCInputValid,
     input logic [15:0] reversedCRC16,
+
+    // Bit stuffing interface
+    output logic txBitStuffRst,
+    output logic txBitStuffDataIn,
+    input logic txBitStuffDataOut,
+    input logic txNoBitStuffingNeeded,
 
     // interface inputs
     // Data input interface: synced with clk48!
@@ -21,9 +27,8 @@ module usb_tx#()(
     input logic txDataValid, // Indicates that txData contains valid & new data
     input logic [7:0] txData, // Data to be send: First byte should be PID, followed by the user data bytes
 
+    // Serial Frontend
     output logic sending, // indicates that currently data is transmitted
-
-    // Data out
     output logic dataOutN_reg,
     output logic dataOutP_reg
 );
@@ -138,7 +143,6 @@ module usb_tx#()(
     logic txReqNewData;
     logic txGotNewData;
 
-    logic txNoBitStuffingNeeded;
     logic txNRZiEncodedData;
 
     logic txSendSingleEnded;
@@ -297,14 +301,9 @@ module usb_tx#()(
     assign txCRCInput = txSerializerOut;
     assign txUseCRC16 = useCRC16;
 
-    logic txBitStuffedData;
-    usb_bit_stuff txBitStuffing(
-        .clk12(transmitCLK),
-        .RST(txRstModules),
-        .data(txSerializerOut),
-        .ready(txNoBitStuffingNeeded),
-        .outData(txBitStuffedData)
-    );
+    // Bit stuffing signals
+    assign txBitStuffRst = txRstModules;
+    assign txBitStuffDataIn = txSerializerOut;
 
     //=======================================================
     //======================= Stage 1 =======================
@@ -313,7 +312,7 @@ module usb_tx#()(
     nrzi_encoder nrziEncoder(
         .clk12(transmitCLK),
         .RST(txRstModules),
-        .data(txBitStuffedData),
+        .data(txBitStuffDataOut),
         .OUT(txNRZiEncodedData)
     );
 

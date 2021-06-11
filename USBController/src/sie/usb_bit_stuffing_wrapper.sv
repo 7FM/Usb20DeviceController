@@ -1,7 +1,7 @@
 module usb_bit_stuffing_wrapper (
     input logic clk12,
     input logic RST,
-    input logic outEN,
+    input logic isSendingPhase,
     input logic dataIn,
     output logic ready_valid,
     output logic dataOut,
@@ -12,7 +12,7 @@ module usb_bit_stuffing_wrapper (
         .clk12(clk12),
         .RST(RST),
         .valid(ready_valid),
-        .data(outEN && !ready_valid ? 1'b0 : dataIn),
+        .data(isSendingPhase && !ready_valid ? 1'b0 : dataIn),
         .error(error)
     );
 

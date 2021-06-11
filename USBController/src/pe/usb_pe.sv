@@ -12,6 +12,9 @@ module usb_pe #(
     input logic usbResetDetected,
     output logic ackUsbResetDetect,
 
+    // State information
+    output logic isSendingPhase, //TODO
+
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
     // Data Receive Interface: synced with clk48!
     output logic rxAcceptNewData,
@@ -64,8 +67,6 @@ module usb_pe #(
     the device returns STALL at the earlier of the Data or Status stage. Receipt of an unsupported or invalid
     request does NOT cause the optional Halt feature on the control pipe to be set.
     */
-
-
 
 /*
 Device Transaction State Machine Hierarchy Overview:

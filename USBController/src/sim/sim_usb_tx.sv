@@ -55,24 +55,48 @@ module sim_usb_tx (
         .crc(crc)
     );
 
+    logic txBitStuffRst;
+    logic txNoBitStuffingNeeded;
+    logic txBitStuffDataIn;
+    logic txBitStuffDataOut;
+
+    usb_bit_stuffing_wrapper bitStuffWrap (
+        .clk12(txClk12),
+        .RST(txBitStuffRst),
+        .isSendingPhase(1'b1),
+        .dataIn(txBitStuffDataIn),
+        .ready_valid(txNoBitStuffingNeeded),
+        .dataOut(txBitStuffDataOut),
+        `MUTE_PIN_CONNECT_EMPTY(error)
+    );
+
+
     usb_tx uut(
         .clk48(CLK),
         .transmitCLK(txClk12),
 
+        // CRC interface
         .txCRCReset(txCRCReset),
         .txUseCRC16(txUseCRC16),
         .txCRCInput(txCRCInput),
         .txCRCInputValid(txCRCInputValid),
         .reversedCRC16(crc),
 
+        // Bit stuff interface
+        .txBitStuffRst(txBitStuffRst),
+        .txBitStuffDataIn(txBitStuffDataIn),
+        .txBitStuffDataOut(txBitStuffDataOut),
+        .txNoBitStuffingNeeded(txNoBitStuffingNeeded),
+
+        // Data interface
         .txReqSendPacket(txReqSendPacket),
         .txAcceptNewData(txAcceptNewData),
         .txIsLastByte(txIsLastByte),
         .txDataValid(txDataValid),
         .txData(txData),
 
+        // Serial frontend interface
         .sending(sending),
-
         .dataOutN_reg(dataOutN_reg),
         .dataOutP_reg(dataOutP_reg)
     );
