@@ -34,12 +34,14 @@ module usb_bit_stuffing_wrapper(
 );
 
     usb_bit_unstuff unstuffer(
-        .clk12(clk12), //TODO different clock domains is very likely deadly!
+        .clk12(clk12),
         .RST(RST),
         .valid(ready_valid),
-        .data(outEN && !valid ? 1'b0 : data),
-        .error(error),
+        .data(outEN && !ready_valid ? 1'b0 : dataIn),
+        .error(error)
     );
+
+    assign dataOut = ready_valid ? dataIn : 1'b0;
 
 endmodule
 */
