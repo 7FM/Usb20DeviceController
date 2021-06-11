@@ -85,6 +85,47 @@ Device Transaction State Machine Hierarchy Overview:
 
 */
 
+    typedef enum logic[2:0] {
+        PE_RST_RX_CLK,
+        PE_WAIT_FOR_TRANSACTION,
+        PE_DO_OUT_ISO,
+        PE_DO_OUT_BCINT,
+        PE_DO_IN_ISOCH,
+        PE_DO_IN_BCINT
+    } PEState;
+
+
+    typedef enum logic[1:0] {
+        BCINTO_RST_RX_CLK,
+        BCINTO_AWAIT_PACKET,
+        BCINTO_HANDLE_PACKET,
+        BCINTO_ISSUE_RESPONSE
+    } RX_BCINTState;
+
+    typedef enum logic[1:0] {
+        IsochO_RST_RX_CLK,
+        IsochO_AWAIT_PACKET,
+        IsochO_HANDLE_PACKET
+        // Has no handshake phase
+    } RX_IsochState;
+
+
+    typedef enum logic[1:0] {
+        BCINTI_ISSUE_PACKET,
+        BCINTI_RST_RX_CLK,
+        BCINTI_AWAIT_RESPONSE
+    } TX_BCINTState;
+
+    typedef enum logic[0:0] {
+        IsochI_ISSUE_PACKET
+        // Has no handshake phase
+    } TX_IsochState;
+
+
+//====================================================================================
+//==============================Endpoint logic========================================
+//====================================================================================
+
     logic [$clog2(ENDPOINTS):0] epSelect; //TODO
 
     // Used for received data
@@ -211,41 +252,5 @@ Device Transaction State Machine Hierarchy Overview:
 //TODO
 
 //====================================================================================
-
-    typedef enum logic[2:0] {
-        PE_RST_RX_CLK,
-        PE_WAIT_FOR_TRANSACTION,
-        PE_DO_OUT_ISO,
-        PE_DO_OUT_BCINT,
-        PE_DO_IN_ISOCH,
-        PE_DO_IN_BCINT
-    } PEState;
-
-
-    typedef enum logic[1:0] {
-        BCINTO_RST_RX_CLK,
-        BCINTO_AWAIT_PACKET,
-        BCINTO_HANDLE_PACKET,
-        BCINTO_ISSUE_RESPONSE
-    } RX_BCINTState;
-
-    typedef enum logic[1:0] {
-        IsochO_RST_RX_CLK,
-        IsochO_AWAIT_PACKET,
-        IsochO_HANDLE_PACKET
-        // Has no handshake phase
-    } RX_IsochState;
-
-
-    typedef enum logic[1:0] {
-        BCINTI_ISSUE_PACKET,
-        BCINTI_RST_RX_CLK,
-        BCINTI_AWAIT_RESPONSE
-    } TX_BCINTState;
-
-    typedef enum logic[0:0] {
-        IsochI_ISSUE_PACKET
-        // Has no handshake phase
-    } TX_IsochState;
 
 endmodule
