@@ -19,64 +19,39 @@ module BRAM_FIFO #(
     output logic [EP_DATA_WID-1:0] dataOut
 );
 
-    logic [EP_ADDR_WID-1:0] dataCounter, readCounter;
-    logic [EP_ADDR_WID-1:0] transDataCounter, transReadCounter, next_transDataCounter;
-
-    assign dataAvailable = transReadCounter != dataCounter;
-    assign next_transDataCounter = transDataCounter + 1; // Abuses overflows to avoid wrap around logic
-    assign full = next_transDataCounter == readCounter;
-
-    logic writeHandshake, readHandshake;
-    assign writeHandshake = !full && dataValid;
-    assign readHandshake = dataAvailable && popData;
+    logic WEN;
+    logic [EP_ADDR_WID-1:0] waddr, raddr;
+    logic [EP_DATA_WID-1:0] wdata, rdata;
 
     bram4k bram(
         .CLK(CLK),
-        .WEN(writeHandshake),
-        .waddr(transDataCounter),
-        .wdata(dataIn),
-
-        .raddr(transReadCounter),
-        .rdata(dataOut)
+        .WEN(WEN),
+        .waddr(waddr),
+        .wdata(wdata),
+        .raddr(raddr),
+        .rdata(rdata)
     );
 
-    initial begin
-        dataCounter = 0;
-        transDataCounter = 0;
-        readCounter = 0;
-        transReadCounter = 0;
-    end
-
-    always_ff @(posedge CLK) begin
-        // Write actions
-        if (fillTransDone) begin
-            // Write transaction is done
-            if (fillTransSuccess) begin
-                // if it was successful we want to update our permanent data counter
-                dataCounter <= transDataCounter;
-            end else begin
-                // if it was unsuccessful we need to reset out transaction data counter
-                transDataCounter <= dataCounter;
-            end
-        end else if (writeHandshake) begin
-            // Else on normal handshake update the current transaction index
-            transDataCounter <= next_transDataCounter;
-        end
-
-        // Read actions
-        if (popTransDone) begin
-            // Read transaction is done
-            if (popTransSuccess) begin
-                // if it was successful we want to update our permanent read counter
-                readCounter <= transReadCounter;
-            end else begin
-                // if it was unsuccessful we need to reset out transaction read counter
-                transReadCounter <= readCounter;
-            end
-        end else if (readHandshake) begin
-            // Else on normal handshake update the current transaction index
-            transReadCounter <= transReadCounter + 1; // Abuses overflows to avoid wrap around logic
-        end
-    end
+    FIFO #(
+        .ADDR_WID(EP_ADDR_WID),
+        .DATA_WID(EP_DATA_WID)
+    ) fifo (
+        .CLK(CLK),
+        .WEN(WEN),
+        .waddr(waddr),
+        .wdata(wdata),
+        .raddr(raddr),
+        .rdata(rdata),
+        .fillTransDone(fillTransDone),
+        .fillTransSuccess(fillTransSuccess),
+        .dataValid(dataValid),
+        .full(full),
+        .dataIn(dataIn),
+        .popTransDone(popTransDone),
+        .popTransSuccess(popTransSuccess),
+        .popData(popData),
+        .dataAvailable(dataAvailable),
+        .dataOut(dataOut)
+    );
 
 endmodule
