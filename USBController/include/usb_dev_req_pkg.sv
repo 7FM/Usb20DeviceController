@@ -4,7 +4,7 @@
 package usb_dev_req_pkg;
 
     /*
-    Standard Device Requests:
+    Standard Device Requests: starts at page 248
 
     bmRequestType |      bRequest      |      wValue         |    wIndex    | wLength    | Data
     ===========================================================================================================
@@ -56,25 +56,55 @@ package usb_dev_req_pkg;
     A ClearFeature() request that references a feature that cannot be cleared, that does not exist, or that
     references an interface or endpoint that does not exist, will cause the device to respond with a Request Error.
 
+    wValue[15:0] = feature selector
+    wIndex = interface/endpoint select
     If wLength is non-zero, then the device behaviour is not specified
 
     DeviceState dependent behaviour:
     - DEVICE_RESET: not specified -> lets just ignore it
-    - DEVICE_ADDR_ASSIGNED: valid iff interface/endpoint select = 0, else respond with request error
+    - DEVICE_ADDR_ASSIGNED: valid iff interface/endpoint select aka wIndex = 0, else respond with request error
     - DEVICE_CONFIGURED: valid for all existing interfaces & endpoints
 
-    Misc: Test_Mode feature cannot be cleared by CLEAR_FEATURE!
+    Misc: TEST_MODE feature cannot be cleared by CLEAR_FEATURE! -> requires power cycle
     */
 
-    /* SET_FEATURE: TODO page 258ff.
+    /* SET_FEATURE:
+
+    wValue[15:0] = feature selector
+    If wLength is non-zero, then the device behaviour is not specified
+
+    For TEST_MODE: recipient must be the device!
+    wIndex[15:8] = test mode selector
+    wIndex[7:0] = 0
+    Requires a power cycle to exit the test mode!
+
+    Else:
+    wIndex = interface/endpoint select
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: valid for feature selector = TEST_MODE, otherwise not specified
+    - DEVICE_ADDR_ASSIGNED: interface/endpoint select != 0 -> respond with request error
+    - DEVICE_CONFIGURED: valid for all existing interfaces & endpoints
     */
 
     typedef enum logic[15:0] {
         ENDPOINT_HALT = 0, // For recipient == endpoint only
         DEVICE_REMOTE_WAKEUP = 1, // For recipient == device only
         TEST_MODE = 2, // For recipient == device only
-        IMPL_SPECIFIC_3_65535
+        IMPL_SPECIFIC_3_65535 = 3
     } FeatureSelector;
+
+    typedef enum logic[7:0] {
+        RESERVED_0 = 0,
+        TEST_J = 1,
+        TEST_K = 2,
+        TEST_SE0_NAK = 3,
+        TEST_PACKET = 4,
+        TEST_FORCE_ENABLE = 5,
+        RESERVED_STD_TEST_SEL_6_63 = 6,
+        RESERVED_64_191 = 64,
+        IMPL_SPECIFIC_192_255 = 192
+    } TestModeSelector; // Further explained in Section 7.1.20
 
 //=========================================================================================================================
 
@@ -154,7 +184,7 @@ package usb_dev_req_pkg;
         DESC_DEVICE_QUALIFIER = 6,
         DESC_OTHER_SPEED_CONFIGURATION = 7,
         DESC_INTERFACE_POWER = 8, // described in the USB Interface Power Management Specification
-        IMPL_SPECIFIC_9_255
+        IMPL_SPECIFIC_9_255 = 9
     } DescriptorType;
 //=========================================================================================================================
 
@@ -165,6 +195,20 @@ package usb_dev_req_pkg;
     If the interface specified does not exist, then the device responds with a Request Error
 
     if wValue != 0 || wLength != 0 -> device behaviour is not specified
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: not specified
+    - DEVICE_ADDR_ASSIGNED: repsonse with request error
+    - DEVICE_CONFIGURED: valid
+    */
+
+    /* SET_INTERFACE
+    select an alternate setting for the specified interface
+
+    if the interface of the device only supports a single settings (-> has no alternate setting) -> respond with STALL in the status stage
+    if the interface or the alternate setting does not exist -> respons with Request Error // TODO if only a single default setting exist, then this might be ambiguous!
+
+    if wLength != 0 -> device behaviour is not specified
 
     DeviceState dependent behaviour:
     - DEVICE_RESET: not specified
@@ -229,6 +273,24 @@ package usb_dev_req_pkg;
 
 //=========================================================================================================================
 
+    /* SYNCH_FRAME
+    Is only used for isochronous data transfers using implicit pattern synchronization.
+    For isochronous transfers, the endpoint might require varying sizes per frame transfers according to a specific pattern.
+    The host and endpoint must agree on which frame the repeating pattern begins.
+    -> endpoint returns the number of the frame in which the pattern began
+
+    wIndex = endpoint select
+    if wLength != 2 || wValue != 0 -> behaviour not specified
+    if the specified endpoint does not support this request -> respond with request error
+
+    DeviceState dependent behaviour:
+    - DEVICE_RESET: not specified
+    - DEVICE_ADDR_ASSIGNED: Request Error
+    - DEVICE_CONFIGURED: valid
+    */
+
+//=========================================================================================================================
+
     typedef enum logic[7:0] {
         GET_STATUS = 0,
         CLEAR_FEATURE = 1,
@@ -243,7 +305,7 @@ package usb_dev_req_pkg;
         GET_INTERFACE = 10,
         SET_INTERFACE = 11,
         SYNCH_FRAME = 12,
-        IMPL_SPECIFIC_13_255
+        IMPL_SPECIFIC_13_255 = 13
     } RequestCode;
 
     typedef enum logic[4:0] {
@@ -251,7 +313,7 @@ package usb_dev_req_pkg;
         RECIP_INTERFACE = 1,
         RECIP_ENDPOINT = 2,
         RECIP_OTHER = 3,
-        RESERVED_4_31
+        RESERVED_4_31 = 4
     } Recipient;
 
     typedef enum logic[1:0] {
