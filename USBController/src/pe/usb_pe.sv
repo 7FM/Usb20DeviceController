@@ -181,7 +181,7 @@ Device Transaction State Machine Hierarchy Overview:
                 .popTransDone(EP_IN_popTransDone[i]),
                 .popTransSuccess(EP_IN_popTransSuccess[i]),
                 .dataAvailable(EP_IN_dataAvailable[i]),
-                .dataOut(EP_IN_dataOut[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID])
+                .dataOut(EP_IN_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
             );
 
             BRAM_FIFO #(
@@ -194,13 +194,13 @@ Device Transaction State Machine Hierarchy Overview:
                 .fillTransDone(EP_OUT_fillTransDone[i]),
                 .fillTransSuccess(EP_OUT_fillTransSuccess[i]),
                 .full(EP_OUT_full[i]),
-                .dataIn(EP_OUT_dataIn[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID]),
+                .dataIn(EP_OUT_dataIn[i * EP_DATA_WID +: EP_DATA_WID]),
 
                 .popData(READ_EN && i == epSelect),
                 .popTransDone(popTransDone),
                 .popTransSuccess(popTransSuccess),
                 .dataAvailable(EP_OUT_dataAvailable[i]),
-                .dataOut(EP_OUT_dataOut[((i+1) * EP_DATA_WID) - 1:i * EP_DATA_WID])
+                .dataOut(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
             );
         end
     endgenerate
