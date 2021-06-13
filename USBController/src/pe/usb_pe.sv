@@ -72,14 +72,14 @@ module usb_pe #(
 Device Transaction State Machine Hierarchy Overview:
 
     Device_Process_trans
-      - Dev_do_OUT: if pid == PID_OUT_TOKEN || pid == PID_OUT_TOKEN
-        - Dev_Do_IsochO
-        - Dev_Do_BCINTO
-        (- Dev_HS_BCO) <- For HighSpeed devices
+      - Dev_do_OUT: if pid == PID_OUT_TOKEN || pid == PID_SETUP_TOKEN
+        - Dev_Do_IsochO: if type of selected endpoint (ep_type) == isochronous
+        - Dev_Do_BCINTO: if ep_type == interrupt || (not high speed && (ep_type == bulk || ep_type == control))
+        (- Dev_HS_BCO) <- For HighSpeed devices: if high speed && (ep_type == bulk || ep_type == control)
 
       - Dev_do_IN: if pid == PID_IN_TOKEN
-        - Dev_Do_IsochI
-        - Dev_Do_BCINTI
+        - Dev_Do_IsochI: if ep_type == isochronous
+        - Dev_Do_BCINTI: (if ep_type == bulk || ep_type == control || ep_type == interrupt) aka else
 
       (- Dev_HS_ping: if pid == PID_SPECIAL_PING) <- For HighSpeed devices
 
