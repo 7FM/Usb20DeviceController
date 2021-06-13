@@ -212,32 +212,39 @@ Device Transaction State Machine Hierarchy Overview:
     //localparam RX_BUF_SIZE = 8;
     //logic [7:0] rxBuf [0:RX_BUF_SIZE-1]; //TODO we need to export the data!
 
+    // Endpoint FIFO connections
+    logic receiveDone;
+    logic receiveSuccess;
+    //TODO use these flags to issue a receive response, i.e. ACK!
+
+    initial begin
+        receiveDone = 1'b0;
+        receiveSuccess = 1'b1;
+    end
+    assign fillTransSuccess = receiveSuccess;
+    assign fillTransDone = receiveDone;
+    assign WRITE_EN = rxHandshake;
     assign wdata = rxData;
 
-    logic canReceive; //TODO
-
+    // Serial frontend connections
     logic rxHandshake;
     logic packetReceived;
 
-    assign rxHandshake = canReceive && rxDataValid;
+    assign rxAcceptNewData = !writeFifoFull && !receiveDone;
+    assign rxHandshake = rxAcceptNewData && rxDataValid;
     assign packetReceived = rxHandshake && txIsLastByte;
-    assign rxAcceptNewData = canReceive;
-
-    logic receiveDone;
-
-    always_comb begin
-        WRITE_EN = rxHandshake;
-        if (receiveDone) begin
-            // After the last byte was received, we need to store the amount of 
-        end
-    end
 
     always_ff @(posedge clk48) begin
         if (rxHandshake) begin
-            if (EP_IN_full[epSelect]) begin
-                //TODO treat overflow as error
+            if (writeFifoFull || (txIsLastByte && !keepPacket)) begin
+                // treat full buffer as error -> not all data could be stored!
+                // Otherwise if this is the last byte and keepPacket is set low there was some transmission error -> receive failed!
+                receiveSuccess = 1'b0;
             end
             receiveDone <= txIsLastByte;
+        end else if (receiveDone) begin
+            receiveDone <= 1'b0;
+            receiveSuccess = 1'b1;
         end
     end
 
