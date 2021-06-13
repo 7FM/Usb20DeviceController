@@ -103,8 +103,8 @@ genBitstream: $(pnr_target)
 $(syn_target): $(srcs)
 	@mkdir -p $(BUILDDIR)
 # Uses patched yosys version to allow specifying include dirs before all files are read
-	$(SYN) -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
-#	$(SYN) -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+#	$(SYN) -T -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
 	@echo "============================================================================================"
 
 define GEN_SIM_RULES
