@@ -186,6 +186,7 @@ package usb_dev_req_pkg;
         DESC_INTERFACE_POWER = 8, // described in the USB Interface Power Management Specification
         IMPL_SPECIFIC_9_255 = 9
     } DescriptorType;
+
 //=========================================================================================================================
 
     /* GET_INTERFACE

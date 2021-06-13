@@ -1,7 +1,9 @@
 `ifndef USB_DESC_PKG_SV
 `define USB_DESC_PKG_SV
 
-package usb_desc_pkg
+`include "usb_dev_req_pkg.sv"
+
+package usb_desc_pkg;
     /*
     typedef enum logic[7:0] {
         DESC_DEVICE = 1,
@@ -38,7 +40,7 @@ package usb_desc_pkg
         // Device release number in  binary coded decimal
         logic [15:0] bcdDevice;
         // index of string descriptor describing manufacturer: if not supported set to 0
-        logic [7:0] iManufact
+        logic [7:0] iManufact;
         // index of string descriptor describing product: if not supported set to 0urer;
         logic [7:0] iProduct;
         // index of string descriptor describing the device's serial number: if not supported set to 0
@@ -78,7 +80,7 @@ package usb_desc_pkg
         logic [7:0] bmAttributes;
         // Maximum Power consumption of the USB device from the bus. Expressed in 2mA units -> value of 1 corresponds to 2mA
         logic [7:0] bMaxPower;
-    } DeviceQualifierDescriptor;
+    } ConfigurationDescriptor;
 
     // Other_Speed_Configuration Descriptor page 266ff.
 
