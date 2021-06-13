@@ -1,10 +1,8 @@
 `ifndef USB_DESC_PKG_SV
 `define USB_DESC_PKG_SV
 
-`include "usb_dev_req_pkg.sv"
-
 package usb_desc_pkg;
-    /*
+
     typedef enum logic[7:0] {
         DESC_DEVICE = 1,
         DESC_CONFIGURATION = 2,
@@ -16,15 +14,13 @@ package usb_desc_pkg;
         DESC_INTERFACE_POWER = 8, // described in the USB Interface Power Management Specification
         IMPL_SPECIFIC_9_255 = 9
     } DescriptorType;
-    */
-
 
     // Device Descriptor
     typedef struct packed {
         // Size of the descriptor in bytes
         logic [7:0] bLength; // In this case: 'd18
         // DEVICE Descriptor Type == 'd1
-        usb_dev_req_pkg::DescriptorType bDescriptorType;
+        DescriptorType bDescriptorType;
         // Binary Coded Decimal (i.e. 2.10 is 0x210). Specifies the USB Spec with which this device is compliant.
         // format: 0xJJMN for version JJ.M.N (JJ - major version, M - minor version, N - sub-minor version number)
         // USB 2.0 -> 0x0200
@@ -54,7 +50,7 @@ package usb_desc_pkg;
     // For FS or LS devices only -> respond with request error!
     typedef struct packed {
         logic [7:0] bLength; // In this case: 'd10
-        usb_dev_req_pkg::DescriptorType bDescriptorType; // Device Qualifier Descriptor type == 'd6
+        DescriptorType bDescriptorType; // Device Qualifier Descriptor type == 'd6
         logic [15:0] bcdUSB;
         logic [7:0] bDeviceClass;
         logic [7:0] bDeviceSubClass;
@@ -69,7 +65,7 @@ package usb_desc_pkg;
     // -> combines all required decriptors and send them in a single transaction!
     typedef struct packed {
         logic [7:0] bLength; // In this case: 'd9
-        usb_dev_req_pkg::DescriptorType bDescriptorType; // Configuration Descriptor type == 'd2
+        DescriptorType bDescriptorType; // Configuration Descriptor type == 'd2
         logic [15:0] wTotalLength; // Total length of data returned for this configuration: length of all descriptors: configuration, interface, endpoint, and class/vendor specific
         logic [7:0] bNumInterfaces; // Number of interfaces supported by this configuration
         logic [7:0] bConfigurationValue; // Value o use as an argument to select this configuration
@@ -82,7 +78,7 @@ package usb_desc_pkg;
         logic [7:0] bMaxPower;
     } ConfigurationDescriptor;
 
-    // Other_Speed_Configuration Descriptor page 266ff.
+    // Other_Speed_Configuration Descriptor page 266ff. TODO
 
 endpackage
 

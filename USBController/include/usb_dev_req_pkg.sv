@@ -175,18 +175,6 @@ package usb_dev_req_pkg;
     - DEVICE_CONFIGURED: if supported -> valid
     */
 
-    typedef enum logic[7:0] {
-        DESC_DEVICE = 1,
-        DESC_CONFIGURATION = 2,
-        DESC_STRING = 3,
-        DESC_INTERFACE = 4,
-        DESC_ENDPOINT = 5,
-        DESC_DEVICE_QUALIFIER = 6,
-        DESC_OTHER_SPEED_CONFIGURATION = 7,
-        DESC_INTERFACE_POWER = 8, // described in the USB Interface Power Management Specification
-        IMPL_SPECIFIC_9_255 = 9
-    } DescriptorType;
-
 //=========================================================================================================================
 
     /* GET_INTERFACE
