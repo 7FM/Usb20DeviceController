@@ -44,13 +44,52 @@ module usb_pe #(
     input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn
 );
 
-    //logic suspended;
+    //logic suspended; // Currently not supported / considered
     typedef enum logic[1:0] {
-        DEVICE_NOT_RESET = 0, // Ignore all transactions except reset signal
+        DEVICE_NOT_RESET, // Ignore all transactions except reset signal
         DEVICE_RESET, // Responds to device and configuration descriptor requests & return information, uses default address
         DEVICE_ADDR_ASSIGNED, // responds to requests to default control pipe with default address as long as no address was assigned
         DEVICE_CONFIGURED // processed a SetConfiguration() request with non zero configuration value & endpoints data toggles are set to DATA0. Now the device functions may be used
     } DeviceState;
+
+    DeviceState deviceState, nextDeviceState;
+
+    initial begin
+        deviceState = DEVICE_NOT_RESET;
+    end
+
+    logic gotAddrAssigned, gotDevConfig; //TODO
+
+    always_comb begin
+        nextDeviceState = deviceState;
+        ackUsbResetDetect = 1'b0;
+
+        if (usbResetDetected) begin
+            nextDeviceState = DEVICE_RESET;
+        end else begin
+            unique case (deviceState)
+                DEVICE_CONFIGURED, DEVICE_NOT_RESET: begin
+                    // Stay in this state except a reset was detected!
+                end
+                DEVICE_RESET: begin
+                    // We are in the reset state so just always ack resets
+                    ackUsbResetDetect = 1'b1;
+                    if (gotAddrAssigned) begin
+                        nextDeviceState = DEVICE_ADDR_ASSIGNED;
+                    end
+                end
+                DEVICE_ADDR_ASSIGNED: begin
+                    if (gotDevConfig) begin
+                        nextDeviceState = DEVICE_CONFIGURED;
+                    end
+                end
+            endcase
+        end
+    end
+
+    always_ff @(posedge clk48) begin
+        deviceState <= nextDeviceState;
+    end
 
     logic [6:0] deviceAddr;
 
