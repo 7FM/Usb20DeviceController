@@ -1,5 +1,6 @@
 `include "config_pkg.sv"
 `include "sie_defs_pkg.sv"
+`include "usb_packet_pkg.sv"
 
 // USB Protocol Engine (PE)
 module usb_pe #(
