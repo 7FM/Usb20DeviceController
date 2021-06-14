@@ -279,12 +279,12 @@ Device Transaction State Machine Hierarchy Overview:
             if (writeFifoFull || (txIsLastByte && !keepPacket)) begin
                 // treat full buffer as error -> not all data could be stored!
                 // Otherwise if this is the last byte and keepPacket is set low there was some transmission error -> receive failed!
-                receiveSuccess = 1'b0;
+                receiveSuccess <= 1'b0;
             end
             receiveDone <= txIsLastByte;
         end else if (receiveDone) begin
             receiveDone <= 1'b0;
-            receiveSuccess = 1'b1;
+            receiveSuccess <= 1'b1;
         end
     end
 
