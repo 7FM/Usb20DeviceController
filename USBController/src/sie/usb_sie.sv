@@ -56,7 +56,7 @@ module usb_sie (
     logic ACK_EOP;
 
     // Serial frontend which handles the differential input and detects differential encoding errors, EOP and USB resets
-    usb_dp usbDifferentialPair(
+    usb_serial_frontend usbSerialFrontend(
         .clk48(clk48),
         .pinP(USB_DP),
         .pinN(USB_DN),

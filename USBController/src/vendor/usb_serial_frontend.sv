@@ -1,6 +1,6 @@
 `include "config_pkg.sv"
 
-module usb_dp(
+module usb_serial_frontend(
     input logic clk48,
 
     // Pins
@@ -28,6 +28,19 @@ module usb_dp(
     output logic usbResetDetected,
     input logic ACK_USB_RST
 );
+
+    /*
+    Differential Signal:
+                                 __   _     _   _     ____
+                            D+ :   \_/ \___/ \_/ \___/
+                                    _   ___   _           
+                            D- : __/ \_/   \_/ \__________
+    Differential decoding:          K J K K J K J 0 0 J J
+                                                  ^------------ SM0/SE0 with D+=D-=LOW analogously exists SM1/SE1 with D+=D-=HIGH
+    NRZI decoding:                  0 0 0 1 0 0 0 ? ? 0 1
+    (Non-Return-to-Zero Inverted): logical 0 is transmitted as transition -> either from J to K or from K to J
+                                   logical 1 is transmitted as NO transition -> stay at previous level
+    */
 
     // Service signals
     logic dataInN;
