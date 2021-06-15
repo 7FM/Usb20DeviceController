@@ -44,7 +44,7 @@ module usb_sie (
 
     // Source: https://beyondlogic.org/usbnutshell/usb2.shtml
     // Pin connected to USB_DP with 1.5K Ohm resistor -> indicate to be a full speed device: 12 Mbit/s
-    assign USB_PULLUP = 1'b1;
+    assign USB_PULLUP = 1'b1; //TODO this can be used to force trigger a reattach without power cycling
 
     logic isValidDPSignal;
 
