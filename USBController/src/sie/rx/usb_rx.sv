@@ -142,6 +142,7 @@ module usb_rx#()(
 
     // Detections
     logic syncDetect;
+    logic gotInvalidDPSignal;
 
     // Reset signals
     logic rxInputShiftRegReset;
@@ -149,6 +150,7 @@ module usb_rx#()(
     logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
     assign ACK_EOP = rxEopDetectorReset;
     logic rxNRZiDecodeReset;
+    logic byteGotSignalError;
 
 
     //===================================================
@@ -157,6 +159,7 @@ module usb_rx#()(
     initial begin
         rxState = RX_WAIT_FOR_SYNC;
         dropPacket = 1'b0;
+        byteGotSignalError = 1'b0;
         lastByteValidCRC = 1'b1;
     end
 
@@ -165,8 +168,17 @@ module usb_rx#()(
     //===================================================
     RxStates next_rxState, rxStateAdd1;
     sie_defs_pkg::PID_Types next_rxPID;
-    logic next_dropPacket, next_lastByteValidCRC;
+    logic next_dropPacket, next_lastByteValidCRC, next_byteGotSignalError;
 
+    logic signalError;
+    assign signalError = gotInvalidDPSignal || rxBitStuffError;
+    assign next_byteGotSignalError = byteGotSignalError || signalError;
+
+    logic defaultNextDropPacket;
+    // Variant which CAN detect missing bit stuffing after CRC edge case: even if this was the last byte, the following bit still needs to statisfy the bit stuffing condition
+    assign defaultNextDropPacket = dropPacket || (inputBufFull && (byteGotSignalError || rxBitStuffError));
+    // Variant which can NOT detect missing bit stuffing after CRC edge case
+    //assign defaultNextDropPacket = dropPacket || (inputBufFull && byteGotSignalError);
     assign rxStateAdd1 = rxState + 1;
 
     always_comb begin
@@ -177,7 +189,7 @@ module usb_rx#()(
 
         next_rxState = rxState;
         next_rxPID = rxPID;
-        next_dropPacket = dropPacket;
+        next_dropPacket = defaultNextDropPacket;
         next_lastByteValidCRC = lastByteValidCRC;
 
         // Data output pipeline
@@ -190,6 +202,9 @@ module usb_rx#()(
 
         unique case (rxState)
             RX_WAIT_FOR_SYNC: begin
+                // Ensure that the previous dropPacket wont be changed until we receive a new packet!
+                next_dropPacket = dropPacket;
+
                 if (syncDetect) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
@@ -205,7 +220,7 @@ module usb_rx#()(
                 // After Sync was detected, we always need valid bit stuffing!
                 // Also there may not be invalid differential pair signals as we expect the PID to be send!
                 // Sanity check: was PID correctly received?
-                next_dropPacket = dropPacket || rxBitStuffError || !isValidDPSignal || (inputBufFull && !pidValid);
+                next_dropPacket = defaultNextDropPacket || (inputBufFull && !pidValid);
 
                 // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
                 rxCRCReset = ~inputBufFull;
@@ -221,11 +236,9 @@ module usb_rx#()(
                 end
             end
             RX_WAIT_FOR_EOP: begin
-                //TODO would be nice to integrate some isValidDPSignal checks, but this might break logic very very easily!
-
                 // After Sync was detected, we always need valid bit stuffing!
                 // Sanity check: does the CRC match?
-                next_dropPacket = dropPacket || rxBitStuffError || (eopDetected && !lastByteValidCRC);
+                next_dropPacket = defaultNextDropPacket || (eopDetected && !lastByteValidCRC);
 
                 // We need the EOP detection -> clear RST flag
                 rxEopDetectorReset = 1'b0;
@@ -276,6 +289,10 @@ module usb_rx#()(
         rxPID <= next_rxPID;
         dropPacket <= next_dropPacket;
         lastByteValidCRC <= next_lastByteValidCRC;
+        // After each received byte reset the byte signal error state
+        byteGotSignalError <= inputBufFull ? signalError : next_byteGotSignalError;
+        // We need to delay isValidDPSignal because our nrzi decoder introduces a delay to the decoded signal too
+        gotInvalidDPSignal <= !isValidDPSignal;
 
         inputBufRescue <= next_inputBufRescue;
         inputBufDelay1 <= next_inputBufDelay1;
@@ -285,6 +302,7 @@ module usb_rx#()(
         isDataShiftReg <= next_isDataShiftReg;
     end
 
+    // Stage 0
     nrzi_decoder nrziDecoder(
         .clk12(receiveCLK),
         .RST(rxNRZiDecodeReset),
@@ -292,6 +310,7 @@ module usb_rx#()(
         .OUT(nrziDecodedInput)
     );
 
+    // Stage 1
     logic _syncDetect;
     sync_detect #(
         .SYNC_VALUE(sie_defs_pkg::SYNC_VALUE)
