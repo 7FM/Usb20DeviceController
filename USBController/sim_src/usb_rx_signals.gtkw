@@ -27,13 +27,14 @@ TOP.sim_usb_rx.rxCon.uut.eopDetected
 [color] 1
 TOP.sim_usb_rx.rxCon.uut.keepPacket
 TOP.sim_usb_rx.rxCon.uut.dataNotYetRead
+TOP.sim_usb_rx.rxCon.uut.byteGotSignalError
+TOP.sim_usb_rx.rxCon.uut.next_byteGotSignalError
 TOP.sim_usb_rx.rxCon.uut.byteWasNotReceived
 TOP.sim_usb_rx.rxCon.uut.dropPacket
-TOP.sim_usb_rx.rxCon.uut.receiveBitStuffingError
+TOP.sim_usb_rx.rxCon.uut.rxBitStuffError
 TOP.sim_usb_rx.rxCon.uut.isValidDPSignal
 TOP.sim_usb_rx.rxCon.uut.pidValid
 TOP.sim_usb_rx.rxCon.uut.lastByteValidCRC
-TOP.sim_usb_rx.rxCon.uut.usbResetDetect
 @22
 TOP.sim_usb_rx.rxCon.uut.rxPID[3:0]
 @28
@@ -60,13 +61,13 @@ TOP.sim_usb_rx.rxCon.uut.isDataShiftReg[3:0]
 -group_end
 @22
 TOP.sim_usb_rx.rxCon.uut.isLastShiftReg[3:0]
+@23
+TOP.sim_usb_rx.rxCon.crcEngine.crc[15:0]
 @28
-TOP.sim_usb_rx.rxCon.uut.crcEngine.crcBuf[15:0]
-TOP.sim_usb_rx.rxCon.uut.useCRC16
+TOP.sim_usb_rx.rxCon.uut.rxUseCRC16
 TOP.sim_usb_rx.rxCon.uut.rxCRCReset
 TOP.sim_usb_rx.rxCon.uut.isValidCRC
-TOP.sim_usb_rx.rxCon.uut.crcEngine.crcX_in
-TOP.sim_usb_rx.rxCon.uut.nrziDecodedInput
-TOP.sim_usb_rx.rxCon.uut.nonBitStuffedInput
+TOP.sim_usb_rx.rxCon.uut.rxCRCInput
+TOP.sim_usb_rx.rxCon.uut.rxCRCInputValid
 [pattern_trace] 1
 [pattern_trace] 0
