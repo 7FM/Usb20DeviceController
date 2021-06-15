@@ -71,7 +71,7 @@ module usb_rx#()(
     logic [3:0] isDataShiftReg, next_isDataShiftReg;
     assign rxIsLastByte = isLastShiftReg[3];
 
-    logic dataNotYetRead, next_dataNotYetRead; //TODO check handshake & update accordingly!
+    logic dataNotYetRead, next_dataNotYetRead;
 
     logic prev_inputBufFull;
     logic prev_receiveCLK;
@@ -82,7 +82,6 @@ module usb_rx#()(
 
     logic rxDataSwapPhase, next_rxDataSwapPhase;
 
-    //TODO during data change phase, this needs to go low else, the data might be read while the underlying registers are changed!
     assign rxDataValid = dataNotYetRead && ~rxDataSwapPhase;
 
     logic byteWasNotReceived, next_byteWasNotReceived;
@@ -186,8 +185,8 @@ module usb_rx#()(
         next_inputBufDelay1 = inputBufFull ? inputBufRescue : inputBufDelay1;
         next_inputBufDelay2 = inputBufFull ? inputBufDelay1 : inputBufDelay2;
         next_rxData = inputBufFull ? inputBufDelay2 : rxData;
-        next_isLastShiftReg = inputBufFull ? {isLastShiftReg[2:0], 1'b0} : isLastShiftReg; //TODO needs to be patched on EOP detect!
-        next_isDataShiftReg = inputBufFull ? {isDataShiftReg[2:0], 1'b0} : isDataShiftReg; //TODO needs to be patched if current byte is data
+        next_isLastShiftReg = inputBufFull ? {isLastShiftReg[2:0], 1'b0} : isLastShiftReg;
+        next_isDataShiftReg = inputBufFull ? {isDataShiftReg[2:0], 1'b0} : isDataShiftReg;
 
         unique case (rxState)
             RX_WAIT_FOR_SYNC: begin
