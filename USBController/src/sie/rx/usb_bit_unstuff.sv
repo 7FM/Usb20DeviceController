@@ -9,7 +9,8 @@ module usb_bit_unstuff#()(
     logic [2:0] oneCounter;
 
     assign valid = oneCounter < 6;
-    assign error = oneCounter == 7;
+    // We expect an stuffed 0 bit but got another 1 bit!
+    assign error = !valid && data;
 
     always_ff @(posedge clk12) begin
         if (RST || !data) begin
