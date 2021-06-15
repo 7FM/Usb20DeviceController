@@ -24,7 +24,7 @@ module sim_usb_rx_connection (
     logic eopDetected;
     logic ACK_EOP;
 
-    usb_dp uut_input(
+    usb_serial_frontend uut_input(
         .clk48(CLK),
         .pinP(USB_DP),
         `MUTE_PIN_CONNECT_EMPTY(pinP_OUT),

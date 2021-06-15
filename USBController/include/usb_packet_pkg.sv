@@ -1,6 +1,8 @@
 `ifndef USB_PACKET_PKG_SV
 `define USB_PACKET_PKG_SV
 
+`include "sie_defs_pkg.sv"
+
 package usb_packet_pkg;
     /*
     Packets:
@@ -32,7 +34,7 @@ package usb_packet_pkg;
         logic [6:0] devAddr;
         logic [3:0] endptSel; // There can be at most 16 endpoints
     } TokenPacket;
-    localparam _TOKEN_LENGTH = PACKET_HEADER_BITS + TOCKEN_PACKET_BITS;
+    localparam _TOKEN_LENGTH = PACKET_HEADER_BITS + TOKEN_PACKET_BITS;
 
     localparam SOF_PACKET_OFFSET = 8;
     localparam SOF_PACKET_BITS = 11;
