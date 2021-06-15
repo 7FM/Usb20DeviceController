@@ -155,6 +155,7 @@ int main(int argc, char **argv) {
                 txState.dataToSend.push_back(PID_DATA0);
                 // Single byte packet that triggers the CRC bitstuffing at end edge case!
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
+                std::cout << "Test single data byte CRC16 bitstuffing edge case:" << std::endl;
                 std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xF9)>(CRC_Type::CRC16)) << std::endl;
                 break;
@@ -165,6 +166,7 @@ int main(int argc, char **argv) {
                 // Two byte packet that triggers the CRC bitstuffing at end edge case!
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
+                std::cout << "Test 2 data bytes CRC16 bitstuffing edge case:" << std::endl;
                 std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xFF), static_cast<uint8_t>(0xFA)>(CRC_Type::CRC16)) << std::endl;
                 break;
@@ -173,6 +175,7 @@ int main(int argc, char **argv) {
             case 2: {
                 txState.dataToSend.push_back(PID_DATA0);
                 // Another edge case: empty data packet!
+                std::cout << "Test 0 data bytes packet edge case:" << std::endl;
                 std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<>(CRC_Type::CRC16)) << std::endl;
                 break;
@@ -200,6 +203,7 @@ int main(int argc, char **argv) {
                 // Ensure that at least one bit stuffing is required!
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
 
+                std::cout << "Test \"normal\" data packet:" << std::endl;
                 std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0x11), static_cast<uint8_t>(0x22), static_cast<uint8_t>(0x33), static_cast<uint8_t>(0x44), static_cast<uint8_t>(0x55), static_cast<uint8_t>(0x66), static_cast<uint8_t>(0x77), static_cast<uint8_t>(0x88), static_cast<uint8_t>(0x99), static_cast<uint8_t>(0xAA), static_cast<uint8_t>(0xBB), static_cast<uint8_t>(0xCC), static_cast<uint8_t>(0xDD), static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF), static_cast<uint8_t>(0xFF)>(CRC16))
                           << std::endl;
@@ -240,6 +244,8 @@ int main(int argc, char **argv) {
             std::cerr << "Packet transmission failed, likely CRC calculation or transmission failed!" << std::endl;
             testFailed = 1;
         }
+
+        std::cout << std::endl;
     }
 
 exitAndCleanup:
