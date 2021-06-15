@@ -258,8 +258,6 @@ module usb_rx#()(
                     end
                 end else if (inputBufFull) begin
                     next_lastByteValidCRC = isValidCRC;
-                    //TODO further processing is required! i.e. give data to next stage for processing
-                    //TODO we probably do not want to give the crc data to the next stage how can we do so? just assume that the backend will ignore it?
 
                     // This byte is data!
                     next_isDataShiftReg[0] = 1'b1;
