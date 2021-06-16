@@ -67,6 +67,14 @@ package sie_defs_pkg;
         _PID_RESERVED = 4'b0000
     } PID_Types;
 
+    localparam PACKET_TYPE_MASK_OFFSET = 0;
+    localparam PACKET_TYPE_MASK_LENGTH = 2;
+
+    localparam TOKEN_PACKET_MASK_VAL = 2'b01;
+    localparam DATA_PACKET_MASK_VAL = 2'b11;
+    localparam HANDSHAKE_PACKET_MASK_VAL = 2'b10;
+    localparam SPECIAL_PACKET_MASK_VAL = 2'b00;
+
     // SYNC sequence is KJKJ_KJKK
     // NRZI decoded:    0000_0001
     //              ------ time ---->

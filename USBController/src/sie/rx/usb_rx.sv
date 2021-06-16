@@ -46,9 +46,12 @@ module usb_rx#()(
 
     // State variables
     RxStates rxState;
-    sie_defs_pkg::PID_Types rxPID;
     logic lastByteValidCRC; // Save current valid CRC flag after each received byte to ensure no difficulties with EOP detection!
     logic dropPacket; // Drop reason might be i.e. receive errors!
+
+    sie_defs_pkg::PID_Types rxPID; //TODO PID is no longer required, only to find out which CRC type is needed! -> store single bit from rxUseCRC16 at correct time!
+    logic needCRC16Handling;
+    assign needCRC16Handling = rxPID[sie_defs_pkg::PACKET_TYPE_MASK_OFFSET +: sie_defs_pkg::PACKET_TYPE_MASK_LENGTH] == sie_defs_pkg::DATA_PACKET_MASK_VAL; // CRC16 is only used for data packets
 
     // Current signals
     logic nrziDecodedInput;
@@ -132,9 +135,6 @@ module usb_rx#()(
             rxDataSwapPhase <= next_rxDataSwapPhase;
         end
     end
-
-    logic needCRC16Handling;
-    assign needCRC16Handling = rxPID[1:0] == 2'b11; // CRC16 is only used for data packets
 
 //=========================================================================================
 //======================================Interface End======================================
@@ -337,7 +337,7 @@ module usb_rx#()(
     // Needs thight timing -> use input buffer directly
     // Only Data Packets use CRC16!
     // Packet types are identifyable by 2 lsb bits, which are at this stage not yet at the lsb location
-    assign rxUseCRC16 = inputBuf[2:1] == sie_defs_pkg::PID_DATA0[1:0];
+    assign rxUseCRC16 = inputBuf[2:1] == sie_defs_pkg::DATA_PACKET_MASK_VAL;
     assign rxCRCInputValid = expectNonBitStuffedInput;
     assign rxCRCInput = nrziDecodedInput;
 

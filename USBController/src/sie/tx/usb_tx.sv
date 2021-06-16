@@ -136,9 +136,9 @@ module usb_tx#()(
     logic useCRC16;
     logic noDataAndCrcStage;
     // Only Data Packets use CRC16!
-    assign useCRC16 = txPID[1:0] == sie_defs_pkg::PID_DATA0[1:0];
+    assign useCRC16 = txPID[sie_defs_pkg::PACKET_TYPE_MASK_OFFSET +: sie_defs_pkg::PACKET_TYPE_MASK_LENGTH] == sie_defs_pkg::DATA_PACKET_MASK_VAL;
     // Either a Handshake or ERR/PRE
-    assign noDataAndCrcStage = txPID[1:0] == sie_defs_pkg::PID_HANDSHAKE_ACK[1:0] || txPID == sie_defs_pkg::PID_SPECIAL_PRE__ERR;
+    assign noDataAndCrcStage = txPID[sie_defs_pkg::PACKET_TYPE_MASK_OFFSET +: sie_defs_pkg::PACKET_TYPE_MASK_LENGTH] == sie_defs_pkg::HANDSHAKE_PACKET_MASK_VAL || txPID == sie_defs_pkg::PID_SPECIAL_PRE__ERR;
 
     logic txReqNewData;
     logic txGotNewData;
