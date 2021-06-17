@@ -1,5 +1,6 @@
 `include "config_pkg.sv"
 `include "sie_defs_pkg.sv"
+`include "usb_packet_pkg.sv"
 
 module usb_rx#()(
     input logic clk48,
@@ -334,7 +335,7 @@ module usb_rx#()(
     // Needs thight timing -> use input buffer directly
     // Only Data Packets use CRC16!
     // Packet types are identifyable by 2 lsb bits, which are at this stage not yet at the lsb location
-    assign rxUseCRC16 = inputBuf[2:1] == sie_defs_pkg::DATA_PACKET_MASK_VAL;
+    assign rxUseCRC16 = inputBuf[2:1] == usb_packet_pkg::DATA_PACKET_MASK_VAL;
     assign rxCRCInputValid = expectNonBitStuffedInput;
     assign rxCRCInput = nrziDecodedInput;
 

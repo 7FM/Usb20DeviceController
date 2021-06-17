@@ -1,5 +1,6 @@
 `include "config_pkg.sv"
 `include "sie_defs_pkg.sv"
+`include "usb_packet_pkg.sv"
 
 module usb_tx#()(
     input logic clk48,
@@ -48,7 +49,7 @@ module usb_tx#()(
     } TxStates;
 
     // State registers: one per line
-    sie_defs_pkg::PID_Types txPID, next_txPID;
+    usb_packet_pkg::PID_Types txPID, next_txPID;
     TxStates txState, next_txState, txStateAdd1;
     logic sendingLastDataByte, next_sendingLastDataByte;
 
@@ -136,9 +137,9 @@ module usb_tx#()(
     logic useCRC16;
     logic noDataAndCrcStage;
     // Only Data Packets use CRC16!
-    assign useCRC16 = txPID[sie_defs_pkg::PACKET_TYPE_MASK_OFFSET +: sie_defs_pkg::PACKET_TYPE_MASK_LENGTH] == sie_defs_pkg::DATA_PACKET_MASK_VAL;
+    assign useCRC16 = txPID[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::DATA_PACKET_MASK_VAL;
     // Either a Handshake or ERR/PRE
-    assign noDataAndCrcStage = txPID[sie_defs_pkg::PACKET_TYPE_MASK_OFFSET +: sie_defs_pkg::PACKET_TYPE_MASK_LENGTH] == sie_defs_pkg::HANDSHAKE_PACKET_MASK_VAL || txPID == sie_defs_pkg::PID_SPECIAL_PRE__ERR;
+    assign noDataAndCrcStage = txPID[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::HANDSHAKE_PACKET_MASK_VAL || txPID == usb_packet_pkg::PID_SPECIAL_PRE__ERR;
 
     logic txReqNewData;
     logic txGotNewData;
