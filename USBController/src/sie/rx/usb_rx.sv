@@ -49,9 +49,7 @@ module usb_rx#()(
     logic lastByteValidCRC; // Save current valid CRC flag after each received byte to ensure no difficulties with EOP detection!
     logic dropPacket; // Drop reason might be i.e. receive errors!
 
-    sie_defs_pkg::PID_Types rxPID; //TODO PID is no longer required, only to find out which CRC type is needed! -> store single bit from rxUseCRC16 at correct time!
-    logic needCRC16Handling;
-    assign needCRC16Handling = rxPID[sie_defs_pkg::PACKET_TYPE_MASK_OFFSET +: sie_defs_pkg::PACKET_TYPE_MASK_LENGTH] == sie_defs_pkg::DATA_PACKET_MASK_VAL; // CRC16 is only used for data packets
+    logic needCRC16Handling, nextNeedCRC16Handling;
 
     // Current signals
     logic nrziDecodedInput;
@@ -167,7 +165,6 @@ module usb_rx#()(
     // State transitions
     //===================================================
     RxStates next_rxState, rxStateAdd1;
-    sie_defs_pkg::PID_Types next_rxPID;
     logic next_dropPacket, next_lastByteValidCRC, next_byteGotSignalError;
 
     logic signalError;
@@ -188,7 +185,7 @@ module usb_rx#()(
         rxCRCReset = 1'b0;
 
         next_rxState = rxState;
-        next_rxPID = rxPID;
+        nextNeedCRC16Handling = needCRC16Handling;
         next_dropPacket = defaultNextDropPacket;
         next_lastByteValidCRC = lastByteValidCRC;
 
@@ -222,17 +219,17 @@ module usb_rx#()(
                 // Sanity check: was PID correctly received?
                 next_dropPacket = defaultNextDropPacket || (inputBufFull && !pidValid);
 
-                // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
-                rxCRCReset = ~inputBufFull;
-
                 if (inputBufFull) begin
-                    // Save the PID for further decisions
-                    next_rxPID = inputBuf[3:0];
                     // Go to next state
                     next_rxState = rxStateAdd1;
 
                     // This byte is data!
                     next_isDataShiftReg[0] = 1'b1;
+                end else begin
+                    // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
+                    rxCRCReset = 1'b1;
+                    // As during CRC reset the rxUseCRC16 flag is evaluated we can use it for our purposes too
+                    nextNeedCRC16Handling = rxUseCRC16;
                 end
             end
             RX_WAIT_FOR_EOP: begin
@@ -284,7 +281,7 @@ module usb_rx#()(
     // State updates
     always_ff @(posedge receiveCLK) begin
         rxState <= next_rxState;
-        rxPID <= next_rxPID;
+        needCRC16Handling <= nextNeedCRC16Handling;
         dropPacket <= next_dropPacket;
         lastByteValidCRC <= next_lastByteValidCRC;
         // After each received byte reset the byte signal error state
