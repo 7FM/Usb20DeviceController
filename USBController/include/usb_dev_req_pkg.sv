@@ -67,6 +67,7 @@ package usb_dev_req_pkg;
 
     Misc: TEST_MODE feature cannot be cleared by CLEAR_FEATURE! -> requires power cycle
     */
+    `define CLEAR_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 0 && (deviceState == DEVICE_CONFIGURED || setupDataPacket.wIndex == 0))
 
     /* SET_FEATURE:
 
@@ -86,6 +87,8 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: interface/endpoint select != 0 -> respond with request error
     - DEVICE_CONFIGURED: valid for all existing interfaces & endpoints
     */
+    // Note that we do not support TEST_MODE here!
+    `define SET_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 0 && (deviceState == DEVICE_CONFIGURED || setupDataPacket.wIndex == 0))
 
     typedef enum logic[15:0] {
         ENDPOINT_HALT = 0, // For recipient == endpoint only
@@ -116,6 +119,7 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: returns 0
     - DEVICE_CONFIGURED: return non-zero bConfigurationValue that was set
     */
+    `define GET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 1 && setupDataPacket.wValue == 0 && setupDataPacket.wIndex == 0)
 
     /* SET_CONFIGURATION:
     if wIndex != 0 || wLength != 0 || wValue[15:8] != 0 -> behaviour is not specified
@@ -126,11 +130,12 @@ package usb_dev_req_pkg;
 
     DeviceState dependent behaviour:
     - DEVICE_RESET: not specified
-    - DEVICE_ADDR_ASSIGNED: if configuration value == 0 -> stay to DEVICE_ADDR_ASSIGNED state
+    - DEVICE_ADDR_ASSIGNED: if configuration value == 0 -> stay at DEVICE_ADDR_ASSIGNED state
                             else if configuration value mathces an configuration descriptor change state to DEVICE_CONFIGURED
                             else request ERROR
     - DEVICE_CONFIGURED: same logic as DEVICE_ADDR_ASSIGNED
     */
+    `define SET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 0 && setupDataPacket.wValue[15:8] == 0 && setupDataPacket.wIndex == 0 && deviceState > DEVICE_RESET)
 
 //=========================================================================================================================
 
@@ -154,6 +159,8 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: valid
     - DEVICE_CONFIGURED: valid
     */
+    `define GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wIndex[15:8] == usb_desc_pkg::DESC_STRING || setupDataPacket.wIndex == 0)
+
 
     /* SET_DESCRIPTOR: OPTIONAL
     wValue[15:8] = descriptor type
@@ -174,6 +181,9 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: if supported -> valid
     - DEVICE_CONFIGURED: if supported -> valid
     */
+    // This is optional to implement -> hence, we always respond with a request error
+    `define SET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState) (1'b0)
+
 
 //=========================================================================================================================
 
@@ -190,6 +200,7 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: repsonse with request error
     - DEVICE_CONFIGURED: valid
     */
+    `define GET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wValue == 0 && setupDataPacket.wLength == 1 && deviceState == DEVICE_CONFIGURED)
 
     /* SET_INTERFACE
     select an alternate setting for the specified interface
@@ -204,6 +215,7 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: repsonse with request error
     - DEVICE_CONFIGURED: valid
     */
+    `define SET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 0 && deviceState == DEVICE_CONFIGURED)
 
 //=========================================================================================================================
 
@@ -237,6 +249,8 @@ package usb_dev_req_pkg;
                                 Halt flag is reset to zero at each SetConfiguration or SetInterface request
         d1-d15 = reserved (0 on reset)
     */
+    //TODO add sanity check for (deviceRequest && wIndex != 0) ?
+    `define GET_STATUS_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wValue == 0 && setupDataPacket.wLength == 2 && (setupDataPacket.wIndex == 0 || deviceState == DEVICE_CONFIGURED))
 
 //=========================================================================================================================
 
@@ -259,6 +273,7 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: valid: if wValue = 0 -> change back in device reset state! Else overwrite current addr
     - DEVICE_CONFIGURED: not specified
     */
+    `define SET_ADDRESS_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 0 && setupDataPacket.wValue[15:7] == 0 && setupDataPacket.wIndex == 0 && deviceState < DEVICE_CONFIGURED)
 
 //=========================================================================================================================
 
@@ -277,6 +292,7 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: Request Error
     - DEVICE_CONFIGURED: valid
     */
+    `define SYNCH_FRAME_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wLength == 2 && setupDataPacket.wValue == 0 && deviceState == DEVICE_CONFIGURED)
 
 //=========================================================================================================================
 
