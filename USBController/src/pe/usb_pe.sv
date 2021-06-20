@@ -1,12 +1,13 @@
 `include "config_pkg.sv"
-`include "sie_defs_pkg.sv"
 `include "usb_packet_pkg.sv"
+`include "usb_ep_pkg.sv"
 
 // USB Protocol Engine (PE)
 module usb_pe #(
-    parameter ENDPOINTS = 1,
     parameter EP_ADDR_WID = 9,
-    parameter EP_DATA_WID = 8
+    parameter EP_DATA_WID = 8, //TODO this is a pseudo parameter as byte wise data transfers is fixed assumption throughout the code!
+    usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig,
+    localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic clk48,
 

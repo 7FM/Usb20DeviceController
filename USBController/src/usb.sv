@@ -1,9 +1,11 @@
 `include "config_pkg.sv"
+`include "usb_ep_pkg.sv"
 
 module usb#(
-    parameter ENDPOINTS = 1,
+    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig,
     parameter EP_ADDR_WID = 9,
-    parameter EP_DATA_WID = 8
+    parameter EP_DATA_WID = 8,
+    localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic clk48,
 `ifdef RUN_SIM
@@ -89,7 +91,7 @@ module usb#(
     logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn;
 
     usb_pe #(
-        .ENDPOINTS(ENDPOINTS),
+        .USB_DEV_EP_CONF(USB_DEV_EP_CONF),
         .EP_DATA_WID(EP_DATA_WID),
         .EP_ADDR_WID(EP_ADDR_WID)
     ) usbProtocolEngine(
