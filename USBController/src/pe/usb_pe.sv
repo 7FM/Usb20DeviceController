@@ -31,18 +31,18 @@ module usb_pe #(
     output logic [7:0] txData,
     input logic txAcceptNewData,
 
-    // Endpoint interfaces
-    input logic [0:ENDPOINTS-1] EP_IN_popData,
-    input logic [0:ENDPOINTS-1] EP_IN_popTransDone,
-    input logic [0:ENDPOINTS-1] EP_IN_popTransSuccess,
-    output logic [0:ENDPOINTS-1] EP_IN_dataAvailable,
+    // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
+    input logic [ENDPOINTS-1:0] EP_IN_popTransDone,
+    input logic [ENDPOINTS-1:0] EP_IN_popTransSuccess,
+    input logic [ENDPOINTS-1:0] EP_IN_popData,
+    output logic [ENDPOINTS-1:0] EP_IN_dataAvailable,
     output logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_dataOut,
 
-    input logic [0:ENDPOINTS-1] EP_OUT_dataValid,
-    input logic [0:ENDPOINTS-1] EP_OUT_fillTransDone,
-    input logic [0:ENDPOINTS-1] EP_OUT_fillTransSuccess,
-    output logic [0:ENDPOINTS-1] EP_OUT_full,
-    input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn
+    input logic [ENDPOINTS-1:0] EP_OUT_fillTransDone,
+    input logic [ENDPOINTS-1:0] EP_OUT_fillTransSuccess,
+    input logic [ENDPOINTS-1:0] EP_OUT_dataValid,
+    input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn,
+    output logic [ENDPOINTS-1:0] EP_OUT_full
 );
 
     //logic suspended; // Currently not supported / considered
@@ -160,7 +160,6 @@ Device Transaction State Machine Hierarchy Overview:
         // Has no handshake phase
     } TX_IsochState;
 
-
 //====================================================================================
 //==============================Endpoint logic========================================
 //====================================================================================
@@ -168,17 +167,18 @@ Device Transaction State Machine Hierarchy Overview:
     logic [$clog2(ENDPOINTS):0] epSelect; //TODO
 
     // Used for received data
-    logic writeFifoFull;
-    logic WRITE_EN; //TODO
-    logic [EP_DATA_WID-1:0] wdata; //TODO
     logic fillTransDone; //TODO
     logic fillTransSuccess; //TODO
+    logic EP_WRITE_EN; //TODO
+    logic [EP_DATA_WID-1:0] wdata; //TODO
+    logic writeFifoFull;
+
     // Used for data to be output
-    logic readDataAvailable;
-    logic READ_EN; //TODO
-    logic [EP_DATA_WID-1:0] rdata; //TODO
     logic popTransDone; //TODO
     logic popTransSuccess; //TODO
+    logic EP_READ_EN; //TODO
+    logic readDataAvailable;
+    logic [EP_DATA_WID-1:0] rdata; //TODO
 
     logic [ENDPOINTS-1:0] EP_IN_full;
 

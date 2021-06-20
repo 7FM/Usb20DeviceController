@@ -17,8 +17,8 @@ module FIFO #(
     input logic fillTransDone,
     input logic fillTransSuccess,
     input logic dataValid,
-    output logic full,
     input logic [DATA_WID-1:0] dataIn,
+    output logic full,
 
     input logic popTransDone,
     input logic popTransSuccess,

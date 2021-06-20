@@ -76,16 +76,16 @@ module usb#(
 
     //TODO export
     // Endpoint interfaces
-    logic [0:ENDPOINTS-1] EP_IN_popData;
-    logic [0:ENDPOINTS-1] EP_IN_popTransDone;
-    logic [0:ENDPOINTS-1] EP_IN_popTransSuccess;
-    logic [0:ENDPOINTS-1] EP_IN_dataAvailable;
+    logic [ENDPOINTS-1:0] EP_IN_popData;
+    logic [ENDPOINTS-1:0] EP_IN_popTransDone;
+    logic [ENDPOINTS-1:0] EP_IN_popTransSuccess;
+    logic [ENDPOINTS-1:0] EP_IN_dataAvailable;
     logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_dataOut;
 
-    logic [0:ENDPOINTS-1] EP_OUT_dataValid;
-    logic [0:ENDPOINTS-1] EP_OUT_fillTransDone;
-    logic [0:ENDPOINTS-1] EP_OUT_fillTransSuccess;
-    logic [0:ENDPOINTS-1] EP_OUT_full;
+    logic [ENDPOINTS-1:0] EP_OUT_dataValid;
+    logic [ENDPOINTS-1:0] EP_OUT_fillTransDone;
+    logic [ENDPOINTS-1:0] EP_OUT_fillTransSuccess;
+    logic [ENDPOINTS-1:0] EP_OUT_full;
     logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn;
 
     usb_pe #(
