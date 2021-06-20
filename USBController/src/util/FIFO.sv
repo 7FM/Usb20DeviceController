@@ -1,7 +1,7 @@
 module FIFO #(
     parameter ADDR_WID = 9,
     parameter DATA_WID = 8,
-    parameter ENTRIES = -1
+    parameter ENTRIES = 0
 )(
     input logic CLK,
 
@@ -33,7 +33,7 @@ module FIFO #(
     assign dataAvailable = transReadCounter != dataCounter;
 
 generate
-    if (ENTRIES == -1 || ENTRIES == 2**ADDR_WID) begin
+    if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
         // if entries == -1 is set then we assume that the entire address space is memory backed
         // Else if entries is set we can manually test this assumption and optimize if possible!
         assign next_transDataCounter = transDataCounter + 1; // Abuses overflows to avoid wrap around logic
