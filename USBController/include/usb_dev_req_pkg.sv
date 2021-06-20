@@ -26,7 +26,7 @@ package usb_dev_req_pkg;
     -----------------------------------------------------------------------------------------------------------
     8'b1000_0001  | GET_INTERFACE      | Zero                | Interface    | One        | Alternate Interface
     -----------------------------------------------------------------------------------------------------------
-    8'b1000_0001  | SET_INTERFACE      | Alternate Setting   | Interface    | Zero       | None
+    8'b0000_0001  | SET_INTERFACE      | Alternate Setting   | Interface    | Zero       | None
     ===========================================================================================================
     Recipient = Endpoint ONLY:
     -----------------------------------------------------------------------------------------------------------
@@ -183,7 +183,7 @@ package usb_dev_req_pkg;
     This request returns the selected alternate setting for the specified interface
     If the interface specified does not exist, then the device responds with a Request Error
 
-    if wValue != 0 || wLength != 0 -> device behaviour is not specified
+    if wValue != 0 || wLength != 1 -> device behaviour is not specified
 
     DeviceState dependent behaviour:
     - DEVICE_RESET: not specified
@@ -287,7 +287,7 @@ package usb_dev_req_pkg;
         SET_FEATURE = 3,
         RESERVED_4 = 4,
         SET_ADDRESS = 5,
-        GET_DESCRIBTOR = 6,
+        GET_DESCRIPTOR = 6,
         SET_DESCRIPTOR = 7,
         GET_CONFIGURATION = 8,
         SET_CONFIGURATION = 9,
@@ -313,7 +313,7 @@ package usb_dev_req_pkg;
     } RequestType;
 
     typedef struct packed {
-        logic dataTransHostToDev;
+        logic dataTransDevToHost;
         RequestType reqType;
         Recipient recipient;
     } BmRequestType;
@@ -332,7 +332,8 @@ package usb_dev_req_pkg;
         logic [15:0] wIndex; // In the case of a control pipe, the request should have the Direction bit set to zero but the device may accept either value of the Direction bit.
         //  The state of the Direction bit is ignored if the wLength field is zero, signifying there is no Data stage
         logic [15:0] wLength;
-    } SetupPacket;
+    } SetupDataPacket;
+    localparam SETUP_DATA_PACKET_BYTE_COUNT = 8;
 
 endpackage
 

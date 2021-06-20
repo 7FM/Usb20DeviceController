@@ -112,7 +112,7 @@ module usb_pe #(
 Device Transaction State Machine Hierarchy Overview:
 
     Device_Process_trans
-      - Dev_do_OUT: if pid == PID_OUT_TOKEN || pid == PID_SETUP_TOKEN
+      - Dev_do_OUT: if pid == PID_OUT_TOKEN || (pid == PID_SETUP_TOKEN && ep_type == control)
         - Dev_Do_IsochO: if type of selected endpoint (ep_type) == isochronous
         - Dev_Do_BCINTO: if ep_type == interrupt || (not high speed && (ep_type == bulk || ep_type == control))
         (- Dev_HS_BCO) <- For HighSpeed devices: if high speed && (ep_type == bulk || ep_type == control)
@@ -133,7 +133,6 @@ Device Transaction State Machine Hierarchy Overview:
         PE_DO_IN_ISOCH,
         PE_DO_IN_BCINT
     } PEState;
-
 
     typedef enum logic[1:0] {
         BCINTO_RST_RX_CLK,
