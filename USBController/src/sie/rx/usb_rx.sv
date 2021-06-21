@@ -65,6 +65,8 @@ module usb_rx#()(
 //=====================================Interface Start=====================================
 //=========================================================================================
 
+    //TODO this cascade of registers, likely introduces very very large delays -> another request might already start sending -> DPPL could not be reset!
+
     logic [7:0] inputBufRescue, next_inputBufRescue;
     logic [7:0] inputBufDelay1, next_inputBufDelay1;
     logic [7:0] inputBufDelay2, next_inputBufDelay2;

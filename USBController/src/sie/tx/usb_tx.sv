@@ -134,6 +134,7 @@ module usb_tx#()(
     assign crc5 = {reversedCRC16[0], reversedCRC16[1], reversedCRC16[2], reversedCRC16[3], reversedCRC16[4]};
     assign crc16 = {crc5, reversedCRC16[5], reversedCRC16[6], reversedCRC16[7], reversedCRC16[8], reversedCRC16[9], reversedCRC16[10], reversedCRC16[11], reversedCRC16[12], reversedCRC16[13], reversedCRC16[14], reversedCRC16[15]};
 
+    //TODO we could make these flags register too and remove txPID -> saves 2 FFs
     logic useCRC16;
     logic noDataAndCrcStage;
     // Only Data Packets use CRC16!
