@@ -23,7 +23,10 @@ module BRAM_FIFO #(
     logic [EP_ADDR_WID-1:0] waddr, raddr;
     logic [EP_DATA_WID-1:0] wdata, rdata;
 
-    bram4k bram(
+    mem #(
+        .DEPTH(2**EP_ADDR_WID),
+        .DATA_WID(EP_DATA_WID)
+    ) dualportMem (
         .CLK(CLK),
         .WEN(WEN),
         .waddr(waddr),
