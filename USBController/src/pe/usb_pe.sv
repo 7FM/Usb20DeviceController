@@ -157,13 +157,15 @@ Device Transaction State Machine Hierarchy Overview:
 //==============================Endpoint logic========================================
 //====================================================================================
 
-    logic [$clog2(ENDPOINTS):0] epSelect; //TODO
+    logic [$clog2(ENDPOINTS):0] epSelect;
+    usb_packet_pkg::PID_Types transStartPID;
+    logic gotTransStartPacket;
 
     // Used for received data
     logic fillTransDone; //TODO
     logic fillTransSuccess; //TODO
     logic EP_WRITE_EN; //TODO
-    logic [EP_DATA_WID-1:0] wdata; //TODO
+    logic [EP_DATA_WID-1:0] wdata;
     logic writeFifoFull;
 
     // Used for data to be output
@@ -171,11 +173,13 @@ Device Transaction State Machine Hierarchy Overview:
     logic popTransSuccess; //TODO
     logic EP_READ_EN; //TODO
     logic readDataAvailable;
-    logic [EP_DATA_WID-1:0] rdata; //TODO
+    logic readIsLastPacketByte;
+    logic [EP_DATA_WID-1:0] rdata;
 
     logic [ENDPOINTS-1:0] EP_IN_full;
 
     logic [ENDPOINTS-1:0] EP_OUT_dataAvailable;
+    logic [ENDPOINTS-1:0] EP_OUT_isLastPacketByte;
     logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataOut;
 
     vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(EP_DATA_WID)) rdataMux (
@@ -193,6 +197,12 @@ Device Transaction State Machine Hierarchy Overview:
         .dataVec(EP_OUT_dataAvailable),
         .data(readDataAvailable)
     );
+    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) readIsLastPacketByteMux (
+        .dataSelect(epSelect),
+        .dataVec(EP_OUT_isLastPacketByte),
+        .data(readIsLastPacketByte)
+    );
+
 
     localparam USB_DEV_ADDR_WID = 7;
     localparam USB_DEV_CONF_WID = 8;
