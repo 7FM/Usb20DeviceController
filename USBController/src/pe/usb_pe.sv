@@ -15,6 +15,8 @@ module usb_pe #(
     output logic ackUsbResetDetect,
 
     // State information
+    input logic txDoneSending, //TODO use
+    input logic rxDPPLGotSignal,
     output logic isSendingPhase, //TODO
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -77,6 +79,7 @@ Device Transaction State Machine Hierarchy Overview:
 
 */
 
+    /*
     typedef enum logic[2:0] {
         PE_RST_RX_CLK,
         PE_WAIT_FOR_TRANSACTION,
@@ -111,6 +114,44 @@ Device Transaction State Machine Hierarchy Overview:
         IsochI_ISSUE_PACKET
         // Has no handshake phase
     } TX_IsochState;
+    */
+
+    typedef enum logic[3:0] {
+        PE_RST_RX_CLK,
+        PE_WAIT_FOR_TRANSACTION,
+
+        // Host sends data: PE_DO_OUT_ISO: page 229 NOTE: No DATA toggle checks!
+        IsochO_RST_RX_CLK, //TODO needs timeout handling
+        IsochO_AWAIT_PACKET,
+        IsochO_HANDLE_PACKET,
+        // Has no handshake phase -> can be simulated as transmission error -> nothing is send in return!
+
+        // Host sends data: PE_DO_OUT_BCINT: page 221
+        BCINTO_RST_RX_CLK, //TODO needs timeout handling
+        BCINTO_AWAIT_PACKET,
+        BCINTO_HANDLE_PACKET,
+        //BCINTO_ISSUE_RESPONSE,
+        // Issue response
+        RX_SUCCESS, // Send ACK
+        RX_REQUEST_ERROR, // Send STALL
+        RX_RECEIVE_ERROR, // Do nothing and go back to the initial state!
+
+
+        // Device sends data: PE_DO_IN_ISOCH: page 229 NOTE: Always use DATA0 PID!
+        IsochI_ISSUE_PACKET,
+        // Has no handshake phase -> no wait needed, directly go back to initial state!
+
+        // Device sends data: PE_DO_IN_BCINT: page 221
+        BCINTI_ISSUE_PACKET,
+        BCINTI_RST_RX_CLK, //TODO needs timeout handling
+        BCINTI_AWAIT_RESPONSE,
+
+        TX_NOTHING_AVAILABLE, // Sends NAK instead of data & handshake phase
+        TX_STALL // TODO when is this required?
+
+    } TransactionState;
+
+    logic packetWaitTimeout; //TODO use
 
 //====================================================================================
 //==============================Endpoint logic========================================
@@ -311,5 +352,23 @@ Device Transaction State Machine Hierarchy Overview:
 //TODO
 
 //====================================================================================
+
+    logic clk12;
+    clock_gen #(
+        .DIVIDE_LOG_2(2)
+    ) clk12Generator (
+        .inCLK(clk48),
+        .outCLK(clk12)
+    );
+
+    logic readTimerRst; //TODO
+    assign readTimerRst = isSendingPhase || receiveDone;
+    usb_timeout readTimer(
+        .clk48(clk48),
+        .clk12(clk12),
+        .RST(readTimerRst),
+        .rxGotSignal(rxDPPLGotSignal),
+        .rxTimeout(packetWaitTimeout)
+    );
 
 endmodule

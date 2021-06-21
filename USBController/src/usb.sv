@@ -24,6 +24,8 @@ module usb#(
     logic ackUsbResetDetect;
 
     logic isSendingPhase;
+    logic txDoneSending;
+    logic rxDPPLGotSignal;
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
     // Data Receive Interface: synced with clk48!
@@ -57,6 +59,8 @@ module usb#(
         .ackUsbResetDetect(ackUsbResetDetect), // Acknowledge that usb reset was seen and handled!
 
         // State information
+        .txDoneSending(txDoneSending),
+        .rxDPPLGotSignal(rxDPPLGotSignal),
         .isSendingPhase(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -102,6 +106,8 @@ module usb#(
         .ackUsbResetDetect(ackUsbResetDetect),
 
         // State information
+        .txDoneSending(txDoneSending),
+        .rxDPPLGotSignal(rxDPPLGotSignal),
         .isSendingPhase(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!

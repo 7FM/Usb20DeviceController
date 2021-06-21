@@ -55,7 +55,8 @@ module sim_usb_rx_connection (
         .RST(rxClkGenRST),
         .a(dataInP),
         .b(dataInP_negedge),
-        .readCLK12(rxClk12)
+        .readCLK12(rxClk12),
+        `MUTE_PIN_CONNECT_EMPTY(DPPLGotSignal)
     );
 
     logic rxCRCReset;

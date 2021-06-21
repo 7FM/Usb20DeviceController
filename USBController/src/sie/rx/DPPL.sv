@@ -8,7 +8,8 @@ module DPPL(
     // However, not all FPGAs have a comparator and in such cases rcv is simply the USB_DP+ signal
     input logic a,
     input logic b,
-    output logic readCLK12
+    output logic readCLK12,
+    output logic DPPLGotSignal
     // TODO is this always true or better read input? also which data would this be? J/K or already decoded NRZI???
     //, output logic data
 );
@@ -37,6 +38,7 @@ module DPPL(
 
     assign readCLK12 = fsmState[1];
     //assign data = fsmState[2];
+    assign DPPLGotSignal = fsmState == STATE_D;
 
     initial begin
         fsmState = STATE_C;

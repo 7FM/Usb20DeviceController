@@ -23,6 +23,8 @@ module usb_sie (
     input logic ackUsbResetDetect, // Acknowledge that usb reset was seen and handled!
 
     // State information
+    output logic txDoneSending,
+    output logic rxDPPLGotSignal,
     input logic isSendingPhase,
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -77,20 +79,26 @@ module usb_sie (
         .ACK_USB_RST(ackUsbResetDetect)
     );
 
+    logic prevTxIsSending;
     logic prevIsSendingPhase;
     always_ff @(posedge clk48) begin
+        prevTxIsSending <= txIsSending;
         prevIsSendingPhase <= isSendingPhase;
     end
-
     initial begin
-        prevIsSendingPhase = 1'b0; // Start in receiving mode
+        // Start in receiving mode
+        prevIsSendingPhase = 1'b0;
+        prevTxIsSending = 1'b0;
     end
+
+    // TX module is done sending when a negedge of txIsSending was noticeable
+    assign txDoneSending = prevTxIsSending && !txIsSending;
 
     logic rxClkGenRST;
     // Reset on switch to receive mode!
     // -> this allows us to reuse the clk signal for transmission too!
     // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
-    assign rxClkGenRST = prevIsSendingPhase && ~isSendingPhase;
+    assign rxClkGenRST = prevIsSendingPhase && !isSendingPhase;
 
     logic rxClk12;
     logic txClk12;
@@ -100,7 +108,8 @@ module usb_sie (
         .RST(rxClkGenRST),
         .a(dataInP),
         .b(dataInP_negedge),
-        .readCLK12(rxClk12)
+        .readCLK12(rxClk12),
+        .DPPLGotSignal(rxDPPLGotSignal)
     );
 
     assign txClk12 = rxClk12;
