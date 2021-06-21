@@ -39,7 +39,7 @@ module usb_rx#()(
         RX_WAIT_FOR_SYNC = 0,
         RX_GET_PID,
         RX_WAIT_FOR_EOP,
-        RX_RST_DPLL
+        RX_RST_PHASE
     } RxStates;
 
     // Error handling relevant signals
@@ -261,7 +261,7 @@ module usb_rx#()(
                     next_isDataShiftReg[0] = 1'b1;
                 end
             end
-            RX_RST_DPLL: begin
+            RX_RST_PHASE: begin
                 // Go back to the initial state
                 next_rxState = RX_WAIT_FOR_SYNC;
 
