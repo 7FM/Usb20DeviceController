@@ -342,13 +342,14 @@ package usb_dev_req_pkg;
 
     // Setup Packet consists of 8 bytes: page 248ff.
     typedef struct packed {
-        BmRequestType bmRequestType; // 1 byte
-        RequestCode bRequest; // 1 byte
-        logic [15:0] wValue;
-        logic [15:0] wIndex; // In the case of a control pipe, the request should have the Direction bit set to zero but the device may accept either value of the Direction bit.
         //  The state of the Direction bit is ignored if the wLength field is zero, signifying there is no Data stage
         logic [15:0] wLength;
+        logic [15:0] wIndex; // In the case of a control pipe, the request should have the Direction bit set to zero but the device may accept either value of the Direction bit.
+        logic [15:0] wValue;
+        RequestCode bRequest; // 1 byte
+        BmRequestType bmRequestType; // 1 byte
     } SetupDataPacket;
+
     localparam SETUP_DATA_PACKET_BYTE_COUNT = 8;
 
 endpackage
