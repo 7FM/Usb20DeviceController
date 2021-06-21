@@ -110,7 +110,7 @@ module usb_tx#()(
             next_txDataBufNewByte = crc16[15:8];
         end
         if (txState == TX_RST_REGS) begin
-            // Reset important state register: should be same as after a RST or in the initial block
+            // Reset important state register: should be the same as in the initial block or after a RST
             next_txFetchedDataIsLast = 1'b0;
         end
     end
@@ -260,9 +260,6 @@ module usb_tx#()(
             TX_RST_REGS: begin
                 // Reset important state register: should be same as after a RST or in the initial block
                 next_txState = TX_WAIT_SEND_REQ;
-            end
-            default: begin
-
             end
         endcase
     end

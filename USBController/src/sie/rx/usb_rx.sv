@@ -273,9 +273,6 @@ module usb_rx#()(
                 // ensure that CRC flag is set to valid again to allow for simple HANDSHAKE packets without payload -> no CRC is used
                 next_lastByteValidCRC = 1'b1;
             end
-            default: begin
-                // Use default values
-            end
         endcase
     end
 
