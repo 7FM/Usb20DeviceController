@@ -23,7 +23,7 @@ package usb_packet_pkg;
                  |   1111   |  MDATA (only in High Speed mode)
         -----------------------------------------------
         Handshake|   0010   |  ACK Handshake
-                 |   1010   |  NACK Handshake
+                 |   1010   |  NAK Handshake
                  |   1110   |  STALL Handshake
                  |   0110   |  NYET (No Response Yet)
         -----------------------------------------------
@@ -42,30 +42,6 @@ package usb_packet_pkg;
         - over all fields except PID,EOP,SYNC
         - CRC is calculated before bit stuffing is performed!
     */
-
-    typedef enum logic[3:0] {
-        // TOKEN: last lsb bits are 01
-        PID_OUT_TOKEN = 4'b0001,
-        PID_IN_TOKEN = 4'b1001,
-        PID_SOF_TOKEN = 4'b0101,
-        PID_SETUP_TOKEN = 4'b1101,
-        // DATA: last lsb bits are 11
-        PID_DATA0 = 4'b0011,
-        PID_DATA1 = 4'b1011,
-        PID_DATA2 = 4'b0111, // unused: High-speed only
-        PID_MDATA = 4'b1111, // unused: High-speed only
-        // HANDSHAKE: last lsb bits are 10
-        PID_HANDSHAKE_ACK = 4'b0010,
-        PID_HANDSHAKE_NACK = 4'b1010,
-        PID_HANDSHAKE_STALL = 4'b1110,
-        PID_HANDSHAKE_NYET = 4'b0110,
-        // SPECIAL: last lsb bits are 00
-        PID_SPECIAL_PRE__ERR = 4'b1100, // Meaning depends on context
-        PID_SPECIAL_SPLIT = 4'b1000, // unused: High-speed only
-        PID_SPECIAL_PING = 4'b0100, // unused: High-speed only
-        _PID_RESERVED = 4'b0000
-    } PID_Types;
-
     localparam PACKET_TYPE_MASK_OFFSET = 0;
     localparam PACKET_TYPE_MASK_LENGTH = 2;
 
@@ -75,6 +51,36 @@ package usb_packet_pkg;
     localparam SPECIAL_PACKET_MASK_VAL = 2'b00;
 
     localparam DATA_0_1_TOGGLE_OFFSET = 3;
+
+    typedef enum logic[1:0] {
+        RES_ACK = 2'b00,
+        RES_NAK = 2'b10,
+        RES_STALL = 2'b11,
+        RES_NYET = 2'b01
+    } Handshakes;
+
+    typedef enum logic[3:0] {
+        // TOKEN: last lsb bits are 01
+        PID_OUT_TOKEN = {2'b00, TOKEN_PACKET_MASK_VAL},
+        PID_IN_TOKEN = {2'b10, TOKEN_PACKET_MASK_VAL},
+        PID_SOF_TOKEN = {2'b01, TOKEN_PACKET_MASK_VAL},
+        PID_SETUP_TOKEN = {2'b11, TOKEN_PACKET_MASK_VAL},
+        // DATA: last lsb bits are 11
+        PID_DATA0 = {2'b00, DATA_PACKET_MASK_VAL},
+        PID_DATA1 = {2'b10, DATA_PACKET_MASK_VAL},
+        PID_DATA2 = {2'b01, DATA_PACKET_MASK_VAL}, // unused: High-speed only
+        PID_MDATA = {2'b11, DATA_PACKET_MASK_VAL}, // unused: High-speed only
+        // HANDSHAKE: last lsb bits are 10
+        PID_HANDSHAKE_ACK = {RES_ACK, HANDSHAKE_PACKET_MASK_VAL},
+        PID_HANDSHAKE_NAK = {RES_NAK, HANDSHAKE_PACKET_MASK_VAL},
+        PID_HANDSHAKE_STALL = {RES_STALL, HANDSHAKE_PACKET_MASK_VAL},
+        PID_HANDSHAKE_NYET = {RES_NYET, HANDSHAKE_PACKET_MASK_VAL},
+        // SPECIAL: last lsb bits are 00
+        PID_SPECIAL_PRE__ERR = {2'b11, SPECIAL_PACKET_MASK_VAL}, // Meaning depends on context
+        PID_SPECIAL_SPLIT = {2'b10, SPECIAL_PACKET_MASK_VAL}, // unused: High-speed only
+        PID_SPECIAL_PING = {2'b01, SPECIAL_PACKET_MASK_VAL}, // unused: High-speed only
+        _PID_RESERVED = {2'b00, SPECIAL_PACKET_MASK_VAL}
+    } PID_Types;
 
     /*
     Packets:
