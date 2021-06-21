@@ -46,55 +46,6 @@ module usb_pe #(
     output logic [ENDPOINTS-1:0] EP_OUT_full
 );
 
-    //logic suspended; // Currently not supported / considered
-    typedef enum logic[1:0] {
-        DEVICE_NOT_RESET, // Ignore all transactions except reset signal
-        DEVICE_RESET, // Responds to device and configuration descriptor requests & return information, uses default address
-        DEVICE_ADDR_ASSIGNED, // responds to requests to default control pipe with default address as long as no address was assigned
-        DEVICE_CONFIGURED // processed a SetConfiguration() request with non zero configuration value & endpoints data toggles are set to DATA0. Now the device functions may be used
-    } DeviceState;
-
-    DeviceState deviceState, nextDeviceState;
-
-    initial begin
-        deviceState = DEVICE_NOT_RESET;
-    end
-
-    logic gotAddrAssigned, gotDevConfig; //TODO
-
-    always_comb begin
-        nextDeviceState = deviceState;
-        ackUsbResetDetect = 1'b0;
-
-        if (usbResetDetected) begin
-            nextDeviceState = DEVICE_RESET;
-        end else begin
-            unique case (deviceState)
-                DEVICE_CONFIGURED, DEVICE_NOT_RESET: begin
-                    // Stay in this state except a reset was detected!
-                end
-                DEVICE_RESET: begin
-                    // We are in the reset state so just always ack resets
-                    ackUsbResetDetect = 1'b1;
-                    if (gotAddrAssigned) begin
-                        nextDeviceState = DEVICE_ADDR_ASSIGNED;
-                    end
-                end
-                DEVICE_ADDR_ASSIGNED: begin
-                    if (gotDevConfig) begin
-                        nextDeviceState = DEVICE_CONFIGURED;
-                    end
-                end
-            endcase
-        end
-    end
-
-    always_ff @(posedge clk48) begin
-        deviceState <= nextDeviceState;
-    end
-
-    logic [6:0] deviceAddr;
-
     /* Request Error:
     When a request is received by a device that is not defined for the device, is inappropriate for the current
     setting of the device, or has values that are not compatible with the request, then a Request Error exists.
@@ -202,45 +153,106 @@ Device Transaction State Machine Hierarchy Overview:
         .data(readDataAvailable)
     );
 
+    localparam USB_DEV_ADDR_WID = 7;
+    localparam USB_DEV_CONF_WID = 8;
+    logic [USB_DEV_ADDR_WID-1:0] deviceAddr;
+    logic [USB_DEV_CONF_WID-1:0] deviceConf;
     generate
+
+        // Endpoint 0 has its own implementation as it has to handle some unique requests!
+        logic isEp0Selected;
+        assign isEp0Selected = !(|epSelect);
+        usb_endpoint_0 #(
+            .USB_DEV_ADDR_WID(USB_DEV_ADDR_WID),
+            .USB_DEV_CONF_WID(USB_DEV_CONF_WID),
+            .EP_CONF(USB_DEV_EP_CONF.ep0Conf)
+        ) ep0 (
+            .clk48(clk48),
+
+            // Endpoint 0 handles the decice state!
+            .usbResetDetected(usbResetDetected),
+            .ackUsbResetDetect(ackUsbResetDetect),
+            .deviceAddr(deviceAddr),
+            .deviceConf(deviceConf),
+
+            .transStartPID(transStartPID),
+            .gotTransStartPacket(gotTransStartPacket),
+
+            // Device IN interface
+            .EP_IN_fillTransDone(fillTransDone),
+            .EP_IN_fillTransSuccess(fillTransSuccess),
+            .EP_IN_dataValid(EP_WRITE_EN && isEp0Selected),
+            .EP_IN_dataIn(wdata),
+            .EP_IN_full(EP_IN_full[0]),
+
+            /*
+            .EP_IN_popTransDone(EP_IN_popTransDone[0]),
+            .EP_IN_popTransSuccess(EP_IN_popTransSuccess[0]),
+            .EP_IN_popData(EP_IN_popData[0]),
+            .EP_IN_dataAvailable(EP_IN_dataAvailable[0]),
+            .EP_IN_dataOut(EP_IN_dataOut[0 * EP_DATA_WID +: EP_DATA_WID]),
+            */
+
+            // Device OUT interface
+            /*
+            .EP_OUT_fillTransDone(EP_OUT_fillTransDone[0]),
+            .EP_OUT_fillTransSuccess(EP_OUT_fillTransSuccess[0]),
+            .EP_OUT_dataValid(EP_OUT_dataValid[0]),
+            .EP_OUT_dataIn(EP_OUT_dataIn[0 * EP_DATA_WID +: EP_DATA_WID]),
+            .EP_OUT_full(EP_OUT_full[0]),
+            */
+
+            .EP_OUT_popTransDone(popTransDone),
+            .EP_OUT_popTransSuccess(popTransSuccess),
+            .EP_OUT_popData(EP_READ_EN && isEp0Selected),
+            .EP_OUT_dataAvailable(EP_OUT_dataAvailable[0]),
+            .EP_OUT_isLastPacketByte(EP_OUT_isLastPacketByte[0]),
+            .EP_OUT_dataOut(EP_OUT_dataOut[0 * EP_DATA_WID +: EP_DATA_WID])
+        );
+
         genvar i;
-        for (i = 0; i < ENDPOINTS; i = i + 1) begin
-            BRAM_FIFO #(
-                .EP_ADDR_WID(EP_ADDR_WID),
-                .EP_DATA_WID(EP_DATA_WID)
-            ) fifoXIn(
-                .CLK(clk48),
+        for (i = 1; i < ENDPOINTS; i = i + 1) begin
 
-                .dataValid(WRITE_EN && i == epSelect),
-                .fillTransDone(fillTransDone),
-                .fillTransSuccess(fillTransSuccess),
-                .full(EP_IN_full[i]),
-                .dataIn(wdata),
+            localparam usb_ep_pkg::EndpointConfig epConfig = USB_DEV_EP_CONF.epConfs[i-1];
 
-                .popData(EP_IN_popData[i]),
-                .popTransDone(EP_IN_popTransDone[i]),
-                .popTransSuccess(EP_IN_popTransSuccess[i]),
-                .dataAvailable(EP_IN_dataAvailable[i]),
-                .dataOut(EP_IN_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
-            );
+            if (epConfig.epType == usb_ep_pkg::NONE) begin 
+                $fatal("Wrong number of endpoints specified! Got endpoint type NONE for ep%i", i);
+            end
 
-            BRAM_FIFO #(
-                .EP_ADDR_WID(EP_ADDR_WID),
-                .EP_DATA_WID(EP_DATA_WID)
-            ) fifoXOut(
-                .CLK(clk48),
+            logic isEpSelected;
+            assign isEpSelected = i == epSelect;
 
-                .dataValid(EP_OUT_dataValid[i]),
-                .fillTransDone(EP_OUT_fillTransDone[i]),
-                .fillTransSuccess(EP_OUT_fillTransSuccess[i]),
-                .full(EP_OUT_full[i]),
-                .dataIn(EP_OUT_dataIn[i * EP_DATA_WID +: EP_DATA_WID]),
+            usb_endpoint #(
+                .EP_CONF(epConfig)
+            ) epX (
+                .clk48(clk48),
 
-                .popData(READ_EN && i == epSelect),
-                .popTransDone(popTransDone),
-                .popTransSuccess(popTransSuccess),
-                .dataAvailable(EP_OUT_dataAvailable[i]),
-                .dataOut(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
+                // Device IN interface
+                .EP_IN_fillTransDone(fillTransDone),
+                .EP_IN_fillTransSuccess(fillTransSuccess),
+                .EP_IN_dataValid(EP_WRITE_EN && isEpSelected),
+                .EP_IN_dataIn(wdata),
+                .EP_IN_full(EP_IN_full[i]),
+
+                .EP_IN_popTransDone(EP_IN_popTransDone[i]),
+                .EP_IN_popTransSuccess(EP_IN_popTransSuccess[i]),
+                .EP_IN_popData(EP_IN_popData[i]),
+                .EP_IN_dataAvailable(EP_IN_dataAvailable[i]),
+                .EP_IN_dataOut(EP_IN_dataOut[i * EP_DATA_WID +: EP_DATA_WID]),
+
+                // Device OUT interface
+                .EP_OUT_fillTransDone(EP_OUT_fillTransDone[i]),
+                .EP_OUT_fillTransSuccess(EP_OUT_fillTransSuccess[i]),
+                .EP_OUT_dataValid(EP_OUT_dataValid[i]),
+                .EP_OUT_dataIn(EP_OUT_dataIn[i * EP_DATA_WID +: EP_DATA_WID]),
+                .EP_OUT_full(EP_OUT_full[i]),
+
+                .EP_OUT_popTransDone(popTransDone),
+                .EP_OUT_popTransSuccess(popTransSuccess),
+                .EP_OUT_popData(EP_READ_EN && isEpSelected),
+                .EP_OUT_dataAvailable(EP_OUT_dataAvailable[i]),
+                .EP_OUT_isLastPacketByte(EP_OUT_isLastPacketByte[i]),
+                .EP_OUT_dataOut(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
             );
         end
     endgenerate
