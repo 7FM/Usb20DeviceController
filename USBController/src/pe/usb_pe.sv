@@ -312,34 +312,81 @@ Device Transaction State Machine Hierarchy Overview:
 //===============================RX Interface=========================================
 //====================================================================================
 
-    //localparam RX_BUF_SIZE = 8;
-    //logic [7:0] rxBuf [0:RX_BUF_SIZE-1]; //TODO we need to export the data!
+
+    logic transactionStarted; //TODO
+
+    // This buffer is used to receive the first packet that might initiate a transaction
+    localparam TRANS_START_BUF_MAX_BIT_IDX = usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN-1;
+    logic [TRANS_START_BUF_MAX_BIT_IDX:0] transStartPacketBuf;
+    logic transStartPacketBufFull;
+
+    logic transBufRst; //TODO
+    assign transBufRst = receiveDone;
+    vector_buf #(
+        .DATA_WID(8),
+        .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN),
+        .INITIALIZE_BUF_IDX(1)
+    ) transStartBufWrapper (
+        .clk(clk48),
+        .rst(transBufRst),
+
+        .dataIn(wdata),
+        .dataValid(!transactionStarted && rxDataValid),
+
+        .buffer(transStartPacketBuf),
+        .isFull(transStartPacketBufFull)
+    );
+
+    initial begin
+        transactionStarted = 1'b0;
+    end
+
+    // Based on transactionStarted we need to switch between the Endpoint FIFOs and the internal buffer to receive i.e. Token Packets that might start an transaction
 
     // Endpoint FIFO connections
     logic receiveDone;
     logic receiveSuccess;
     //TODO use these flags to issue a receive response, i.e. ACK!
-
     initial begin
         receiveDone = 1'b0;
         receiveSuccess = 1'b1;
     end
-    assign fillTransSuccess = receiveSuccess;
-    assign fillTransDone = receiveDone;
-    assign WRITE_EN = rxHandshake;
-    assign wdata = rxData;
 
     // Serial frontend connections
     logic rxHandshake;
     logic packetReceived;
 
-    assign rxAcceptNewData = !writeFifoFull && !receiveDone;
+    //TODO on wait for handshake, the local buffer is used too
+
+    assign fillTransSuccess = receiveSuccess;
+    assign fillTransDone = transactionStarted && receiveDone;
+    assign EP_WRITE_EN = transactionStarted && rxHandshake; //TODO we neither want to store token packets nor PIDs here!
+    assign wdata = rxData;
+
+    logic rxBufFull;
+    assign rxBufFull = transactionStarted ? writeFifoFull : transStartPacketBufFull;
+    assign rxAcceptNewData = !receiveDone && !rxBufFull;
     assign rxHandshake = rxAcceptNewData && rxDataValid;
     assign packetReceived = rxHandshake && txIsLastByte;
 
+    usb_packet_pkg::PacketHeader packetHeader;
+    assign packetHeader = usb_packet_pkg::PacketHeader'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS]);
+    usb_packet_pkg::TokenPacket tokenPacketPart;
+    assign tokenPacketPart = usb_packet_pkg::TokenPacket'(transStartPacketBuf[usb_packet_pkg::TOKEN_PACKET_OFFSET +: usb_packet_pkg::TOKEN_PACKET_BITS]);
+
+    assign transStartPID = packetHeader.pid;
+
+    logic isTokenPID;
+    assign isTokenPID = packetHeader.pid[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
+
+    //TODO this flag should be state dependent! -> only activate if a new transaction is expected
+    assign gotTransStartPacket = !transactionStarted && receiveDone && receiveSuccess;
+
     always_ff @(posedge clk48) begin
         if (rxHandshake) begin
-            if (writeFifoFull || (txIsLastByte && !keepPacket)) begin
+            //TODO if writeFifoFull is set then rxHandshake will never be true!
+            //TODO we need to avoid missing the last byte signal -> we may not block & wait for fifo to become available!
+            if (rxBufFull || (txIsLastByte && !keepPacket)) begin
                 // treat full buffer as error -> not all data could be stored!
                 // Otherwise if this is the last byte and keepPacket is set low there was some transmission error -> receive failed!
                 receiveSuccess <= 1'b0;
@@ -348,6 +395,10 @@ Device Transaction State Machine Hierarchy Overview:
         end else if (receiveDone) begin
             receiveDone <= 1'b0;
             receiveSuccess <= 1'b1;
+
+            //TODO needs to consider PID & device state!
+            transactionStarted <= 1'b1; //TODO needs to be cleared too!
+            epSelect <= tokenPacketPart.endptSel;
         end
     end
 
@@ -355,10 +406,17 @@ Device Transaction State Machine Hierarchy Overview:
 //===============================TX Interface=========================================
 //====================================================================================
 
-//TODO
-//TODO
-//TODO
-//TODO
+//TODO output logic txReqSendPacket
+//TODO handshake phase is handled with the local buffer here!
+    assign txData = rdata;
+    assign txDataValid = readDataAvailable;
+    assign txIsLastByte = readIsLastPacketByte;
+    assign EP_READ_EN = txAcceptNewData;
+
+// Needs to wait for Handshake / Timeout!
+//TODO logic popTransDone;
+//TODO logic popTransSuccess;
+    assign popTransSuccess = !packetWaitTimeout &&;
 //TODO
 
 //====================================================================================
