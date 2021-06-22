@@ -3,14 +3,14 @@ module vector_buf#(
     parameter BUF_SIZE,
     parameter INITIALIZE_BUF_IDX = 0
 )(
-    input logic clk,
-    input logic rst,
+    input logic clk_i,
+    input logic rst_i,
 
-    input logic [DATA_WID-1:0] dataIn,
-    input logic dataValid,
+    input logic [DATA_WID-1:0] data_i,
+    input logic dataValid_i,
 
-    output logic [DATA_WID*BUF_SIZE - 1:0] buffer,
-    output logic isFull
+    output logic [DATA_WID*BUF_SIZE - 1:0] buffer_o,
+    output logic isFull_o
 );
 
     localparam IDX_WID = $clog2(BUF_SIZE + 1) + 1;
@@ -25,18 +25,18 @@ module vector_buf#(
         end
     endgenerate
 
-    assign isFull = bufIdx == BUF_SIZE;
-    assign nextBufIdx = isFull ? bufIdx : bufIdx + 1;
+    assign isFull_o = bufIdx == BUF_SIZE;
+    assign nextBufIdx = isFull_o ? bufIdx : bufIdx + 1;
 
     logic handshake;
-    assign handshake = !isFull && dataValid;
+    assign handshake = !isFull_o && dataValid_i;
 
-    always_ff @(posedge clk) begin
-        if (rst) begin
+    always_ff @(posedge clk_i) begin
+        if (rst_i) begin
             bufIdx <= {IDX_WID{1'b0}};
         end else if (handshake) begin
             bufIdx <= nextBufIdx;
-            buffer[bufIdx * DATA_WID +: DATA_WID] <= dataIn;
+            buffer_o[bufIdx * DATA_WID +: DATA_WID] <= data_i;
         end
     end
 

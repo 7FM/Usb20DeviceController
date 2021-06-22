@@ -25,22 +25,22 @@ module sim_usb_rx_connection (
     logic ACK_EOP;
 
     usb_serial_frontend uut_input(
-        .clk48(CLK),
+        .clk48_i(CLK),
         .pinP(USB_DP),
-        `MUTE_PIN_CONNECT_EMPTY(pinP_OUT),
+        `MUTE_PIN_CONNECT_EMPTY(pinP_o),
         .pinN(USB_DN),
-        `MUTE_PIN_CONNECT_EMPTY(pinN_OUT),
-        .OUT_EN(1'b0),
-        `MUTE_PIN_CONNECT_EMPTY(dataOutP),
-        `MUTE_PIN_CONNECT_EMPTY(dataOutN),
-        .dataInP(dataInP),
-        .dataInP_negedge(dataInP_negedge),
+        `MUTE_PIN_CONNECT_EMPTY(pinN_o),
+        .dataOutEn_i(1'b0),
+        `MUTE_PIN_CONNECT_EMPTY(dataOutP_i),
+        `MUTE_PIN_CONNECT_EMPTY(dataOutN_i),
+        .dataInP_o(dataInP),
+        .dataInP_negedge_o(dataInP_negedge),
         // Service signals
-        .isValidDPSignal(isValidDPSignal),
-        .eopDetected(eopDetected),
-        .ACK_EOP(ACK_EOP),
-        `MUTE_PIN_CONNECT_EMPTY(usbResetDetected),
-        `MUTE_PIN_CONNECT_EMPTY(ACK_USB_RST)
+        .isValidDPSignal_o(isValidDPSignal),
+        .eopDetected_o(eopDetected),
+        .ackEOP_i(ACK_EOP),
+        `MUTE_PIN_CONNECT_EMPTY(usbResetDetected_o),
+        `MUTE_PIN_CONNECT_EMPTY(ackUsbRst_i)
     );
 
     logic rxClkGenRST;
@@ -51,12 +51,12 @@ module sim_usb_rx_connection (
     logic rxClk12;
 
     DPPL #() asyncRxCLK (
-        .clk48(CLK),
-        .RST(rxClkGenRST),
-        .a(dataInP),
-        .b(dataInP_negedge),
-        .readCLK12(rxClk12),
-        `MUTE_PIN_CONNECT_EMPTY(DPPLGotSignal)
+        .clk48_i(CLK),
+        .rst_i(rxClkGenRST),
+        .dpPosEdgeSync_i(dataInP),
+        .dpNegEdgeSync_i(dataInP_negedge),
+        .readCLK12_o(rxClk12),
+        `MUTE_PIN_CONNECT_EMPTY(DPPLGotSignal_o)
     );
 
     logic rxCRCReset;
@@ -66,13 +66,13 @@ module sim_usb_rx_connection (
     logic isValidCRC;
 
     usb_crc crcEngine (
-        .clk12(rxClk12),
-        .RST(rxCRCReset),
-        .VALID(rxCRCInputValid),
-        .rxUseCRC16(rxUseCRC16),
-        .data(rxCRCInput),
-        .validCRC(isValidCRC),
-        `MUTE_PIN_CONNECT_EMPTY(crc)
+        .clk12_i(rxClk12),
+        .rst_i(rxCRCReset),
+        .valid_i(rxCRCInputValid),
+        .useCRC16_i(rxUseCRC16),
+        .data_i(rxCRCInput),
+        .validCRC_o(isValidCRC),
+        `MUTE_PIN_CONNECT_EMPTY(crc_o)
     );
 
     logic rxBitStuffRst;
@@ -81,45 +81,45 @@ module sim_usb_rx_connection (
     logic rxBitStuffDataIn;
 
     usb_bit_stuffing_wrapper bitStuffWrap (
-        .clk12(rxClk12),
-        .RST(rxBitStuffRst),
-        .isSendingPhase(1'b0),
-        .dataIn(rxBitStuffDataIn),
-        .ready_valid(rxNoBitStuffExpected),
-        `MUTE_PIN_CONNECT_EMPTY(dataOut),
-        .error(rxBitStuffError)
+        .clk12_i(rxClk12),
+        .rst_i(rxBitStuffRst),
+        .isSendingPhase_i(1'b0),
+        .data_i(rxBitStuffDataIn),
+        .ready_valid_o(rxNoBitStuffExpected),
+        `MUTE_PIN_CONNECT_EMPTY(data_o),
+        .error_o(rxBitStuffError)
     );
 
     usb_rx uut(
-        .clk48(CLK),
-        .receiveCLK(rxClk12),
-        .rxRST(rxRST),
+        .clk48_i(CLK),
+        .receiveCLK_i(rxClk12),
+        .rxRST_i(rxRST),
 
         // CRC interface
-        .rxCRCReset(rxCRCReset),
-        .rxUseCRC16(rxUseCRC16),
-        .rxCRCInput(rxCRCInput),
-        .rxCRCInputValid(rxCRCInputValid),
-        .isValidCRC(isValidCRC),
+        .rxCRCReset_o(rxCRCReset),
+        .rxUseCRC16_o(rxUseCRC16),
+        .rxCRCInput_o(rxCRCInput),
+        .rxCRCInputValid_o(rxCRCInputValid),
+        .isValidCRC_i(isValidCRC),
 
         // Bit stuff interface
-        .rxBitStuffRst(rxBitStuffRst),
-        .rxBitStuffData(rxBitStuffDataIn),
-        .expectNonBitStuffedInput(rxNoBitStuffExpected),
-        .rxBitStuffError(rxBitStuffError),
+        .rxBitStuffRst_o(rxBitStuffRst),
+        .rxBitStuffData_o(rxBitStuffDataIn),
+        .expectNonBitStuffedInput_i(rxNoBitStuffExpected),
+        .rxBitStuffError_i(rxBitStuffError),
 
         // Serial frontend interface
-        .dataInP(dataInP),
-        .isValidDPSignal(isValidDPSignal),
-        .eopDetected(eopDetected),
-        .ACK_EOP(ACK_EOP),
+        .dataInP_i(dataInP),
+        .isValidDPSignal_i(isValidDPSignal),
+        .eopDetected_i(eopDetected),
+        .ackEOP_o(ACK_EOP),
 
         // Data output interface: synced with clk48!
-        .rxAcceptNewData(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
-        .rxIsLastByte(rxIsLastByte), // indicates that the current byte at rxData is the last one
-        .rxDataValid(rxDataValid), // rxData contains valid & new data
-        .rxData(rxData), // data to be retrieved
-        .keepPacket(keepPacket) // should be tested when rxIsLastByte set to check whether an retrival error occurred
+        .rxAcceptNewData_i(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte
+        .rxIsLastByte_o(rxIsLastByte), // indicates that the current byte at rxData is the last one
+        .rxDataValid_o(rxDataValid), // rxData contains valid & new data
+        .rxData_o(rxData), // data to be retrieved
+        .keepPacket_o(keepPacket) // should be tested when rxIsLastByte set to check whether an retrival error occurred
     );
 endmodule
 `endif

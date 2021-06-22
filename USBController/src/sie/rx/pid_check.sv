@@ -1,9 +1,9 @@
 module pid_check(
-    input logic [3:0] pidP,
-    input logic [3:0] pidN,
-    output logic isValid
+    input logic [3:0] pidP_i,
+    input logic [3:0] pidN_i,
+    output logic isValid_o
 );
 
-    assign isValid = &(pidP ^ pidN);
+    assign isValid_o = &(pidP_i ^ pidN_i);
 
 endmodule

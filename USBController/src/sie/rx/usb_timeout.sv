@@ -1,9 +1,9 @@
 module usb_timeout(
-    input logic clk48,
-    input logic clk12, // Note that this clock has to run all the time, no matter the internal state of the DPPL
-    input logic RST,
-    input logic rxGotSignal,
-    output logic rxTimeout
+    input logic clk48_i,
+    input logic clk12_i, // Note that this clock has to run all the time, no matter the internal state of the DPPL
+    input logic rst_i,
+    input logic rxGotSignal_i,
+    output logic rxTimeout_o
 );
 
     /* TIMEOUT REQUIREMENTS:
@@ -23,9 +23,9 @@ module usb_timeout(
 
 generate
     if (TIMEOUT_TICKS == 2**TIMEOUT_CNT_WID) begin
-        assign rxTimeout = &timeoutCnt;
+        assign rxTimeout_o = &timeoutCnt;
     end else begin
-        assign rxTimeout = timeoutCnt == TIMEOUT_TICKS - 1;
+        assign rxTimeout_o = timeoutCnt == TIMEOUT_TICKS - 1;
     end
 endgenerate
 
@@ -36,17 +36,17 @@ endgenerate
         timeoutCnt = {TIMEOUT_CNT_WID{1'b0}};
     end
 
-    always_ff @(posedge clk48) begin
-        //gotSignalSync <= RST ? 1'b0 : |timeoutCnt && (gotSignalSync || rxGotSignal);
+    always_ff @(posedge clk48_i) begin
+        //gotSignalSync <= rst_i ? 1'b0 : |timeoutCnt && (gotSignalSync || rxGotSignal_i);
         // Might be very bad if we miss this signal!
-        gotSignalSync <= RST ? 1'b0 : (gotSignalSync || rxGotSignal);
+        gotSignalSync <= rst_i ? 1'b0 : (gotSignalSync || rxGotSignal_i);
     end
 
-    always_ff @(posedge clk12) begin
-        if (RST || gotSignalSync) begin
+    always_ff @(posedge clk12_i) begin
+        if (rst_i || gotSignalSync) begin
             timeoutCnt <= {TIMEOUT_CNT_WID{1'b0}};
         end else begin
-            timeoutCnt <= rxTimeout ? timeoutCnt : timeoutCntAdd1;
+            timeoutCnt <= rxTimeout_o ? timeoutCnt : timeoutCntAdd1;
         end
     end
 

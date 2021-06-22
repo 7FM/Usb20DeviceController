@@ -1,15 +1,15 @@
 // Implementation of the proposed DPPL FSM in the USB whitepaper: https://www.usb.org/sites/default/files/siewp.pdf
 module DPPL(
-    input logic clk48,
-    input logic RST,
+    input logic clk48_i,
+    input logic rst_i,
     // Ideally a signal rcv is given from a comparator.
-    // This signal rcv is then synced at posedge (for input a) and synced at negedge (for input b) with 48 MHz
+    // This signal rcv is then synced at posedge (for input dpPosEdgeSync_i) and synced at negedge (for input dpNegEdgeSync_i) with 48 MHz
     // (and double flopped to reduce the risc for metastability)
     // However, not all FPGAs have a comparator and in such cases rcv is simply the USB_DP+ signal
-    input logic a,
-    input logic b,
-    output logic readCLK12,
-    output logic DPPLGotSignal
+    input logic dpPosEdgeSync_i,
+    input logic dpNegEdgeSync_i,
+    output logic readCLK12_o,
+    output logic DPPLGotSignal_o
     // TODO is this always true or better read input? also which data would this be? J/K or already decoded NRZI???
     //, output logic data
 );
@@ -36,16 +36,16 @@ module DPPL(
 
     DPPL_FSM fsmState, nextFsmState, fsmStateNextGrayCode;
 
-    assign readCLK12 = fsmState[1];
+    assign readCLK12_o = fsmState[1];
     //assign data = fsmState[2];
-    assign DPPLGotSignal = fsmState == STATE_D;
+    assign DPPLGotSignal_o = fsmState == STATE_D;
 
     initial begin
         fsmState = STATE_C;
     end
 
-    always_ff @(posedge clk48) begin
-        if (RST) begin
+    always_ff @(posedge clk48_i) begin
+        if (rst_i) begin
             fsmState <= STATE_C;
         end else begin
             fsmState <= nextFsmState;
@@ -60,12 +60,12 @@ module DPPL(
         unique casez (fsmState)
             // Init states
             STATE_C: begin 
-                if (fsmState[0] ^ b) begin
+                if (fsmState[0] ^ dpNegEdgeSync_i) begin
                     nextFsmState = fsmState;
                 end
             end
             STATE_D: begin 
-                if (fsmState[0] ^ b) begin
+                if (fsmState[0] ^ dpNegEdgeSync_i) begin
                     nextFsmState = fsmState;
                 end else begin
                     nextFsmState = {1'b0, fsmState[2:0]};
@@ -78,7 +78,7 @@ module DPPL(
             end
 
             STATE_7, STATE_3: begin
-                if (a ^ fsmState[2]) begin
+                if (dpPosEdgeSync_i ^ fsmState[2]) begin
                     // if in state 7: Get to state B
                     // if in state 3: Get to state F
                     // both lower bits are 1 -> order does not matter but maybe the synthesis can use this to combine paths for STATE 7,3 & 6,2
@@ -86,14 +86,14 @@ module DPPL(
                 end
             end
             STATE_6, STATE_2: begin
-                if (b ^ fsmState[2]) begin
+                if (dpNegEdgeSync_i ^ fsmState[2]) begin
                     // if in state 6: Get to state 1
                     // if in state 2: Get to state 5
                     nextFsmState = {fsmState[3], ~fsmState[3], fsmState[0], fsmState[1]};
                 end
             end
             STATE_4, STATE_0: begin
-                if (b ^ fsmState[2]) begin
+                if (dpNegEdgeSync_i ^ fsmState[2]) begin
                     // if in state 4: Get to state 1
                     // if in state 0: Get to state 5
                     nextFsmState[2] = ~fsmState[2];

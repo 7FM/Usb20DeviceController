@@ -3,36 +3,36 @@
 `include "usb_packet_pkg.sv"
 
 module usb_rx#()(
-    input logic clk48,
-    input logic receiveCLK,
-    input logic rxRST,
+    input logic clk48_i,
+    input logic receiveCLK_i,
+    input logic rxRST_i,
 
     // CRC interface
-    output logic rxCRCReset,
-    output logic rxUseCRC16,
-    output logic rxCRCInput,
-    output logic rxCRCInputValid,
-    input logic isValidCRC,
+    output logic rxCRCReset_o,
+    output logic rxUseCRC16_o,
+    output logic rxCRCInput_o,
+    output logic rxCRCInputValid_o,
+    input logic isValidCRC_i,
 
     // Bit stuffing interface
-    output logic rxBitStuffRst,
-    output logic rxBitStuffData,
-    input logic expectNonBitStuffedInput,
-    input logic rxBitStuffError,
+    output logic rxBitStuffRst_o,
+    output logic rxBitStuffData_o,
+    input logic expectNonBitStuffedInput_i,
+    input logic rxBitStuffError_i,
 
     // Serial frontend input
-    input logic dataInP,
-    input logic isValidDPSignal,
-    input logic eopDetected,
-    output logic ACK_EOP,
+    input logic dataInP_i,
+    input logic isValidDPSignal_i,
+    input logic eopDetected_i,
+    output logic ackEOP_o,
 
-    // Data output interface: synced with clk48!
-    input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
-    output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
-    output logic rxDataValid, // rxData contains valid & new data
-    output logic [7:0] rxData, // data to be retrieved
+    // Data output interface: synced with clk48_i!
+    input logic rxAcceptNewData_i, // Backend indicates that it is able to retrieve the next data byte
+    output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
+    output logic rxDataValid_o, // rxData_o contains valid & new data
+    output logic [7:0] rxData_o, // data to be retrieved
 
-    output logic keepPacket // should be tested when rxIsLastByte set to check whether an retrival error occurred
+    output logic keepPacket_o // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
 );
 
     typedef enum logic [1:0] {
@@ -57,9 +57,9 @@ module usb_rx#()(
     logic [7:0] inputBuf;
     logic inputBufFull;
 
-    assign rxBitStuffData = nrziDecodedInput;
+    assign rxBitStuffData_o = nrziDecodedInput;
     //TODO is a RST even needed? sync signal should automagically cause the required resets
-    assign rxBitStuffRst = 1'b0;
+    assign rxBitStuffRst_o = 1'b0;
 
 //=========================================================================================
 //=====================================Interface Start=====================================
@@ -73,34 +73,34 @@ module usb_rx#()(
     logic [7:0] next_rxData;
     logic [3:0] isLastShiftReg, next_isLastShiftReg;
     logic [3:0] isDataShiftReg, next_isDataShiftReg;
-    assign rxIsLastByte = isLastShiftReg[3];
+    assign rxIsLastByte_o = isLastShiftReg[3];
 
     logic dataNotYetRead, next_dataNotYetRead;
 
     logic prev_inputBufFull;
-    logic prev_receiveCLK;
-    always_ff @(posedge clk48) begin
+    logic prev_receiveCLK_i;
+    always_ff @(posedge clk48_i) begin
         prev_inputBufFull <= inputBufFull;
-        prev_receiveCLK <= receiveCLK;
+        prev_receiveCLK_i <= receiveCLK_i;
     end
 
     logic rxDataSwapPhase, next_rxDataSwapPhase;
 
-    assign rxDataValid = dataNotYetRead && ~rxDataSwapPhase;
+    assign rxDataValid_o = dataNotYetRead && ~rxDataSwapPhase;
 
     logic byteWasNotReceived, next_byteWasNotReceived;
-    assign keepPacket = ~(dropPacket || byteWasNotReceived);
+    assign keepPacket_o = ~(dropPacket || byteWasNotReceived);
 
     always_comb begin
         next_dataNotYetRead = dataNotYetRead;
         next_byteWasNotReceived = byteWasNotReceived;
-        next_rxDataSwapPhase = rxDataSwapPhase || (~prev_receiveCLK && ~receiveCLK && prev_inputBufFull);
+        next_rxDataSwapPhase = rxDataSwapPhase || (~prev_receiveCLK_i && ~receiveCLK_i && prev_inputBufFull);
 
-        if (rxDataValid && rxAcceptNewData) begin
+        if (rxDataValid_o && rxAcceptNewData_i) begin
             // If handshake condition is met -> data was read
             next_dataNotYetRead = 1'b0;
         end if (prev_inputBufFull && ~inputBufFull) begin
-            // Only execute this on negedge of inputBufFull (synchronized via clk48)
+            // Only execute this on negedge of inputBufFull (synchronized via clk48_i)
             next_rxDataSwapPhase = 1'b0;
             if (isDataShiftReg[3]) begin
                 // New data is available
@@ -117,7 +117,7 @@ module usb_rx#()(
     initial begin
         byteWasNotReceived = 1'b0;
         prev_inputBufFull = 1'b0;
-        prev_receiveCLK = 1'b0;
+        prev_receiveCLK_i = 1'b0;
         rxDataSwapPhase = 1'b0;
         dataNotYetRead = 1'b0;
         isLastShiftReg = 4'b0;
@@ -125,8 +125,8 @@ module usb_rx#()(
     end
 
     // Use faster clock domain for the handshaking logic
-    always_ff @(posedge clk48) begin
-        if (rxRST) begin
+    always_ff @(posedge clk48_i) begin
+        if (rxRST_i) begin
             dataNotYetRead <= 1'b0;
             byteWasNotReceived <= 1'b0;
             rxDataSwapPhase <= 1'b0;
@@ -149,7 +149,7 @@ module usb_rx#()(
     logic rxInputShiftRegReset;
 
     logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
-    assign ACK_EOP = rxEopDetectorReset;
+    assign ackEOP_o = rxEopDetectorReset;
     logic rxNRZiDecodeReset;
     logic byteGotSignalError;
 
@@ -171,12 +171,12 @@ module usb_rx#()(
     logic next_dropPacket, next_lastByteValidCRC, next_byteGotSignalError;
 
     logic signalError;
-    assign signalError = gotInvalidDPSignal || rxBitStuffError;
+    assign signalError = gotInvalidDPSignal || rxBitStuffError_i;
     assign next_byteGotSignalError = byteGotSignalError || signalError;
 
     logic defaultNextDropPacket;
     // Variant which CAN detect missing bit stuffing after CRC edge case: even if this was the last byte, the following bit still needs to statisfy the bit stuffing condition
-    assign defaultNextDropPacket = dropPacket || (inputBufFull && (byteGotSignalError || rxBitStuffError));
+    assign defaultNextDropPacket = dropPacket || (inputBufFull && (byteGotSignalError || rxBitStuffError_i));
     // Variant which can NOT detect missing bit stuffing after CRC edge case
     //assign defaultNextDropPacket = dropPacket || (inputBufFull && byteGotSignalError);
     assign rxStateAdd1 = rxState + 1;
@@ -185,7 +185,7 @@ module usb_rx#()(
         rxInputShiftRegReset = 1'b0;
         rxNRZiDecodeReset = 1'b0;
         rxEopDetectorReset = 1'b1; // by default reset EOP detection
-        rxCRCReset = 1'b0;
+        rxCRCReset_o = 1'b0;
 
         next_rxState = rxState;
         nextNeedCRC16Handling = needCRC16Handling;
@@ -196,7 +196,7 @@ module usb_rx#()(
         next_inputBufRescue = inputBufFull ? inputBuf : inputBufRescue;
         next_inputBufDelay1 = inputBufFull ? inputBufRescue : inputBufDelay1;
         next_inputBufDelay2 = inputBufFull ? inputBufDelay1 : inputBufDelay2;
-        next_rxData = inputBufFull ? inputBufDelay2 : rxData;
+        next_rxData = inputBufFull ? inputBufDelay2 : rxData_o;
         next_isLastShiftReg = inputBufFull ? {isLastShiftReg[2:0], 1'b0} : isLastShiftReg;
         next_isDataShiftReg = inputBufFull ? {isDataShiftReg[2:0], 1'b0} : isDataShiftReg;
 
@@ -230,20 +230,20 @@ module usb_rx#()(
                     next_isDataShiftReg[0] = 1'b1;
                 end else begin
                     // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
-                    rxCRCReset = 1'b1;
-                    // As during CRC reset the rxUseCRC16 flag is evaluated we can use it for our purposes too
-                    nextNeedCRC16Handling = rxUseCRC16;
+                    rxCRCReset_o = 1'b1;
+                    // As during CRC reset the rxUseCRC16_o flag is evaluated we can use it for our purposes too
+                    nextNeedCRC16Handling = rxUseCRC16_o;
                 end
             end
             RX_WAIT_FOR_EOP: begin
                 // After Sync was detected, we always need valid bit stuffing!
                 // Sanity check: does the CRC match?
-                next_dropPacket = defaultNextDropPacket || (eopDetected && !lastByteValidCRC);
+                next_dropPacket = defaultNextDropPacket || (eopDetected_i && !lastByteValidCRC);
 
                 // We need the EOP detection -> clear RST flag
                 rxEopDetectorReset = 1'b0;
 
-                if (eopDetected) begin
+                if (eopDetected_i) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
                     if (needCRC16Handling) begin
@@ -257,7 +257,7 @@ module usb_rx#()(
                         next_isLastShiftReg[0] = 1'b1;
                     end
                 end else if (inputBufFull) begin
-                    next_lastByteValidCRC = isValidCRC;
+                    next_lastByteValidCRC = isValidCRC_i;
 
                     // This byte is data!
                     next_isDataShiftReg[0] = 1'b1;
@@ -279,30 +279,30 @@ module usb_rx#()(
     end
 
     // State updates
-    always_ff @(posedge receiveCLK) begin
+    always_ff @(posedge receiveCLK_i) begin
         rxState <= next_rxState;
         needCRC16Handling <= nextNeedCRC16Handling;
         dropPacket <= next_dropPacket;
         lastByteValidCRC <= next_lastByteValidCRC;
         // After each received byte reset the byte signal error state
         byteGotSignalError <= inputBufFull ? signalError : next_byteGotSignalError;
-        // We need to delay isValidDPSignal because our nrzi decoder introduces a delay to the decoded signal too
-        gotInvalidDPSignal <= !isValidDPSignal;
+        // We need to delay isValidDPSignal_i because our nrzi decoder introduces a delay to the decoded signal too
+        gotInvalidDPSignal <= !isValidDPSignal_i;
 
         inputBufRescue <= next_inputBufRescue;
         inputBufDelay1 <= next_inputBufDelay1;
         inputBufDelay2 <= next_inputBufDelay2;
-        rxData <= next_rxData;
+        rxData_o <= next_rxData;
         isLastShiftReg <= next_isLastShiftReg;
         isDataShiftReg <= next_isDataShiftReg;
     end
 
     // Stage 0
     nrzi_decoder nrziDecoder(
-        .clk12(receiveCLK),
-        .RST(rxNRZiDecodeReset),
-        .data(dataInP),
-        .OUT(nrziDecodedInput)
+        .clk12_i(receiveCLK_i),
+        .rst_i(rxNRZiDecodeReset),
+        .data_i(dataInP_i),
+        .data_o(nrziDecodedInput)
     );
 
     // Stage 1
@@ -310,32 +310,32 @@ module usb_rx#()(
     sync_detect #(
         .SYNC_VALUE(sie_defs_pkg::SYNC_VALUE)
     ) packetBeginDetector(
-        .receivedData(inputBuf[7:4]),
-        .SYNC(_syncDetect)
+        .receivedData_i(inputBuf[7:4]),
+        .syncDetect_o(_syncDetect)
     );
     assign syncDetect = _syncDetect /*&& rxState == RX_WAIT_FOR_SYNC*/;
 
     input_shift_reg #() inputDeserializer(
-        .clk12(receiveCLK),
-        .RST(rxInputShiftRegReset),
-        .EN(expectNonBitStuffedInput),
-        .IN(nrziDecodedInput),
-        .dataOut(inputBuf),
-        .bufferFull(inputBufFull)
+        .clk12_i(receiveCLK_i),
+        .rst_i(rxInputShiftRegReset),
+        .en_i(expectNonBitStuffedInput_i),
+        .dataBit_i(nrziDecodedInput),
+        .data_o(inputBuf),
+        .bufferFull_o(inputBufFull)
     );
 
     pid_check #() pidChecker (
         // Order does not matter as the check is actually commutative
-        .pidP(inputBuf[7:4]),
-        .pidN(inputBuf[3:0]),
-        .isValid(pidValid)
+        .pidP_i(inputBuf[7:4]),
+        .pidN_i(inputBuf[3:0]),
+        .isValid_o(pidValid)
     );
 
     // Needs thight timing -> use input buffer directly
     // Only Data Packets use CRC16!
     // Packet types are identifyable by 2 lsb bits, which are at this stage not yet at the lsb location
-    assign rxUseCRC16 = inputBuf[2:1] == usb_packet_pkg::DATA_PACKET_MASK_VAL;
-    assign rxCRCInputValid = expectNonBitStuffedInput;
-    assign rxCRCInput = nrziDecodedInput;
+    assign rxUseCRC16_o = inputBuf[2:1] == usb_packet_pkg::DATA_PACKET_MASK_VAL;
+    assign rxCRCInputValid_o = expectNonBitStuffedInput_i;
+    assign rxCRCInput_o = nrziDecodedInput;
 
 endmodule

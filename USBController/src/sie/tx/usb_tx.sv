@@ -3,35 +3,35 @@
 `include "usb_packet_pkg.sv"
 
 module usb_tx#()(
-    input logic clk48,
-    input logic transmitCLK,
+    input logic clk48_i,
+    input logic transmitCLK_i,
 
     // CRC interface
-    output logic txCRCReset,
-    output logic txUseCRC16,
-    output logic txCRCInput,
-    output logic txCRCInputValid,
-    input logic [15:0] reversedCRC16,
+    output logic txCRCReset_o,
+    output logic txUseCRC16_o,
+    output logic txCRCInput_o,
+    output logic txCRCInputValid_o,
+    input logic [15:0] reversedCRC16_i,
 
     // Bit stuffing interface
-    output logic txBitStuffRst,
-    output logic txBitStuffDataIn,
-    input logic txBitStuffDataOut,
-    input logic txNoBitStuffingNeeded,
+    output logic txBitStuffRst_o,
+    output logic txBitStuffDataIn_o,
+    input logic txBitStuffDataOut_i,
+    input logic txNoBitStuffingNeeded_i,
 
     // interface inputs
-    // Data input interface: synced with clk48!
-    input logic txReqSendPacket, // Trigger sending a new packet
+    // Data input interface: synced with clk48_i!
+    input logic txReqSendPacket_i, // Trigger sending a new packet
 
-    output logic txAcceptNewData, // indicates that the send buffer can be filled
-    input logic txIsLastByte, // Indicates that the applied txData is the last byte to send
-    input logic txDataValid, // Indicates that txData contains valid & new data
-    input logic [7:0] txData, // Data to be send: First byte should be PID, followed by the user data bytes
+    output logic txAcceptNewData_o, // indicates that the send buffer can be filled
+    input logic txIsLastByte_i, // Indicates that the applied txData_i is the last byte to send
+    input logic txDataValid_i, // Indicates that txData_i contains valid & new data
+    input logic [7:0] txData_i, // Data to be send: First byte should be PID, followed by the user data bytes
 
     // Serial Frontend
-    output logic sending, // indicates that currently data is transmitted
-    output logic dataOutN_reg,
-    output logic dataOutP_reg
+    output logic sending_o, // indicates that currently data is transmitted
+    output logic dataOutN_reg_o,
+    output logic dataOutP_reg_o
 );
 
     typedef enum logic [3:0] {
@@ -55,10 +55,10 @@ module usb_tx#()(
 
 
     initial begin
-        dataOutP_reg = 1'b1;
-        dataOutN_reg = 1'b0;
+        dataOutP_reg_o = 1'b1;
+        dataOutN_reg_o = 1'b0;
         txState = TX_WAIT_SEND_REQ;
-        sending = 1'b0;
+        sending_o = 1'b0;
         sendingLastDataByte = 1'b0;
     end
 
@@ -80,14 +80,14 @@ module usb_tx#()(
         reqSendPacket = 1'b0;
     end
 
-    assign txAcceptNewData = ~txHasDataFetched;
+    assign txAcceptNewData_o = ~txHasDataFetched;
 
-    always_ff @(posedge clk48) begin
+    always_ff @(posedge clk48_i) begin
         prev_txReqNewData <= txReqNewData;
         // If reqSendPacket was set, wait until the state machine in the slower domain has received the signal
         // and changed the state -> we can clear the flag
         // else if reqSendPacket is not set, check the interface request line
-        reqSendPacket <= reqSendPacket ? txState == TX_WAIT_SEND_REQ : txReqSendPacket;
+        reqSendPacket <= reqSendPacket ? txState == TX_WAIT_SEND_REQ : txReqSendPacket_i;
     end
 
     always_comb begin
@@ -99,12 +99,12 @@ module usb_tx#()(
         // BUT: this bit may not be cleared if we are waiting for a new write request! and do not clear when the last byte was send -> wait for packet to end before starting with new data
         // Else if we do not have data fetched but the new data is valid -> handshake succeeds -> set fetched status
         // Avoid mutliple clears by only clearing on negedge of txReqNewData
-        next_txHasDataFetched = txHasDataFetched ? txFetchedDataIsLast || ~(txState > TX_WAIT_SEND_REQ && prev_txReqNewData && ~txReqNewData) : txDataValid;
+        next_txHasDataFetched = txHasDataFetched ? txFetchedDataIsLast || ~(txState > TX_WAIT_SEND_REQ && prev_txReqNewData && ~txReqNewData) : txDataValid_i;
 
         // Data handshake condition
-        if (txAcceptNewData && txDataValid) begin
-            next_txDataBufNewByte = txData;
-            next_txFetchedDataIsLast = txIsLastByte;
+        if (txAcceptNewData_o && txDataValid_i) begin
+            next_txDataBufNewByte = txData_i;
+            next_txFetchedDataIsLast = txIsLastByte_i;
         end else if (sendingLastDataByte) begin
             // During this state the final byte will be sent -> hence we get our final crc value
             next_txDataBufNewByte = crc16[15:8];
@@ -115,7 +115,7 @@ module usb_tx#()(
         end
     end
 
-    always_ff @(posedge clk48) begin
+    always_ff @(posedge clk48_i) begin
         // Data interface
         txHasDataFetched <= next_txHasDataFetched;
         txFetchedDataIsLast <= next_txFetchedDataIsLast;
@@ -131,8 +131,8 @@ module usb_tx#()(
 
     logic [15:0] crc16;
     logic [4:0] crc5;
-    assign crc5 = {reversedCRC16[0], reversedCRC16[1], reversedCRC16[2], reversedCRC16[3], reversedCRC16[4]};
-    assign crc16 = {crc5, reversedCRC16[5], reversedCRC16[6], reversedCRC16[7], reversedCRC16[8], reversedCRC16[9], reversedCRC16[10], reversedCRC16[11], reversedCRC16[12], reversedCRC16[13], reversedCRC16[14], reversedCRC16[15]};
+    assign crc5 = {reversedCRC16_i[0], reversedCRC16_i[1], reversedCRC16_i[2], reversedCRC16_i[3], reversedCRC16_i[4]};
+    assign crc16 = {crc5, reversedCRC16_i[5], reversedCRC16_i[6], reversedCRC16_i[7], reversedCRC16_i[8], reversedCRC16_i[9], reversedCRC16_i[10], reversedCRC16_i[11], reversedCRC16_i[12], reversedCRC16_i[13], reversedCRC16_i[14], reversedCRC16_i[15]};
 
     //TODO we could make these flags register too and remove txPID -> saves 2 FFs
     logic useCRC16;
@@ -240,7 +240,7 @@ module usb_tx#()(
             TX_EOP_BITSTUFFING_EDGECASE: begin
                 // Ensure that the last bit is sent as expected
 
-                if (txNoBitStuffingNeeded) begin
+                if (txNoBitStuffingNeeded_i) begin
                     // no bit stuffing -> we can start sending EOP signal next!
                     next_txState = TX_SEND_EOP_1;
                 end else begin
@@ -266,7 +266,7 @@ module usb_tx#()(
     end
 
     // Register updates
-    always_ff @(posedge transmitCLK) begin
+    always_ff @(posedge transmitCLK_i) begin
         // State
         txState <= next_txState;
         txPID <= next_txPID;
@@ -274,10 +274,10 @@ module usb_tx#()(
 
         // Output data
         // due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
-        // As this is only one stage, we can easily account for the latency by making the 'sending' signal a register instead of a wire
-        sending <= txState > TX_WAIT_SEND_REQ && txState < TX_RST_REGS;
-        dataOutP_reg <= txDataOut;
-        dataOutN_reg <= txSendSingleEnded ~^ txDataOut;
+        // As this is only one stage, we can easily account for the latency by making the 'sending_o' signal a register instead of a wire
+        sending_o <= txState > TX_WAIT_SEND_REQ && txState < TX_RST_REGS;
+        dataOutP_reg_o <= txDataOut;
+        dataOutN_reg_o <= txSendSingleEnded ~^ txDataOut;
     end
 
     //=======================================================
@@ -286,33 +286,33 @@ module usb_tx#()(
 
     logic txSerializerOut;
     output_shift_reg #() outputSerializer(
-        .clk12(transmitCLK),
-        .EN(txNoBitStuffingNeeded),
-        .NEW_IN(txGotNewData),
-        .dataIn(txDataSerializerIn),
-        .OUT(txSerializerOut),
-        .bufferEmpty(txReqNewData)
+        .clk12_i(transmitCLK_i),
+        .en_i(txNoBitStuffingNeeded_i),
+        .dataValid_i(txGotNewData),
+        .data_i(txDataSerializerIn),
+        .dataBit_o(txSerializerOut),
+        .bufferEmpty_o(txReqNewData)
     );
 
     // CRC signals
-    assign txCRCReset = txState == TX_SEND_PID;
-    assign txCRCInputValid = txNoBitStuffingNeeded;
-    assign txCRCInput = txSerializerOut;
-    assign txUseCRC16 = useCRC16;
+    assign txCRCReset_o = txState == TX_SEND_PID;
+    assign txCRCInputValid_o = txNoBitStuffingNeeded_i;
+    assign txCRCInput_o = txSerializerOut;
+    assign txUseCRC16_o = useCRC16;
 
     // Bit stuffing signals
-    assign txBitStuffRst = txRstModules;
-    assign txBitStuffDataIn = txSerializerOut;
+    assign txBitStuffRst_o = txRstModules;
+    assign txBitStuffDataIn_o = txSerializerOut;
 
     //=======================================================
     //======================= Stage 1 =======================
     //=======================================================
 
     nrzi_encoder nrziEncoder(
-        .clk12(transmitCLK),
-        .RST(txRstModules),
-        .data(txBitStuffDataOut),
-        .OUT(txNRZiEncodedData)
+        .clk12_i(transmitCLK_i),
+        .rst_i(txRstModules),
+        .data_i(txBitStuffDataOut_i),
+        .data_o(txNRZiEncodedData)
     );
 
 endmodule

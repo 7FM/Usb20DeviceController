@@ -3,9 +3,9 @@ module vector_mux#(
     parameter DATA_WID,
     parameter IDX=0
 )(
-    input logic [$clog2(ELEMENTS):0] dataSelect,
-    input logic [(DATA_WID * ELEMENTS) - 1:0] dataVec,
-    output logic [DATA_WID - 1:0] data
+    input logic [$clog2(ELEMENTS):0] dataSelect_i,
+    input logic [(DATA_WID * ELEMENTS) - 1:0] dataVec_i,
+    output logic [DATA_WID - 1:0] data_o
 );
 
     localparam SEL_WID = $clog2(ELEMENTS);
@@ -19,14 +19,14 @@ generate
             .DATA_WID(DATA_WID),
             .IDX(IDX + 1)
         ) nextVectorMux (
-            .dataSelect(dataSelect),
-            .dataVec(dataVec),
-            .data(data_tmp)
+            .dataSelect_i(dataSelect_i),
+            .dataVec_i(dataVec_i),
+            .data_o(data_tmp)
         );
 
-        assign data = data_tmp | ({DATA_WID{dataSelect == IDX[SEL_WID:0]}} & dataVec[IDX*DATA_WID +: DATA_WID]);
+        assign data_o = data_tmp | ({DATA_WID{dataSelect_i == IDX[SEL_WID:0]}} & dataVec_i[IDX*DATA_WID +: DATA_WID]);
     end else begin
-        assign data = {DATA_WID{dataSelect == IDX[SEL_WID:0]}} & dataVec[IDX*DATA_WID +: DATA_WID];
+        assign data_o = {DATA_WID{dataSelect_i == IDX[SEL_WID:0]}} & dataVec_i[IDX*DATA_WID +: DATA_WID];
     end
 
 endgenerate

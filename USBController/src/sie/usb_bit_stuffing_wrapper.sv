@@ -1,21 +1,21 @@
 module usb_bit_stuffing_wrapper (
-    input logic clk12,
-    input logic RST,
-    input logic isSendingPhase,
-    input logic dataIn,
-    output logic ready_valid,
-    output logic dataOut,
-    output logic error
+    input logic clk12_i,
+    input logic rst_i,
+    input logic isSendingPhase_i,
+    input logic data_i,
+    output logic ready_valid_o,
+    output logic data_o,
+    output logic error_o
 );
 
     usb_bit_unstuff unstuffer(
-        .clk12(clk12),
-        .RST(RST),
-        .valid(ready_valid),
-        .data(isSendingPhase && !ready_valid ? 1'b0 : dataIn),
-        .error(error)
+        .clk12_i(clk12_i),
+        .rst_i(rst_i),
+        .valid_o(ready_valid_o),
+        .data_i(isSendingPhase_i && !ready_valid_o ? 1'b0 : data_i),
+        .error_o(error_o)
     );
 
-    assign dataOut = ready_valid ? dataIn : 1'b0;
+    assign data_o = ready_valid_o ? data_i : 1'b0;
 
 endmodule

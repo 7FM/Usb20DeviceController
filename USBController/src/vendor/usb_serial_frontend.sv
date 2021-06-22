@@ -1,32 +1,32 @@
 `include "config_pkg.sv"
 
 module usb_serial_frontend(
-    input logic clk48,
+    input logic clk48_i,
 
     // Pins
 `ifdef RUN_SIM
     input logic pinP,
-    output logic pinP_OUT,
+    output logic pinP_o,
     input logic pinN,
-    output logic pinN_OUT,
+    output logic pinN_o,
 `else
     inout logic pinP,
     inout logic pinN,
 `endif
 
     // Data signals
-    input logic OUT_EN,
-    input logic dataOutP,
-    input logic dataOutN,
-    output logic dataInP,
-    output logic dataInP_negedge,
+    input logic dataOutEn_i,
+    input logic dataOutP_i,
+    input logic dataOutN_i,
+    output logic dataInP_o,
+    output logic dataInP_negedge_o,
 
     // Service signals
-    output logic isValidDPSignal,
-    output logic eopDetected,
-    input logic ACK_EOP,
-    output logic usbResetDetected,
-    input logic ACK_USB_RST
+    output logic isValidDPSignal_o,
+    output logic eopDetected_o,
+    input logic ackEOP_i,
+    output logic usbResetDetected_o,
+    input logic ackUsbRst_i
 );
 
     /*
@@ -44,16 +44,16 @@ module usb_serial_frontend(
 
     // Service signals
     logic dataInN;
-    assign isValidDPSignal = dataInN ^ dataInP;
+    assign isValidDPSignal_o = dataInN ^ dataInP_o;
 
     eop_reset_detect eopAndResetDetect(
-        .clk48(clk48),
-        .dataInP(dataInP),
-        .dataInN(dataInN),
-        .eop(eopDetected),
-        .ACK_EOP(ACK_EOP),
-        .usb_reset(usbResetDetected),
-        .ACK_USB_RST(ACK_USB_RST)
+        .clk48_i(clk48_i),
+        .dataInP_i(dataInP_o),
+        .dataInN_i(dataInN),
+        .eopDetect_o(eopDetected_o),
+        .ackEOP_i(ackEOP_i),
+        .usbRst_o(usbResetDetected_o),
+        .ackUsbRst_i(ackUsbRst_i)
     );
 
     // Input & output logic
@@ -91,16 +91,16 @@ module usb_serial_frontend(
         .PIN_TYPE(6'b1010_00) // tristatable output and registered input
 `endif
     ) buffer1(
-        .OUTPUT_ENABLE(OUT_EN),
+        .OUTPUT_ENABLE(dataOutEn_i),
         .PACKAGE_PIN(pinP),
         .D_IN_0(inP),
 `ifdef DP_REGISTERED_INPUT
         .D_IN_1(inP_negedge), // Also use negedge synced input register
 `endif
-        .D_OUT_0(dataOutP)
+        .D_OUT_0(dataOutP_i)
 `ifdef DP_REGISTERED_INPUT
         ,.CLOCK_ENABLE(1'b1),
-        .INPUT_CLK(clk48)
+        .INPUT_CLK(clk48_i)
 `endif
     );
 
@@ -111,39 +111,39 @@ module usb_serial_frontend(
         .PIN_TYPE(6'b1010_00) // tristatable output and registered input
 `endif
     ) buffer2(
-        .OUTPUT_ENABLE(OUT_EN),
+        .OUTPUT_ENABLE(dataOutEn_i),
         .PACKAGE_PIN(pinN),
         .D_IN_0(inN),
-        .D_OUT_0(dataOutN)
+        .D_OUT_0(dataOutN_i)
 `ifdef DP_REGISTERED_INPUT
         ,.CLOCK_ENABLE(1'b1),
-        .INPUT_CLK(clk48)
+        .INPUT_CLK(clk48_i)
 `endif
     );
 `endif
 `else // Fallback CASE
     // Tristate output logic
 `ifdef RUN_SIM
-    assign pinP_OUT = OUT_EN ? dataOutP : 1'bz;
-    assign pinN_OUT = OUT_EN ? dataOutN : 1'bz;
+    assign pinP_o = dataOutEn_i ? dataOutP_i : 1'bz;
+    assign pinN_o = dataOutEn_i ? dataOutN_i : 1'bz;
 `else
-    assign pinP = OUT_EN ? dataOutP : 1'bz;
-    assign pinN = OUT_EN ? dataOutN : 1'bz;
+    assign pinP = dataOutEn_i ? dataOutP_i : 1'bz;
+    assign pinN = dataOutEn_i ? dataOutN_i : 1'bz;
 `endif
 
     assign inP = pinP;
     assign inN = pinN;
 `endif
 
-    localparam OUT_EN_SHIFT_REG_LENGTH = 2;
-    logic [OUT_EN_SHIFT_REG_LENGTH-1:0] outEnShiftReg;
+    localparam dataOutEn_i_SHIFT_REG_LENGTH = 2;
+    logic [dataOutEn_i_SHIFT_REG_LENGTH-1:0] outEnShiftReg;
     initial begin
-        outEnShiftReg = {OUT_EN_SHIFT_REG_LENGTH{1'b0}};
+        outEnShiftReg = {dataOutEn_i_SHIFT_REG_LENGTH{1'b0}};
         doubleFlopP = {DOUBLE_FLOP_SHIFT_REG_LENGTH{1'b1}};
         doubleFlopP_negedge = {DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH{1'b1}};
         doubleFlopN = {DOUBLE_FLOP_SHIFT_REG_LENGTH{1'b0}};
-        dataInP = 1'b1;
-        dataInP_negedge = 1'b1;
+        dataInP_o = 1'b1;
+        dataInP_negedge_o = 1'b1;
         dataInN = 1'b0;
 `ifdef USB_DP_ADD_NEGEDGE_SYNC_BLOCK
         inP_negedge = 1'b1;
@@ -151,33 +151,33 @@ module usb_serial_frontend(
     end
 
 `ifdef USB_DP_ADD_NEGEDGE_SYNC_BLOCK
-    always_ff @(negedge clk48) begin
+    always_ff @(negedge clk48_i) begin
         inP_negedge <= inP;
     end
 `endif
 
 
-    always_ff @(posedge clk48) begin
-        outEnShiftReg <= {outEnShiftReg[OUT_EN_SHIFT_REG_LENGTH-2:0], OUT_EN};
+    always_ff @(posedge clk48_i) begin
+        outEnShiftReg <= {outEnShiftReg[dataOutEn_i_SHIFT_REG_LENGTH-2:0], dataOutEn_i};
 
         doubleFlopP[0] <= inP;
         doubleFlopN[0] <= inN;
         doubleFlopP_negedge[0] <= inP_negedge;
 
-        dataInP <= outEnShiftReg[OUT_EN_SHIFT_REG_LENGTH-1] ? 1'b1 : doubleFlopP[DOUBLE_FLOP_SHIFT_REG_LENGTH-1];
-        dataInP_negedge <= outEnShiftReg[OUT_EN_SHIFT_REG_LENGTH-1] ? 1'b1 : doubleFlopP_negedge[DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH-1];
-        dataInN <= outEnShiftReg[OUT_EN_SHIFT_REG_LENGTH-1] ? 1'b0 : doubleFlopN[DOUBLE_FLOP_SHIFT_REG_LENGTH-1];
+        dataInP_o <= outEnShiftReg[dataOutEn_i_SHIFT_REG_LENGTH-1] ? 1'b1 : doubleFlopP[DOUBLE_FLOP_SHIFT_REG_LENGTH-1];
+        dataInP_negedge_o <= outEnShiftReg[dataOutEn_i_SHIFT_REG_LENGTH-1] ? 1'b1 : doubleFlopP_negedge[DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH-1];
+        dataInN <= outEnShiftReg[dataOutEn_i_SHIFT_REG_LENGTH-1] ? 1'b0 : doubleFlopN[DOUBLE_FLOP_SHIFT_REG_LENGTH-1];
     end
 
     generate
         if (DOUBLE_FLOP_SHIFT_REG_LENGTH > 1) begin
-            always_ff @(posedge clk48) begin
+            always_ff @(posedge clk48_i) begin
                 doubleFlopP[DOUBLE_FLOP_SHIFT_REG_LENGTH-1:1] <= doubleFlopP[DOUBLE_FLOP_SHIFT_REG_LENGTH-2:0];
                 doubleFlopN[DOUBLE_FLOP_SHIFT_REG_LENGTH-1:1] <= doubleFlopN[DOUBLE_FLOP_SHIFT_REG_LENGTH-2:0];
             end
         end
         if (DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH > 1) begin
-            always_ff @(posedge clk48) begin
+            always_ff @(posedge clk48_i) begin
                 doubleFlopP_negedge[DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH-1:1] <= doubleFlopP_negedge[DOUBLE_FLOP_NEGEDGE_SHIFT_REG_LENGTH-2:0];
             end
         end

@@ -37,14 +37,14 @@ module top (
 `endif
 
     usb #() usbDeviceController(
-        .clk48(clk48),
+        .clk48_i(clk48),
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
 `ifdef RUN_SIM
-        .USB_DN_OUT(USB_DN_OUT),
-        .USB_DP_OUT(USB_DP_OUT),
+        .USB_DN_o(USB_DN_OUT),
+        .USB_DP_o(USB_DP_OUT),
 `endif
-        .USB_PULLUP(USB_PULLUP)
+        .USB_PULLUP_o(USB_PULLUP)
     );
 
 endmodule

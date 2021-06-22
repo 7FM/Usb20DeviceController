@@ -9,43 +9,43 @@ module usb_pe #(
     usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
-    input logic clk48,
+    input logic clk48_i,
 
-    input logic usbResetDetected,
-    output logic ackUsbResetDetect,
+    input logic usbResetDetected_i,
+    output logic ackUsbResetDetect_o,
 
     // State information
-    input logic txDoneSending, //TODO use
-    input logic rxDPPLGotSignal,
-    output logic isSendingPhase, //TODO
+    input logic txDoneSending_i, //TODO use
+    input logic rxDPPLGotSignal_i,
+    output logic isSendingPhase_o, //TODO
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
-    // Data Receive Interface: synced with clk48!
-    output logic rxAcceptNewData,
-    input logic [7:0] rxData,
-    input logic rxIsLastByte,
-    input logic rxDataValid,
-    input logic keepPacket,
+    // Data Receive Interface: synced with clk48_i!
+    output logic rxAcceptNewData_o,
+    input logic [7:0] rxData_i,
+    input logic rxIsLastByte_i,
+    input logic rxDataValid_i,
+    input logic keepPacket_i,
 
-    // Data Transmit Interface: synced with clk48!
-    output logic txReqSendPacket,
-    output logic txDataValid,
-    output logic txIsLastByte,
-    output logic [7:0] txData,
-    input logic txAcceptNewData,
+    // Data Transmit Interface: synced with clk48_i!
+    output logic txReqSendPacket_o,
+    output logic txDataValid_o,
+    output logic txIsLastByte_o,
+    output logic [7:0] txData_o,
+    input logic txAcceptNewData_i,
 
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
-    input logic [ENDPOINTS-1:0] EP_IN_popTransDone,
-    input logic [ENDPOINTS-1:0] EP_IN_popTransSuccess,
-    input logic [ENDPOINTS-1:0] EP_IN_popData,
-    output logic [ENDPOINTS-1:0] EP_IN_dataAvailable,
-    output logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_dataOut,
+    input logic [ENDPOINTS-1:0] EP_IN_popTransDone_i,
+    input logic [ENDPOINTS-1:0] EP_IN_popTransSuccess_i,
+    input logic [ENDPOINTS-1:0] EP_IN_popData_i,
+    output logic [ENDPOINTS-1:0] EP_IN_dataAvailable_o,
+    output logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_data_o,
 
-    input logic [ENDPOINTS-1:0] EP_OUT_fillTransDone,
-    input logic [ENDPOINTS-1:0] EP_OUT_fillTransSuccess,
-    input logic [ENDPOINTS-1:0] EP_OUT_dataValid,
-    input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataIn,
-    output logic [ENDPOINTS-1:0] EP_OUT_full
+    input logic [ENDPOINTS-1:0] EP_OUT_fillTransDone_i,
+    input logic [ENDPOINTS-1:0] EP_OUT_fillTransSuccess_i,
+    input logic [ENDPOINTS-1:0] EP_OUT_dataValid_i,
+    input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_data_i,
+    output logic [ENDPOINTS-1:0] EP_OUT_full_o
 );
 
     /* Request Error:
@@ -165,7 +165,7 @@ Device Transaction State Machine Hierarchy Overview:
     logic fillTransDone; //TODO
     logic fillTransSuccess; //TODO
     logic EP_WRITE_EN; //TODO
-    logic [EP_DATA_WID-1:0] wdata;
+    logic [EP_DATA_WID-1:0] wData;
     logic writeFifoFull;
 
     // Used for data to be output
@@ -174,7 +174,7 @@ Device Transaction State Machine Hierarchy Overview:
     logic EP_READ_EN; //TODO
     logic readDataAvailable;
     logic readIsLastPacketByte;
-    logic [EP_DATA_WID-1:0] rdata;
+    logic [EP_DATA_WID-1:0] rData;
 
     logic [ENDPOINTS-1:0] EP_IN_full;
 
@@ -182,25 +182,25 @@ Device Transaction State Machine Hierarchy Overview:
     logic [ENDPOINTS-1:0] EP_OUT_isLastPacketByte;
     logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataOut;
 
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(EP_DATA_WID)) rdataMux (
-        .dataSelect(epSelect),
-        .dataVec(EP_OUT_dataOut),
-        .data(rdata)
+    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(EP_DATA_WID)) rDataMux (
+        .dataSelect_i(epSelect),
+        .dataVec_i(EP_OUT_dataOut),
+        .data_o(rData)
     );
     vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) fifoFullMux (
-        .dataSelect(epSelect),
-        .dataVec(EP_IN_full),
-        .data(writeFifoFull)
+        .dataSelect_i(epSelect),
+        .dataVec_i(EP_IN_full),
+        .data_o(writeFifoFull)
     );
     vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) readDataAvailableMux (
-        .dataSelect(epSelect),
-        .dataVec(EP_OUT_dataAvailable),
-        .data(readDataAvailable)
+        .dataSelect_i(epSelect),
+        .dataVec_i(EP_OUT_dataAvailable),
+        .data_o(readDataAvailable)
     );
     vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) readIsLastPacketByteMux (
-        .dataSelect(epSelect),
-        .dataVec(EP_OUT_isLastPacketByte),
-        .data(readIsLastPacketByte)
+        .dataSelect_i(epSelect),
+        .dataVec_i(EP_OUT_isLastPacketByte),
+        .data_o(readIsLastPacketByte)
     );
 
 
@@ -218,47 +218,47 @@ Device Transaction State Machine Hierarchy Overview:
             .USB_DEV_CONF_WID(USB_DEV_CONF_WID),
             .EP_CONF(USB_DEV_EP_CONF.ep0Conf)
         ) ep0 (
-            .clk48(clk48),
+            .clk48_i(clk48_i),
 
             // Endpoint 0 handles the decice state!
-            .usbResetDetected(usbResetDetected),
-            .ackUsbResetDetect(ackUsbResetDetect),
-            .deviceAddr(deviceAddr),
-            .deviceConf(deviceConf),
+            .usbResetDetected_i(usbResetDetected_i),
+            .ackUsbResetDetect_o(ackUsbResetDetect_o),
+            .deviceAddr_o(deviceAddr),
+            .deviceConf_o(deviceConf),
 
-            .transStartPID(transStartPID),
-            .gotTransStartPacket(gotTransStartPacket),
+            .transStartPID_i(transStartPID),
+            .gotTransStartPacket_i(gotTransStartPacket),
 
             // Device IN interface
-            .EP_IN_fillTransDone(fillTransDone),
-            .EP_IN_fillTransSuccess(fillTransSuccess),
-            .EP_IN_dataValid(EP_WRITE_EN && isEp0Selected),
-            .EP_IN_dataIn(wdata),
-            .EP_IN_full(EP_IN_full[0]),
+            .EP_IN_fillTransDone_i(fillTransDone),
+            .EP_IN_fillTransSuccess_i(fillTransSuccess),
+            .EP_IN_dataValid_i(EP_WRITE_EN && isEp0Selected),
+            .EP_IN_data_i(wData),
+            .EP_IN_full_o(EP_IN_full[0]),
 
             /*
-            .EP_IN_popTransDone(EP_IN_popTransDone[0]),
-            .EP_IN_popTransSuccess(EP_IN_popTransSuccess[0]),
-            .EP_IN_popData(EP_IN_popData[0]),
-            .EP_IN_dataAvailable(EP_IN_dataAvailable[0]),
-            .EP_IN_dataOut(EP_IN_dataOut[0 * EP_DATA_WID +: EP_DATA_WID]),
+            .EP_IN_popTransDone_i(EP_IN_popTransDone_i[0]),
+            .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[0]),
+            .EP_IN_popData_i(EP_IN_popData_i[0]),
+            .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[0]),
+            .EP_IN_data_o(EP_IN_data_o[0 * EP_DATA_WID +: EP_DATA_WID]),
             */
 
             // Device OUT interface
             /*
-            .EP_OUT_fillTransDone(EP_OUT_fillTransDone[0]),
-            .EP_OUT_fillTransSuccess(EP_OUT_fillTransSuccess[0]),
-            .EP_OUT_dataValid(EP_OUT_dataValid[0]),
-            .EP_OUT_dataIn(EP_OUT_dataIn[0 * EP_DATA_WID +: EP_DATA_WID]),
-            .EP_OUT_full(EP_OUT_full[0]),
+            .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[0]),
+            .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[0]),
+            .EP_OUT_dataValid_i(EP_OUT_dataValid_i[0]),
+            .EP_OUT_data_i(EP_OUT_data_i[0 * EP_DATA_WID +: EP_DATA_WID]),
+            .EP_OUT_full_o(EP_OUT_full_o[0]),
             */
 
-            .EP_OUT_popTransDone(popTransDone),
-            .EP_OUT_popTransSuccess(popTransSuccess),
-            .EP_OUT_popData(EP_READ_EN && isEp0Selected),
-            .EP_OUT_dataAvailable(EP_OUT_dataAvailable[0]),
-            .EP_OUT_isLastPacketByte(EP_OUT_isLastPacketByte[0]),
-            .EP_OUT_dataOut(EP_OUT_dataOut[0 * EP_DATA_WID +: EP_DATA_WID])
+            .EP_OUT_popTransDone_i(popTransDone),
+            .EP_OUT_popTransSuccess_i(popTransSuccess),
+            .EP_OUT_popData_i(EP_READ_EN && isEp0Selected),
+            .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[0]),
+            .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[0]),
+            .EP_OUT_data_o(EP_OUT_dataOut[0 * EP_DATA_WID +: EP_DATA_WID])
         );
 
         genvar i;
@@ -276,34 +276,34 @@ Device Transaction State Machine Hierarchy Overview:
             usb_endpoint #(
                 .EP_CONF(epConfig)
             ) epX (
-                .clk48(clk48),
+                .clk48_i(clk48_i),
 
                 // Device IN interface
-                .EP_IN_fillTransDone(fillTransDone),
-                .EP_IN_fillTransSuccess(fillTransSuccess),
-                .EP_IN_dataValid(EP_WRITE_EN && isEpSelected),
-                .EP_IN_dataIn(wdata),
-                .EP_IN_full(EP_IN_full[i]),
+                .EP_IN_fillTransDone_i(fillTransDone),
+                .EP_IN_fillTransSuccess_i(fillTransSuccess),
+                .EP_IN_dataValid_i(EP_WRITE_EN && isEpSelected),
+                .EP_IN_data_i(wData),
+                .EP_IN_full_o(EP_IN_full[i]),
 
-                .EP_IN_popTransDone(EP_IN_popTransDone[i]),
-                .EP_IN_popTransSuccess(EP_IN_popTransSuccess[i]),
-                .EP_IN_popData(EP_IN_popData[i]),
-                .EP_IN_dataAvailable(EP_IN_dataAvailable[i]),
-                .EP_IN_dataOut(EP_IN_dataOut[i * EP_DATA_WID +: EP_DATA_WID]),
+                .EP_IN_popTransDone_i(EP_IN_popTransDone_i[i]),
+                .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[i]),
+                .EP_IN_popData_i(EP_IN_popData_i[i]),
+                .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[i]),
+                .EP_IN_data_o(EP_IN_data_o[i * EP_DATA_WID +: EP_DATA_WID]),
 
                 // Device OUT interface
-                .EP_OUT_fillTransDone(EP_OUT_fillTransDone[i]),
-                .EP_OUT_fillTransSuccess(EP_OUT_fillTransSuccess[i]),
-                .EP_OUT_dataValid(EP_OUT_dataValid[i]),
-                .EP_OUT_dataIn(EP_OUT_dataIn[i * EP_DATA_WID +: EP_DATA_WID]),
-                .EP_OUT_full(EP_OUT_full[i]),
+                .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[i]),
+                .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[i]),
+                .EP_OUT_dataValid_i(EP_OUT_dataValid_i[i]),
+                .EP_OUT_data_i(EP_OUT_data_i[i * EP_DATA_WID +: EP_DATA_WID]),
+                .EP_OUT_full_o(EP_OUT_full_o[i]),
 
-                .EP_OUT_popTransDone(popTransDone),
-                .EP_OUT_popTransSuccess(popTransSuccess),
-                .EP_OUT_popData(EP_READ_EN && isEpSelected),
-                .EP_OUT_dataAvailable(EP_OUT_dataAvailable[i]),
-                .EP_OUT_isLastPacketByte(EP_OUT_isLastPacketByte[i]),
-                .EP_OUT_dataOut(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
+                .EP_OUT_popTransDone_i(popTransDone),
+                .EP_OUT_popTransSuccess_i(popTransSuccess),
+                .EP_OUT_popData_i(EP_READ_EN && isEpSelected),
+                .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[i]),
+                .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[i]),
+                .EP_OUT_data_o(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
             );
         end
     endgenerate
@@ -327,14 +327,14 @@ Device Transaction State Machine Hierarchy Overview:
         .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN),
         .INITIALIZE_BUF_IDX(1)
     ) transStartBufWrapper (
-        .clk(clk48),
-        .rst(transBufRst),
+        .clk_i(clk48_i),
+        .rst_i(transBufRst),
 
-        .dataIn(wdata),
-        .dataValid(!transactionStarted && rxDataValid),
+        .data_i(wData),
+        .dataValid_i(!transactionStarted && rxDataValid_i),
 
-        .buffer(transStartPacketBuf),
-        .isFull(transStartPacketBufFull)
+        .buffer_o(transStartPacketBuf),
+        .isFull_o(transStartPacketBufFull)
     );
 
     initial begin
@@ -361,13 +361,13 @@ Device Transaction State Machine Hierarchy Overview:
     assign fillTransSuccess = receiveSuccess;
     assign fillTransDone = transactionStarted && receiveDone;
     assign EP_WRITE_EN = transactionStarted && rxHandshake; //TODO we neither want to store token packets nor PIDs here!
-    assign wdata = rxData;
+    assign wData = rxData_i;
 
     logic rxBufFull;
     assign rxBufFull = transactionStarted ? writeFifoFull : transStartPacketBufFull;
-    assign rxAcceptNewData = !receiveDone && !rxBufFull;
-    assign rxHandshake = rxAcceptNewData && rxDataValid;
-    assign packetReceived = rxHandshake && txIsLastByte;
+    assign rxAcceptNewData_o = !receiveDone && !rxBufFull;
+    assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
+    assign packetReceived = rxHandshake && rxIsLastByte_i;
 
     usb_packet_pkg::PacketHeader packetHeader;
     assign packetHeader = usb_packet_pkg::PacketHeader'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS]);
@@ -382,16 +382,16 @@ Device Transaction State Machine Hierarchy Overview:
     //TODO this flag should be state dependent! -> only activate if a new transaction is expected
     assign gotTransStartPacket = !transactionStarted && receiveDone && receiveSuccess;
 
-    always_ff @(posedge clk48) begin
+    always_ff @(posedge clk48_i) begin
         if (rxHandshake) begin
             //TODO if writeFifoFull is set then rxHandshake will never be true!
             //TODO we need to avoid missing the last byte signal -> we may not block & wait for fifo to become available!
-            if (rxBufFull || (txIsLastByte && !keepPacket)) begin
+            if (rxBufFull || (rxIsLastByte_i && !keepPacket_i)) begin
                 // treat full buffer as error -> not all data could be stored!
-                // Otherwise if this is the last byte and keepPacket is set low there was some transmission error -> receive failed!
+                // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
                 receiveSuccess <= 1'b0;
             end
-            receiveDone <= txIsLastByte;
+            receiveDone <= rxIsLastByte_i;
         end else if (receiveDone) begin
             receiveDone <= 1'b0;
             receiveSuccess <= 1'b1;
@@ -406,17 +406,17 @@ Device Transaction State Machine Hierarchy Overview:
 //===============================TX Interface=========================================
 //====================================================================================
 
-//TODO output logic txReqSendPacket
+//TODO output logic txReqSendPacket_o
 //TODO handshake phase is handled with the local buffer here!
-    assign txData = rdata;
-    assign txDataValid = readDataAvailable;
-    assign txIsLastByte = readIsLastPacketByte;
-    assign EP_READ_EN = txAcceptNewData;
+    assign txData_o = rData;
+    assign txDataValid_o = readDataAvailable;
+    assign txIsLastByte_o = readIsLastPacketByte;
+    assign EP_READ_EN = txAcceptNewData_i;
 
 // Needs to wait for Handshake / Timeout!
 //TODO logic popTransDone;
 //TODO logic popTransSuccess;
-    assign popTransSuccess = !packetWaitTimeout &&;
+    //assign popTransSuccess = !packetWaitTimeout &&;
 //TODO
 
 //====================================================================================
@@ -425,18 +425,18 @@ Device Transaction State Machine Hierarchy Overview:
     clock_gen #(
         .DIVIDE_LOG_2(2)
     ) clk12Generator (
-        .inCLK(clk48),
-        .outCLK(clk12)
+        .clk_i(clk48_i),
+        .clk_o(clk12)
     );
 
     logic readTimerRst; //TODO
-    assign readTimerRst = isSendingPhase || receiveDone;
+    assign readTimerRst = isSendingPhase_o || receiveDone;
     usb_timeout readTimer(
-        .clk48(clk48),
-        .clk12(clk12),
-        .RST(readTimerRst),
-        .rxGotSignal(rxDPPLGotSignal),
-        .rxTimeout(packetWaitTimeout)
+        .clk48_i(clk48_i),
+        .clk12_i(clk12),
+        .rst_i(readTimerRst),
+        .rxGotSignal_i(rxDPPLGotSignal_i),
+        .rxTimeout_o(packetWaitTimeout)
     );
 
 endmodule

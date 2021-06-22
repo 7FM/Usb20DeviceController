@@ -1,8 +1,8 @@
 module clock_mux(
-    input logic CLK_1,
-    input logic CLK_2,
-    input logic SEL,
-    output logic CLK
+    input logic clk1_i,
+    input logic clk2_i,
+    input logic clkSel_i,
+    output logic clk_o
 );
 
     logic clk1_sel_sync_1, clk1_sel_sync_2;
@@ -15,20 +15,20 @@ module clock_mux(
         clk2_sel_sync_2 = 0;
     end
 
-    always_ff @(posedge CLK_1) begin
-        clk1_sel_sync_1 <= ~clk2_sel_sync_2 && SEL;
+    always_ff @(posedge clk1_i) begin
+        clk1_sel_sync_1 <= ~clk2_sel_sync_2 && clkSel_i;
     end
-    always_ff @(negedge CLK_1) begin
+    always_ff @(negedge clk1_i) begin
         clk1_sel_sync_2 <= clk1_sel_sync_1;
     end
 
-    always_ff @(posedge CLK_2) begin
-        clk2_sel_sync_1 <= ~clk1_sel_sync_2 && ~SEL;
+    always_ff @(posedge clk2_i) begin
+        clk2_sel_sync_1 <= ~clk1_sel_sync_2 && ~clkSel_i;
     end
-    always_ff @(negedge CLK_2) begin
+    always_ff @(negedge clk2_i) begin
         clk2_sel_sync_2 <= clk2_sel_sync_1;
     end
 
-    assign CLK = (CLK_1 && clk1_sel_sync_2) || (CLK_2 && clk2_sel_sync_2);
+    assign clk_o = (clk1_i && clk1_sel_sync_2) || (clk2_i && clk2_sel_sync_2);
 
 endmodule

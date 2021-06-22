@@ -3,34 +3,34 @@ module FIFO #(
     parameter DATA_WID = 8,
     parameter ENTRIES = 0
 )(
-    input logic CLK,
+    input logic clk_i,
 
     // Backend Memory interface: typical dual port interface
-    output logic WEN,
-    output logic [ADDR_WID-1:0] waddr,
-    output logic [DATA_WID-1:0] wdata,
-    output logic [ADDR_WID-1:0] raddr,
-    input logic [DATA_WID-1:0] rdata,
+    output logic wEn_o,
+    output logic [ADDR_WID-1:0] wAddr_o,
+    output logic [DATA_WID-1:0] wData_o,
+    output logic [ADDR_WID-1:0] rAddr_o,
+    input logic [DATA_WID-1:0] rData_i,
 
     // Provide transactional read & write behaviour to allow reseting the values on failures without overwriting/loosing i.e. not yet send data or discarding corrupt packets
     // The signals to end an transactions: xTransDone & xTransSuccess may NOT be used concurrently with the read/write handshake signals!
-    input logic fillTransDone,
-    input logic fillTransSuccess,
-    input logic dataValid,
-    input logic [DATA_WID-1:0] dataIn,
-    output logic full,
+    input logic fillTransDone_i,
+    input logic fillTransSuccess_i,
+    input logic dataValid_i,
+    input logic [DATA_WID-1:0] data_i,
+    output logic full_o,
 
-    input logic popTransDone,
-    input logic popTransSuccess,
-    input logic popData,
-    output logic dataAvailable,
-    output logic [DATA_WID-1:0] dataOut
+    input logic popTransDone_i,
+    input logic popTransSuccess_i,
+    input logic popData_i,
+    output logic dataAvailable_o,
+    output logic [DATA_WID-1:0] data_o
 );
 
     logic [ADDR_WID-1:0] dataCounter, readCounter;
     logic [ADDR_WID-1:0] transDataCounter, transReadCounter, next_transDataCounter, next_transReadCounter;
 
-    assign dataAvailable = transReadCounter != dataCounter;
+    assign dataAvailable_o = transReadCounter != dataCounter;
 
 generate
     if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
@@ -45,18 +45,18 @@ generate
     end
 endgenerate
 
-    assign full = next_transDataCounter == readCounter;
+    assign full_o = next_transDataCounter == readCounter;
 
     logic writeHandshake, readHandshake;
-    assign writeHandshake = !full && dataValid;
-    assign readHandshake = dataAvailable && popData;
+    assign writeHandshake = !full_o && dataValid_i;
+    assign readHandshake = dataAvailable_o && popData_i;
 
     // Attach signals to memory interface
-    assign WEN = writeHandshake;
-    assign waddr = transDataCounter;
-    assign wdata = dataIn;
-    assign raddr = transReadCounter;
-    assign dataOut = rdata;
+    assign wEn_o = writeHandshake;
+    assign wAddr_o = transDataCounter;
+    assign wData_o = data_i;
+    assign rAddr_o = transReadCounter;
+    assign data_o = rData_i;
 
     initial begin
         dataCounter = 0;
@@ -65,11 +65,11 @@ endgenerate
         transReadCounter = 0;
     end
 
-    always_ff @(posedge CLK) begin
+    always_ff @(posedge clk_i) begin
         // Write actions
-        if (fillTransDone) begin
+        if (fillTransDone_i) begin
             // Write transaction is done
-            if (fillTransSuccess) begin
+            if (fillTransSuccess_i) begin
                 // if it was successful we want to update our permanent data counter
                 dataCounter <= transDataCounter;
             end else begin
@@ -82,9 +82,9 @@ endgenerate
         end
 
         // Read actions
-        if (popTransDone) begin
+        if (popTransDone_i) begin
             // Read transaction is done
-            if (popTransSuccess) begin
+            if (popTransSuccess_i) begin
                 // if it was successful we want to update our permanent read counter
                 readCounter <= transReadCounter;
             end else begin

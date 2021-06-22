@@ -2,10 +2,10 @@ module nrzi_decoder#(
     parameter INITIAL_VALUE = 1,
     parameter ZERO_AS_TRANSITION = 1
 )(
-    input logic clk12,
-    input logic RST,
-    input logic data,
-    output logic OUT
+    input logic clk12_i,
+    input logic rst_i,
+    input logic data_i,
+    output logic data_o
 );
 
     /*
@@ -24,21 +24,21 @@ module nrzi_decoder#(
     logic prevData;
 
     initial begin
-        OUT = INITIAL_VALUE[0];
+        data_o = INITIAL_VALUE[0];
         prevData = INITIAL_VALUE[0];
     end
 
     generate
-        always_ff @(posedge clk12) begin
-            if (RST) begin
-                OUT <= INITIAL_VALUE[0];
+        always_ff @(posedge clk12_i) begin
+            if (rst_i) begin
+                data_o <= INITIAL_VALUE[0];
                 prevData <= INITIAL_VALUE[0];
             end else begin
-                prevData <= data;
+                prevData <= data_i;
                 if (ZERO_AS_TRANSITION) begin
-                    OUT <= prevData ~^ data;
+                    data_o <= prevData ~^ data_i;
                 end else begin
-                    OUT <= prevData ^ data;
+                    data_o <= prevData ^ data_i;
                 end
             end
         end

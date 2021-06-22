@@ -35,8 +35,8 @@ module sim_usb_tx (
     clock_gen #(
         .DIVIDE_LOG_2($clog2(4))
     ) clkDiv4 (
-        .inCLK(CLK),
-        .outCLK(txClk12)
+        .clk_i(CLK),
+        .clk_o(txClk12)
     );
 
     logic txCRCReset;
@@ -46,13 +46,13 @@ module sim_usb_tx (
     logic [15:0] crc;
 
     usb_crc crcEngine (
-        .clk12(txClk12),
-        .RST(txCRCReset),
-        .VALID(txCRCInputValid),
-        .rxUseCRC16(txUseCRC16),
-        .data(txCRCInput),
-        `MUTE_PIN_CONNECT_EMPTY(validCRC),
-        .crc(crc)
+        .clk12_i(txClk12),
+        .rst_i(txCRCReset),
+        .valid_i(txCRCInputValid),
+        .useCRC16_i(txUseCRC16),
+        .data_i(txCRCInput),
+        `MUTE_PIN_CONNECT_EMPTY(validCRC_o),
+        .crc_o(crc)
     );
 
     logic txBitStuffRst;
@@ -61,44 +61,44 @@ module sim_usb_tx (
     logic txBitStuffDataOut;
 
     usb_bit_stuffing_wrapper bitStuffWrap (
-        .clk12(txClk12),
-        .RST(txBitStuffRst),
-        .isSendingPhase(1'b1),
-        .dataIn(txBitStuffDataIn),
-        .ready_valid(txNoBitStuffingNeeded),
-        .dataOut(txBitStuffDataOut),
-        `MUTE_PIN_CONNECT_EMPTY(error)
+        .clk12_i(txClk12),
+        .rst_i(txBitStuffRst),
+        .isSendingPhase_i(1'b1),
+        .data_i(txBitStuffDataIn),
+        .ready_valid_o(txNoBitStuffingNeeded),
+        .data_o(txBitStuffDataOut),
+        `MUTE_PIN_CONNECT_EMPTY(error_o)
     );
 
 
     usb_tx uut(
-        .clk48(CLK),
-        .transmitCLK(txClk12),
+        .clk48_i(CLK),
+        .transmitCLK_i(txClk12),
 
         // CRC interface
-        .txCRCReset(txCRCReset),
-        .txUseCRC16(txUseCRC16),
-        .txCRCInput(txCRCInput),
-        .txCRCInputValid(txCRCInputValid),
-        .reversedCRC16(crc),
+        .txCRCReset_o(txCRCReset),
+        .txUseCRC16_o(txUseCRC16),
+        .txCRCInput_o(txCRCInput),
+        .txCRCInputValid_o(txCRCInputValid),
+        .reversedCRC16_i(crc),
 
         // Bit stuff interface
-        .txBitStuffRst(txBitStuffRst),
-        .txBitStuffDataIn(txBitStuffDataIn),
-        .txBitStuffDataOut(txBitStuffDataOut),
-        .txNoBitStuffingNeeded(txNoBitStuffingNeeded),
+        .txBitStuffRst_o(txBitStuffRst),
+        .txBitStuffDataIn_o(txBitStuffDataIn),
+        .txBitStuffDataOut_i(txBitStuffDataOut),
+        .txNoBitStuffingNeeded_i(txNoBitStuffingNeeded),
 
         // Data interface
-        .txReqSendPacket(txReqSendPacket),
-        .txAcceptNewData(txAcceptNewData),
-        .txIsLastByte(txIsLastByte),
-        .txDataValid(txDataValid),
-        .txData(txData),
+        .txReqSendPacket_i(txReqSendPacket),
+        .txAcceptNewData_o(txAcceptNewData),
+        .txIsLastByte_i(txIsLastByte),
+        .txDataValid_i(txDataValid),
+        .txData_i(txData),
 
         // Serial frontend interface
-        .sending(sending),
-        .dataOutN_reg(dataOutN_reg),
-        .dataOutP_reg(dataOutP_reg)
+        .sending_o(sending),
+        .dataOutN_reg_o(dataOutN_reg),
+        .dataOutP_reg_o(dataOutP_reg)
     );
 
     assign USB_DP = sending ? dataOutP_reg : 1'b1;

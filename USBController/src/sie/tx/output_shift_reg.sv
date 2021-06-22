@@ -3,12 +3,12 @@ module output_shift_reg#(
     parameter INIT_BIT_VALUE = 1,
     parameter LSB_FIRST = 1
 )(
-    input logic clk12,
-    input logic EN,
-    input logic NEW_IN,
-    input logic [LENGTH-1:0] dataIn,
-    output logic OUT,
-    output logic bufferEmpty
+    input logic clk12_i,
+    input logic en_i,
+    input logic dataValid_i,
+    input logic [LENGTH-1:0] data_i,
+    output logic dataBit_o,
+    output logic bufferEmpty_o
 );
 
     localparam CNT_WID = $clog2(LENGTH+1) - 1;
@@ -21,21 +21,21 @@ module output_shift_reg#(
         bitsLeft = 0;
     end
 
-    assign bufferEmpty = bitsLeft == 0;
+    assign bufferEmpty_o = bitsLeft == 0;
 
     generate
         if (LSB_FIRST) begin
-            assign OUT = dataBuf[0];
+            assign dataBit_o = dataBuf[0];
         end else begin
-            assign OUT = dataBuf[LENGTH-1];
+            assign dataBit_o = dataBuf[LENGTH-1];
         end
 
-        always_ff @(posedge clk12) begin
-            if (NEW_IN) begin
-                dataBuf <= dataIn;
-                bitsLeft <= EN? LENGTH-1 : LENGTH;
-            end else if (EN) begin
-                bitsLeft <= bufferEmpty ? bitsLeft : bitsLeft - 1;
+        always_ff @(posedge clk12_i) begin
+            if (dataValid_i) begin
+                dataBuf <= data_i;
+                bitsLeft <= en_i ? LENGTH-1 : LENGTH;
+            end else if (en_i) begin
+                bitsLeft <= bufferEmpty_o ? bitsLeft : bitsLeft - 1;
                 if (LSB_FIRST) begin
                     dataBuf <= {INIT_BIT_VALUE[0], dataBuf[LENGTH-1:1]};
                 end else begin
