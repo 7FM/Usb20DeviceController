@@ -7,7 +7,11 @@
 module usb_endpoint_0 #(
     parameter USB_DEV_ADDR_WID = 7,
     parameter USB_DEV_CONF_WID = 8,
-    parameter usb_ep_pkg::ControlEndpointConfig EP_CONF
+    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
+    localparam usb_ep_pkg::ControlEndpointConfig EP_CONF = USB_DEV_EP_CONF.ep0Conf,
+    // Maximum packet size for EP0: only 8, 16, 32 or 64 bytes are valid!
+    // MUST be 64 for high speed (EP0 only)!
+    localparam BUF_BYTE_COUNT = USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0
 )(
     input logic clk48_i,
 
@@ -124,7 +128,6 @@ module usb_endpoint_0 #(
         HANDLE_REQUEST
     } EP0_State;
 
-    localparam BUF_BYTE_COUNT = 64;
     logic packetBufRst;
     logic packetBufFull;
     

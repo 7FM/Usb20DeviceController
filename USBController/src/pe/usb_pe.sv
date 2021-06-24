@@ -6,7 +6,7 @@
 module usb_pe #(
     parameter EP_ADDR_WID = 9,
     parameter EP_DATA_WID = 8, //TODO this is a pseudo parameter as byte wise data transfers is fixed assumption throughout the code!
-    usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig,
+    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic clk48_i,

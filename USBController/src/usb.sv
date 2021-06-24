@@ -2,7 +2,7 @@
 `include "usb_ep_pkg.sv"
 
 module usb#(
-    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig,
+    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     parameter EP_ADDR_WID = 9,
     parameter EP_DATA_WID = 8,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1

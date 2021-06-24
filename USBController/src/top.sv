@@ -1,4 +1,5 @@
 `include "config_pkg.sv"
+`include "usb_ep_pkg.sv"
 
 module top (
     input logic CLK,
@@ -36,7 +37,11 @@ module top (
     assign clk48 = CLK;
 `endif
 
-    usb #() usbDeviceController(
+    localparam usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig;
+
+    usb #(
+        .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
+    ) usbDeviceController(
         .clk48_i(clk48),
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
