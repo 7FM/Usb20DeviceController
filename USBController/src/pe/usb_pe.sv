@@ -35,17 +35,18 @@ module usb_pe #(
     input logic txAcceptNewData_i,
 
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
-    input logic [ENDPOINTS-1:0] EP_IN_popTransDone_i,
-    input logic [ENDPOINTS-1:0] EP_IN_popTransSuccess_i,
-    input logic [ENDPOINTS-1:0] EP_IN_popData_i,
-    output logic [ENDPOINTS-1:0] EP_IN_dataAvailable_o,
-    output logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_IN_data_o,
+    // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
+    input logic [ENDPOINTS-2:0] EP_IN_popTransDone_i,
+    input logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i,
+    input logic [ENDPOINTS-2:0] EP_IN_popData_i,
+    output logic [ENDPOINTS-2:0] EP_IN_dataAvailable_o,
+    output logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_IN_data_o,
 
-    input logic [ENDPOINTS-1:0] EP_OUT_fillTransDone_i,
-    input logic [ENDPOINTS-1:0] EP_OUT_fillTransSuccess_i,
-    input logic [ENDPOINTS-1:0] EP_OUT_dataValid_i,
-    input logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_data_i,
-    output logic [ENDPOINTS-1:0] EP_OUT_full_o
+    input logic [ENDPOINTS-2:0] EP_OUT_fillTransDone_i,
+    input logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess_i,
+    input logic [ENDPOINTS-2:0] EP_OUT_dataValid_i,
+    input logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_OUT_data_i,
+    output logic [ENDPOINTS-2:0] EP_OUT_full_o
 );
 
     /* Request Error:
@@ -157,7 +158,8 @@ Device Transaction State Machine Hierarchy Overview:
 //==============================Endpoint logic========================================
 //====================================================================================
 
-    logic [$clog2(ENDPOINTS):0] epSelect;
+    localparam EP_SELECT_WID = $clog2(ENDPOINTS) + 1;
+    logic [EP_SELECT_WID-1:0] epSelect;
     usb_packet_pkg::PID_Types transStartPID;
     logic gotTransStartPacket;
 
@@ -203,6 +205,38 @@ Device Transaction State Machine Hierarchy Overview:
         .data_o(readIsLastPacketByte)
     );
 
+    `define CREATE_EP_CASE(x)                                                   \
+        x: `EP_``x``_MODULE(epConfig) epX (                                     \
+            .clk48_i(clk48_i),                                                  \
+                                                                                \
+            /* Device IN interface */                                           \
+            .EP_IN_fillTransDone_i(fillTransDone),                              \
+            .EP_IN_fillTransSuccess_i(fillTransSuccess),                        \
+            .EP_IN_dataValid_i(EP_WRITE_EN && isEpSelected),                    \
+            .EP_IN_data_i(wData),                                               \
+            .EP_IN_full_o(EP_IN_full[x]),                                       \
+                                                                                \
+            .EP_IN_popTransDone_i(EP_IN_popTransDone_i[x-1]),                   \
+            .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[x-1]),             \
+            .EP_IN_popData_i(EP_IN_popData_i[x-1]),                             \
+            .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[x-1]),                 \
+            .EP_IN_data_o(EP_IN_data_o[(x-1) * EP_DATA_WID +: EP_DATA_WID]),    \
+                                                                                \
+            /* Device OUT interface */                                          \
+            .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[x-1]),               \
+            .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[x-1]),         \
+            .EP_OUT_dataValid_i(EP_OUT_dataValid_i[x-1]),                       \
+            .EP_OUT_data_i(EP_OUT_data_i[(x-1) * EP_DATA_WID +: EP_DATA_WID]),  \
+            .EP_OUT_full_o(EP_OUT_full_o[x-1]),                                 \
+                                                                                \
+            .EP_OUT_popTransDone_i(popTransDone),                               \
+            .EP_OUT_popTransSuccess_i(popTransSuccess),                         \
+            .EP_OUT_popData_i(EP_READ_EN && isEpSelected),                      \
+            .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[x]),                   \
+            .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[x]),             \
+            .EP_OUT_data_o(EP_OUT_dataOut[x * EP_DATA_WID +: EP_DATA_WID])      \
+        )
+
 
     localparam USB_DEV_ADDR_WID = 7;
     localparam USB_DEV_CONF_WID = 8;
@@ -212,12 +246,8 @@ Device Transaction State Machine Hierarchy Overview:
 
         // Endpoint 0 has its own implementation as it has to handle some unique requests!
         logic isEp0Selected;
-        assign isEp0Selected = !(|epSelect);
-        usb_endpoint_0 #(
-            .USB_DEV_ADDR_WID(USB_DEV_ADDR_WID),
-            .USB_DEV_CONF_WID(USB_DEV_CONF_WID),
-            .EP_CONF(USB_DEV_EP_CONF.ep0Conf)
-        ) ep0 (
+        assign isEp0Selected = epSelect == 0;
+        `EP_0_MODULE(USB_DEV_ADDR_WID, USB_DEV_CONF_WID, USB_DEV_EP_CONF) ep0 (
             .clk48_i(clk48_i),
 
             // Endpoint 0 handles the decice state!
@@ -266,13 +296,14 @@ Device Transaction State Machine Hierarchy Overview:
 
             localparam usb_ep_pkg::EndpointConfig epConfig = USB_DEV_EP_CONF.epConfs[i-1];
 
-            if (epConfig.epType == usb_ep_pkg::NONE) begin 
+            if (!epConfig.isControlEP && epConfig.conf.epTypeDevIn == usb_ep_pkg::NONE && epConfig.conf.epTypeDevOut == usb_ep_pkg::NONE) begin
                 $fatal("Wrong number of endpoints specified! Got endpoint type NONE for ep%i", i);
             end
 
             logic isEpSelected;
             assign isEpSelected = i == epSelect;
 
+            /*
             usb_endpoint #(
                 .EP_CONF(epConfig)
             ) epX (
@@ -285,18 +316,18 @@ Device Transaction State Machine Hierarchy Overview:
                 .EP_IN_data_i(wData),
                 .EP_IN_full_o(EP_IN_full[i]),
 
-                .EP_IN_popTransDone_i(EP_IN_popTransDone_i[i]),
-                .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[i]),
-                .EP_IN_popData_i(EP_IN_popData_i[i]),
-                .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[i]),
-                .EP_IN_data_o(EP_IN_data_o[i * EP_DATA_WID +: EP_DATA_WID]),
+                .EP_IN_popTransDone_i(EP_IN_popTransDone_i[i-1]),
+                .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[i-1]),
+                .EP_IN_popData_i(EP_IN_popData_i[i-1]),
+                .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[i-1]),
+                .EP_IN_data_o(EP_IN_data_o[(i-1) * EP_DATA_WID +: EP_DATA_WID]),
 
                 // Device OUT interface
-                .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[i]),
-                .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[i]),
-                .EP_OUT_dataValid_i(EP_OUT_dataValid_i[i]),
-                .EP_OUT_data_i(EP_OUT_data_i[i * EP_DATA_WID +: EP_DATA_WID]),
-                .EP_OUT_full_o(EP_OUT_full_o[i]),
+                .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[i-1]),
+                .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[i-1]),
+                .EP_OUT_dataValid_i(EP_OUT_dataValid_i[i-1]),
+                .EP_OUT_data_i(EP_OUT_data_i[(i-1) * EP_DATA_WID +: EP_DATA_WID]),
+                .EP_OUT_full_o(EP_OUT_full_o[i-1]),
 
                 .EP_OUT_popTransDone_i(popTransDone),
                 .EP_OUT_popTransSuccess_i(popTransSuccess),
@@ -305,6 +336,26 @@ Device Transaction State Machine Hierarchy Overview:
                 .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[i]),
                 .EP_OUT_data_o(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
             );
+            */
+            case (i)
+                `CREATE_EP_CASE(1);
+                `CREATE_EP_CASE(2);
+                `CREATE_EP_CASE(3);
+                `CREATE_EP_CASE(4);
+                `CREATE_EP_CASE(5);
+                `CREATE_EP_CASE(6);
+                `CREATE_EP_CASE(7);
+                `CREATE_EP_CASE(8);
+                `CREATE_EP_CASE(9);
+                `CREATE_EP_CASE(10);
+                `CREATE_EP_CASE(11);
+                `CREATE_EP_CASE(12);
+                `CREATE_EP_CASE(13);
+                `CREATE_EP_CASE(14);
+                `CREATE_EP_CASE(15);
+                default:
+                    $fatal("Invalid Endpoint count!");
+            endcase
         end
     endgenerate
 
