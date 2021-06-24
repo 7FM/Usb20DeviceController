@@ -206,7 +206,7 @@ package usb_dev_req_pkg;
     select an alternate setting for the specified interface
 
     if the interface of the device only supports a single settings (-> has no alternate setting) -> respond with STALL in the status stage
-    if the interface or the alternate setting does not exist -> respons with Request Error // TODO if only a single default setting exist, then this might be ambiguous!
+    if the interface or the alternate setting does not exist -> responds with Request Error // TODO if only a single default setting exist, then this might be ambiguous!
 
     if wLength != 0 -> device behaviour is not specified
 
