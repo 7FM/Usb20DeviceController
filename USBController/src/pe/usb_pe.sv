@@ -303,40 +303,6 @@ Device Transaction State Machine Hierarchy Overview:
             logic isEpSelected;
             assign isEpSelected = i == epSelect;
 
-            /*
-            usb_endpoint #(
-                .EP_CONF(epConfig)
-            ) epX (
-                .clk48_i(clk48_i),
-
-                // Device IN interface
-                .EP_IN_fillTransDone_i(fillTransDone),
-                .EP_IN_fillTransSuccess_i(fillTransSuccess),
-                .EP_IN_dataValid_i(EP_WRITE_EN && isEpSelected),
-                .EP_IN_data_i(wData),
-                .EP_IN_full_o(EP_IN_full[i]),
-
-                .EP_IN_popTransDone_i(EP_IN_popTransDone_i[i-1]),
-                .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[i-1]),
-                .EP_IN_popData_i(EP_IN_popData_i[i-1]),
-                .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[i-1]),
-                .EP_IN_data_o(EP_IN_data_o[(i-1) * EP_DATA_WID +: EP_DATA_WID]),
-
-                // Device OUT interface
-                .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[i-1]),
-                .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[i-1]),
-                .EP_OUT_dataValid_i(EP_OUT_dataValid_i[i-1]),
-                .EP_OUT_data_i(EP_OUT_data_i[(i-1) * EP_DATA_WID +: EP_DATA_WID]),
-                .EP_OUT_full_o(EP_OUT_full_o[i-1]),
-
-                .EP_OUT_popTransDone_i(popTransDone),
-                .EP_OUT_popTransSuccess_i(popTransSuccess),
-                .EP_OUT_popData_i(EP_READ_EN && isEpSelected),
-                .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[i]),
-                .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[i]),
-                .EP_OUT_data_o(EP_OUT_dataOut[i * EP_DATA_WID +: EP_DATA_WID])
-            );
-            */
             case (i)
                 `CREATE_EP_CASE(1);
                 `CREATE_EP_CASE(2);
