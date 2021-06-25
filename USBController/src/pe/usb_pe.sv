@@ -448,7 +448,7 @@ Device Transaction State Machine Hierarchy Overview:
             receiveSuccess <= 1'b1;
 
             // check that the endptSel is in bounds!
-            if (tokenPacketPart.endptSel < ENDPOINTS) begin
+            if (tokenPacketPart.endptSel < ENDPOINTS[3:0]) begin
                 //TODO needs to consider PID & device state!
                 transactionStarted <= 1'b1; //TODO needs to be cleared too!
                 epSelect <= tokenPacketPart.endptSel[EP_SELECT_WID-1:0];

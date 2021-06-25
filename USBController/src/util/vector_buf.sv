@@ -25,7 +25,7 @@ module vector_buf#(
         end
     endgenerate
 
-    assign isFull_o = bufIdx == BUF_SIZE;
+    assign isFull_o = bufIdx == BUF_SIZE[IDX_WID-1:0];
     assign nextBufIdx = isFull_o ? bufIdx : bufIdx + 1;
 
     logic handshake;

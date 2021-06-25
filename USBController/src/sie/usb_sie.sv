@@ -50,7 +50,7 @@ module usb_sie (
 
     logic isValidDPSignal;
 
-    logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge, dataInN;
+    logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge;
 
     logic txIsSending;
 
