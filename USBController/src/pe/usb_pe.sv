@@ -296,7 +296,7 @@ Device Transaction State Machine Hierarchy Overview:
 
             localparam usb_ep_pkg::EndpointConfig epConfig = USB_DEV_EP_CONF.epConfs[i-1];
 
-            if (!epConfig.isControlEP && epConfig.conf.epTypeDevIn == usb_ep_pkg::NONE && epConfig.conf.epTypeDevOut == usb_ep_pkg::NONE) begin
+            if (!epConfig.isControlEP && epConfig.conf.nonControlEp.epTypeDevIn == usb_ep_pkg::NONE && epConfig.conf.nonControlEp.epTypeDevOut == usb_ep_pkg::NONE) begin
                 $fatal("Wrong number of endpoints specified! Got endpoint type NONE for ep%i", i);
             end
 
@@ -375,7 +375,7 @@ Device Transaction State Machine Hierarchy Overview:
     assign transBufRst = receiveDone;
     vector_buf #(
         .DATA_WID(8),
-        .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN),
+        .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_BYTE_COUNT),
         .INITIALIZE_BUF_IDX(1)
     ) transStartBufWrapper (
         .clk_i(clk48_i),
