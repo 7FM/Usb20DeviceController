@@ -43,6 +43,19 @@ package usb_ep_pkg;
         usb_desc_pkg::DeviceDescriptor deviceDesc;
     } UsbDeviceEpConfig;
 
+    localparam ControlEndpointConfig DefaultControlEpConfig = '{
+        dummy: 0 //TODO remove
+    };
+
+    localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
+        epTypeDevIn: NONE,
+        epTypeDevOut: BULK
+    };
+
+    localparam EndpointConfig DefaultEpConfig = '{
+        isControlEP: 1'b0,
+        conf: DefaultNonControlEpConfig
+    };
 
     localparam usb_desc_pkg::DeviceDescriptor DefaultDeviceDesc = '{
         bcdUSB: usb_desc_pkg::USB_2_0_0,
@@ -57,20 +70,6 @@ package usb_ep_pkg;
         iProduct: 0, //TODO
         iSerialNumber: 0, //TODO
         bNumConfigurations: 1
-    };
-
-    localparam ControlEndpointConfig DefaultControlEpConfig = '{
-        dummy: 0 //TODO remove
-    };
-
-    localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
-        epTypeDevIn: NONE,
-        epTypeDevOut: BULK
-    };
-
-    localparam EndpointConfig DefaultEpConfig = '{
-        isControlEP: 1'b0,
-        conf: DefaultNonControlEpConfig
     };
 
     localparam UsbDeviceEpConfig DefaultUsbDeviceEpConfig = '{
