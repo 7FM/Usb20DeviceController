@@ -55,6 +55,9 @@ module usb_endpoint_0 #(
     output logic [7:0] EP_OUT_data_o
 );
 
+    localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
+    logic [7:0] rom [0:EP0_ROM_SIZE-1];
+
     usb_dev_req_pkg::SetupDataPacket setupDataPacket;
 
     //===============================================================================================================

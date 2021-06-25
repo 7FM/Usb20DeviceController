@@ -1,6 +1,8 @@
 `ifndef USB_DESC_PKG_SV
 `define USB_DESC_PKG_SV
 
+`include "config_pkg.sv"
+
 package usb_desc_pkg;
 
     // Each Usb Device can have 1 or more configurations
@@ -233,26 +235,24 @@ package usb_desc_pkg;
         bDescriptorType: DESC_ENDPOINT
     };
 
-    localparam SUPPORTED_LANGUAGES = 1;
-    localparam MAX_STRING_LEN = 42;
     // String Descriptor: are NOT NULL-terminated!
     typedef struct packed {
         // See: https://www.voidtools.com/support/everything/language_ids/
         // English (GB): 0x0809
         // English (USA): 0x0409
         // German (DE): 0x0407
-        logic [16 * SUPPORTED_LANGUAGES - 1:0] wLANGID;
+        logic [16 * config_pkg::SUPPORTED_LANGUAGES - 1:0] wLANGID;
     } StringDescriptorZero;
 
     localparam DescriptorHeader StringDescriptorZeroHeader = '{
-        bLength: 2 + 2 * SUPPORTED_LANGUAGES,
+        bLength: 2 + 2 * config_pkg::SUPPORTED_LANGUAGES,
         bDescriptorType: DESC_STRING
     };
 
     typedef struct packed {
         logic [7:0] bLength; // String length + 2
         logic [7:0] bDescriptorType; // DESC_STRING
-        logic [8 * MAX_STRING_LEN - 1:0] bString;
+        logic [8 * config_pkg::MAX_STRING_LEN - 1:0] bString;
     } StringDescriptor;
 
 

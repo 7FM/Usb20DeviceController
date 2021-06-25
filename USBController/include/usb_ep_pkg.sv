@@ -36,11 +36,30 @@ package usb_ep_pkg;
 
 
     typedef struct packed {
+        usb_desc_pkg::InterfaceDescriptor ifaceDesc;
+        // The amount of used endpoints is specified in the interface descriptor
+        // However, it can not exceed 15! (exclusive EP0)
+        usb_desc_pkg::EndpointDescriptor [14:0] endpointDescs;
+    } InterfaceDescCollection;
+
+    typedef struct packed {
+        usb_desc_pkg::ConfigurationDescriptor confDesc;
+        InterfaceDescCollection [config_pkg::MAX_INTERFACE_DESCRIPTORS-1:0] ifaces;
+    } ConfigurationDescCollection;
+
+    typedef struct packed {
         ControlEndpointConfig ep0Conf;
         int unsigned endpointCount; // Exclusive EP0
         EndpointConfig [14:0] epConfs; // There can be at most 16 endpoints and one is already reserved for control!
         //TODO
         usb_desc_pkg::DeviceDescriptor deviceDesc;
+        // At least a single configuration is required!
+        ConfigurationDescCollection [config_pkg::MAX_CONFIG_DESCRIPTORS-1:0] devConfigs;
+
+        // String descriptors are optional
+        int unsigned stringDescCount;
+        usb_desc_pkg::StringDescriptorZero supportedLanguages;
+        usb_desc_pkg::StringDescriptor [config_pkg::MAX_STRING_DESCRIPTORS-1:0] stringDescs;
     } UsbDeviceEpConfig;
 
     localparam ControlEndpointConfig DefaultControlEpConfig = '{
@@ -72,28 +91,115 @@ package usb_ep_pkg;
         bNumConfigurations: 1
     };
 
+    localparam usb_desc_pkg::StringDescriptorZero DefaultStringDescriptorZero = '{
+        // Default: only English (GB)
+        wLANGID: {16'h0809}
+    };
+    localparam usb_desc_pkg::StringDescriptor DefaultStringDescriptor = '{
+        bLength: 2 + 5,// String length + 2
+        bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        bString: "DUMMY"
+    };
+
+    localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointINDescriptor = '{
+        bEndpointAddress: {1'b0, 3'b0 , 4'd1}, // Address Zero is reserved
+        bmAttributes: {10'b0, 2'b0, 2'b0, BULK[1:0]},
+        wMaxPacketSize: {3'b0, 2'b0, 11'd512}, // At max 512 bytes per transaction
+        bInterval: 1
+    };
+
+    localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointOUTDescriptor = '{
+        bEndpointAddress: {1'b1, 3'b0 , 4'd1}, // Address Zero is reserved
+        bmAttributes: {10'b0, 2'b0, 2'b0, BULK[1:0]},
+        wMaxPacketSize: {3'b0, 2'b0, 11'd512}, // At max 512 bytes per transaction
+        bInterval: 1
+    };
+
+    localparam usb_desc_pkg::InterfaceDescriptor DefaultInterfaceDescriptor = '{
+        bInterfaceNumber: 0, // Default interface 0
+        bAlternateSetting: 0,
+        bNumEndpoints: 2, // TODO currently we are limited to endpoints that do both input & output
+        bInterfaceClass: 0, //TODO
+        bInterfaceSubClass: 0, //TODO
+        bInterfaceProtocol: 0, //TODO
+        iInterface: 0 // No string descriptor
+    };
+
+    localparam InterfaceDescCollection DefaultInterfaceDescCollection = '{
+        ifaceDesc: DefaultInterfaceDescriptor,
+        endpointDescs: {DefaultEndpointINDescriptor, DefaultEndpointOUTDescriptor}
+    };
+
+    localparam usb_desc_pkg::ConfigurationDescriptor DefaultConfigurationDescriptor = '{
+        // As we only have a single interface and 1 IN & OUT endpoint -> we can sum all descriptor sizes
+        wTotalLength: usb_desc_pkg::ConfigurationDescriptorHeader.bLength + usb_desc_pkg::InterfaceDescriptorHeader.bLength + 2 * usb_desc_pkg::EndpointDescriptorHeader.bLength,
+        bNumInterfaces: 1, // Lets keep it simple and use a single interface!
+        bConfigurationValue: 1, // This is the only configuration
+        iConfiguration: 0, // No string descriptor
+        bmAttributes: 0, //TODO
+        // 500mA
+        bMaxPower: 250
+    };
+
+    localparam ConfigurationDescCollection DefaultConfigurationDescCollection = '{
+        confDesc: DefaultConfigurationDescriptor,
+        // Single interface
+        ifaces: {DefaultInterfaceDescCollection}
+    };
+
     localparam UsbDeviceEpConfig DefaultUsbDeviceEpConfig = '{
         ep0Conf: DefaultControlEpConfig,
         endpointCount: 1,
-        epConfs: '{
-            DefaultEpConfig, // EP 01
-            DefaultEpConfig, // EP 02
-            DefaultEpConfig, // EP 03
-            DefaultEpConfig, // EP 04
-            DefaultEpConfig, // EP 05
-            DefaultEpConfig, // EP 06
-            DefaultEpConfig, // EP 07
-            DefaultEpConfig, // EP 08
-            DefaultEpConfig, // EP 09
-            DefaultEpConfig, // EP 10
-            DefaultEpConfig, // EP 11
-            DefaultEpConfig, // EP 12
-            DefaultEpConfig, // EP 13
+        epConfs: {
+            DefaultEpConfig, // EP 15
             DefaultEpConfig, // EP 14
-            DefaultEpConfig  // EP 15
+            DefaultEpConfig, // EP 13
+            DefaultEpConfig, // EP 12
+            DefaultEpConfig, // EP 11
+            DefaultEpConfig, // EP 10
+            DefaultEpConfig, // EP 09
+            DefaultEpConfig, // EP 08
+            DefaultEpConfig, // EP 07
+            DefaultEpConfig, // EP 06
+            DefaultEpConfig, // EP 05
+            DefaultEpConfig, // EP 04
+            DefaultEpConfig, // EP 03
+            DefaultEpConfig, // EP 02
+            DefaultEpConfig // EP 01
         },
-        deviceDesc: DefaultDeviceDesc
+        deviceDesc: DefaultDeviceDesc,
+        devConfigs: {DefaultConfigurationDescCollection},
+
+        // Optional String descriptors -> omit
+        stringDescCount: 0,
+        supportedLanguages: DefaultStringDescriptorZero,
+        stringDescs: {DefaultStringDescriptor}
     };
+
+    function automatic int requiredROMSize(UsbDeviceEpConfig usbDevConfig);
+        automatic int byteCount;
+        byteCount = 0;
+
+        // A device descriptor is always required!
+        byteCount += usb_desc_pkg::DeviceDescriptorHeader.bLength;
+
+        // Iterate over all available configurations
+        for (int unsigned confIdx = 0; confIdx < usbDevConfig.deviceDesc.bNumConfigurations; confIdx++) begin
+            // wTotalLength must specify the total length for all corresponding configuration, interface & endpoint descriptors
+            // -> no need yet to iterate manually over all!
+            byteCount += usbDevConfig.devConfigs[confIdx].confDesc.wTotalLength;
+        end
+
+        // Optional string descriptors:
+        if (usbDevConfig.stringDescCount > 0) begin
+            byteCount += usb_desc_pkg::StringDescriptorZeroHeader.bLength;
+            for (int unsigned k = 0; k < usbDevConfig.stringDescCount; k++) begin
+                byteCount += usbDevConfig.stringDescs[k].bLength;
+            end
+        end
+
+        return byteCount;
+    endfunction
 
 endpackage
 

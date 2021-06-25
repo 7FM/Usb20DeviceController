@@ -28,6 +28,17 @@ localparam PLL_CLK_RESETB = 1'b1;
 localparam PLL_CLK_BYPASS = 1'b0;
 `endif
 
+// Configuration limitations:
+//TODO reasonable values
+// Max. amount of configurations this device can have!
+localparam MAX_CONFIG_DESCRIPTORS = 2;
+// Max. amount of interfaces per configuration
+localparam MAX_INTERFACE_DESCRIPTORS = 2;
+// String descriptors:
+localparam SUPPORTED_LANGUAGES = 1;
+localparam MAX_STRING_LEN = 20;
+localparam MAX_STRING_DESCRIPTORS = 10;
+
 // Allow overwriting usb endpoint modules to use if specific functionality is desired
 `ifndef EP_0_MODULE
 `define EP_0_MODULE(USB_DEV_ADDR_WID, USB_DEV_CONF_WID, USB_DEV_EP_CONF) \
