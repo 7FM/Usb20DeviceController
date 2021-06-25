@@ -3,7 +3,6 @@
 
 module usb#(
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
-    parameter EP_ADDR_WID = 9,
     parameter EP_DATA_WID = 8,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
@@ -96,8 +95,7 @@ module usb#(
 
     usb_pe #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF),
-        .EP_DATA_WID(EP_DATA_WID),
-        .EP_ADDR_WID(EP_ADDR_WID)
+        .EP_DATA_WID(EP_DATA_WID)
     ) usbProtocolEngine(
         .clk48_i(clk48_i),
 

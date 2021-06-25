@@ -4,7 +4,6 @@
 
 // USB Protocol Engine (PE)
 module usb_pe #(
-    parameter EP_ADDR_WID = 9,
     parameter EP_DATA_WID = 8, //TODO this is a pseudo parameter as byte wise data transfers is fixed assumption throughout the code!
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
@@ -117,7 +116,8 @@ Device Transaction State Machine Hierarchy Overview:
     } TX_IsochState;
     */
 
-    typedef enum logic[3:0] {
+    //TODO adjust length as needed!
+    typedef enum logic[4:0] {
         PE_RST_RX_CLK,
         PE_WAIT_FOR_TRANSACTION,
 
@@ -158,7 +158,7 @@ Device Transaction State Machine Hierarchy Overview:
 //==============================Endpoint logic========================================
 //====================================================================================
 
-    localparam EP_SELECT_WID = $clog2(ENDPOINTS) + 1;
+    localparam EP_SELECT_WID = $clog2(ENDPOINTS);
     logic [EP_SELECT_WID-1:0] epSelect;
     usb_packet_pkg::PID_Types transStartPID;
     logic gotTransStartPacket;

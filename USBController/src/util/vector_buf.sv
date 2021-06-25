@@ -13,7 +13,7 @@ module vector_buf#(
     output logic isFull_o
 );
 
-    localparam IDX_WID = $clog2(BUF_SIZE + 1) + 1;
+    localparam IDX_WID = $clog2(BUF_SIZE + 1);
 
     logic [IDX_WID-1:0] bufIdx, nextBufIdx;
 

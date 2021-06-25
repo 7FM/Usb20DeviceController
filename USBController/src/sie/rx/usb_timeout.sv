@@ -15,7 +15,7 @@ module usb_timeout(
     and it must timeout the transaction if no signaling is seen within 816 bit times.
     */
     localparam TIMEOUT_TICKS = 16;
-    localparam TIMEOUT_CNT_WID = $clog2(TIMEOUT_TICKS) + 1;
+    localparam TIMEOUT_CNT_WID = $clog2(TIMEOUT_TICKS);
 
     logic [TIMEOUT_CNT_WID-1:0] timeoutCnt, timeoutCntAdd1;
 
