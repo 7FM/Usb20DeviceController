@@ -127,12 +127,14 @@ package usb_ep_pkg;
 
     localparam InterfaceDescCollection DefaultInterfaceDescCollection = '{
         ifaceDesc: DefaultInterfaceDescriptor,
+        `MUTE_LINT(WIDTH)
         endpointDescs: {DefaultEndpointINDescriptor, DefaultEndpointOUTDescriptor}
+        `UNMUTE_LINT(WIDTH)
     };
 
     localparam usb_desc_pkg::ConfigurationDescriptor DefaultConfigurationDescriptor = '{
         // As we only have a single interface and 1 IN & OUT endpoint -> we can sum all descriptor sizes
-        wTotalLength: usb_desc_pkg::ConfigurationDescriptorHeader.bLength + usb_desc_pkg::InterfaceDescriptorHeader.bLength + 2 * usb_desc_pkg::EndpointDescriptorHeader.bLength,
+        wTotalLength: {8'b0, usb_desc_pkg::ConfigurationDescriptorHeader.bLength} + {8'b0, usb_desc_pkg::InterfaceDescriptorHeader.bLength} + 2 * {8'b0, usb_desc_pkg::EndpointDescriptorHeader.bLength},
         bNumInterfaces: 1, // Lets keep it simple and use a single interface!
         bConfigurationValue: 1, // This is the only configuration
         iConfiguration: 0, // No string descriptor
@@ -144,7 +146,9 @@ package usb_ep_pkg;
     localparam ConfigurationDescCollection DefaultConfigurationDescCollection = '{
         confDesc: DefaultConfigurationDescriptor,
         // Single interface
+        `MUTE_LINT(WIDTH)
         ifaces: {DefaultInterfaceDescCollection}
+        `UNMUTE_LINT(WIDTH)
     };
 
     localparam UsbDeviceEpConfig DefaultUsbDeviceEpConfig = '{
@@ -168,12 +172,16 @@ package usb_ep_pkg;
             DefaultEpConfig // EP 01
         },
         deviceDesc: DefaultDeviceDesc,
+        `MUTE_LINT(WIDTH)
         devConfigs: {DefaultConfigurationDescCollection},
+        `UNMUTE_LINT(WIDTH)
 
         // Optional String descriptors -> omit
         stringDescCount: 0,
         supportedLanguages: DefaultStringDescriptorZero,
+        `MUTE_LINT(WIDTH)
         stringDescs: {DefaultStringDescriptor}
+        `UNMUTE_LINT(WIDTH)
     };
 
     function automatic int requiredROMSize(UsbDeviceEpConfig usbDevConfig);
@@ -181,20 +189,20 @@ package usb_ep_pkg;
         byteCount = 0;
 
         // A device descriptor is always required!
-        byteCount += usb_desc_pkg::DeviceDescriptorHeader.bLength;
+        byteCount += {24'b0, usb_desc_pkg::DeviceDescriptorHeader.bLength};
 
         // Iterate over all available configurations
         for (int unsigned confIdx = 0; confIdx < usbDevConfig.deviceDesc.bNumConfigurations; confIdx++) begin
             // wTotalLength must specify the total length for all corresponding configuration, interface & endpoint descriptors
             // -> no need yet to iterate manually over all!
-            byteCount += usbDevConfig.devConfigs[confIdx].confDesc.wTotalLength;
+            byteCount += {16'b0, usbDevConfig.devConfigs[confIdx].confDesc.wTotalLength};
         end
 
         // Optional string descriptors:
         if (usbDevConfig.stringDescCount > 0) begin
-            byteCount += usb_desc_pkg::StringDescriptorZeroHeader.bLength;
+            byteCount += {24'b0, usb_desc_pkg::StringDescriptorZeroHeader.bLength};
             for (int unsigned k = 0; k < usbDevConfig.stringDescCount; k++) begin
-                byteCount += usbDevConfig.stringDescs[k].bLength;
+                byteCount += {24'b0, usbDevConfig.stringDescs[k].bLength};
             end
         end
 

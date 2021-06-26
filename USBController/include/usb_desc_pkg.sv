@@ -2,6 +2,7 @@
 `define USB_DESC_PKG_SV
 
 `include "config_pkg.sv"
+`include "util_macros.sv"
 
 package usb_desc_pkg;
 
@@ -95,11 +96,13 @@ package usb_desc_pkg;
         bLength: 18,
         bDescriptorType: DESC_DEVICE
     };
+    localparam DeviceDescriptorBodyBytes = {24'b0, DeviceDescriptorHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
 
 
     // Device_Qualifier Descriptor: describes information about a high-speed capable device that would change if the device changes its operating speed
     // if HS device is operating at FS -> return info about HS and vice-versa
     // For FS or LS only devices -> respond with request error!
+    `MUTE_LINT(UNUSED)
     typedef struct packed {
         UsbVersionBCD bcdUSB;
         logic [7:0] bDeviceClass;
@@ -114,6 +117,8 @@ package usb_desc_pkg;
         bLength: 10,
         bDescriptorType: DESC_DEVICE_QUALIFIER
     };
+    localparam DeviceQualifierDescriptorBodyBytes = {24'b0, DeviceQualifierDescriptorHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
+    `UNMUTE_LINT(UNUSED)
 
 
     // Configuration Descriptor
@@ -121,13 +126,13 @@ package usb_desc_pkg;
     // -> combines all required decriptors and send them in a single transaction!
     typedef struct packed {
         logic [15:0] wTotalLength; // Total length of data returned for this configuration: length of all descriptors: configuration, interface, endpoint, and class/vendor specific
-        logic [7:0] bNumInterfaces; // Number of interfaces supported by this configuration
+        logic [7:0] bNumInterfaces; // Number of interfaces supported by this configuration //TODO are alternate settings included here?
         logic [7:0] bConfigurationValue; // Value to use as an argument to select this configuration
         logic [7:0] iConfiguration; // Index of string descriptor describing this configuration: if not supported set to 0
 
-         // bmAttributes[7] = bmAttributes[4:0] = 0 (reserved)
-         // bmAttributes[6] = Self-powered: is set if the device has a local power source, if a device uses power from bus as well as a local source then bMaxPower has a non zero value
-         // bmAttributes[5] = Remote Wakeup, is set if device supports it
+        // bmAttributes[7] = bmAttributes[4:0] = 0 (reserved)
+        // bmAttributes[6] = Self-powered: is set if the device has a local power source, if a device uses power from bus as well as a local source then bMaxPower has a non zero value
+        // bmAttributes[5] = Remote Wakeup, is set if device supports it
         logic [7:0] bmAttributes;
 
         // Maximum Power consumption of the USB device from the bus. Expressed in 2mA units -> value of 1 corresponds to 2mA
@@ -138,19 +143,21 @@ package usb_desc_pkg;
         bLength: 9,
         bDescriptorType: DESC_CONFIGURATION
     };
+    localparam ConfigurationDescriptorBodyBytes = {24'b0, ConfigurationDescriptorHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
 
 
     // Other_Speed_Configuration Descriptor
     // Has identical fields as the ConfigurationDescriptor but is used as description for the other operation speed!
+    `MUTE_LINT(UNUSED)
     typedef struct packed {
         logic [15:0] wTotalLength; // Total length of data returned for this configuration: length of all descriptors: configuration, interface, endpoint, and class/vendor specific
-        logic [7:0] bNumInterfaces; // Number of interfaces supported by this configuration //TODO are alternate settings included here?
+        logic [7:0] bNumInterfaces; // Number of interfaces supported by this configuration
         logic [7:0] bConfigurationValue; // Value to use as an argument to select this configuration
         logic [7:0] iConfiguration; // Index of string descriptor describing this configuration: if not supported set to 0
 
-         // bmAttributes[7] = bmAttributes[4:0] = 0 (reserved)
-         // bmAttributes[6] = Self-powered: is set if the device has a local power source, if a device uses power from bus as well as a local source then bMaxPower has a non zero value
-         // bmAttributes[5] = Remote Wakeup, is set if device supports it
+        // bmAttributes[7] = bmAttributes[4:0] = 0 (reserved)
+        // bmAttributes[6] = Self-powered: is set if the device has a local power source, if a device uses power from bus as well as a local source then bMaxPower has a non zero value
+        // bmAttributes[5] = Remote Wakeup, is set if device supports it
         logic [7:0] bmAttributes;
 
         // Maximum Power consumption of the USB device from the bus. Expressed in 2mA units -> value of 1 corresponds to 2mA
@@ -161,6 +168,8 @@ package usb_desc_pkg;
         bLength: 9,
         bDescriptorType: DESC_OTHER_SPEED_CONFIGURATION
     };
+    localparam OtherSpeedConfigurationDescriptorBodyBytes = {24'b0, OtherSpeedConfigurationDescriptorHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
+    `UNMUTE_LINT(UNUSED)
 
 
     // Interface Descriptor
@@ -178,6 +187,7 @@ package usb_desc_pkg;
         bLength: 9,
         bDescriptorType: DESC_INTERFACE
     };
+    localparam InterfaceDescriptorBodyBytes = {24'b0, InterfaceDescriptorHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
 
 
     // Endpoint Descriptor
@@ -234,6 +244,8 @@ package usb_desc_pkg;
         bLength: 7,
         bDescriptorType: DESC_ENDPOINT
     };
+    localparam EndpointDescriptorBodyBytes = {24'b0, EndpointDescriptorHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
+
 
     // String Descriptor: are NOT NULL-terminated!
     typedef struct packed {
@@ -248,6 +260,7 @@ package usb_desc_pkg;
         bLength: 2 + 2 * config_pkg::SUPPORTED_LANGUAGES,
         bDescriptorType: DESC_STRING
     };
+    localparam StringDescriptorZeroBodyBytes = {24'b0, StringDescriptorZeroHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
 
     typedef struct packed {
         logic [7:0] bLength; // String length + 2
