@@ -281,11 +281,11 @@ module usb_endpoint_0 #(
 
     //===============================================================================================================
     // Initialize the ROM
-    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)               \
-        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin        \
-            initial begin                            \
-                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];       \
-            end                                      \
+    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                      \
+        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin    \
+            initial begin                                                           \
+                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                    \
+            end                                                                     \
         end
 
     `MUTE_LINT(UNUSED)
