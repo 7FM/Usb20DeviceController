@@ -65,7 +65,14 @@ module usb_rx#()(
 //=====================================Interface Start=====================================
 //=========================================================================================
 
-    //TODO this cascade of registers, likely introduces very very large delays -> another request might already start sending -> DPPL could not be reset!
+    logic isByteData;
+    logic isRxWaitForEop;
+    assign isRxWaitForEop = rxState == RX_WAIT_FOR_EOP;
+    assign isByteData = rxState == RX_GET_PID || isRxWaitForEop;
+
+    // Requires explicit RST to clear eop flag again
+    // If waiting for EOP -> we need the detection -> clear RST flag
+    assign ackEOP_o = ~isRxWaitForEop;
 
     logic [7:0] inputBufRescue, next_inputBufRescue;
     logic [7:0] inputBufDelay1, next_inputBufDelay1;
@@ -75,40 +82,70 @@ module usb_rx#()(
     // This is the last data byte if this currently is a data byte but the next one is not!
     assign rxIsLastByte_o = isDataShiftReg[3] && !isDataShiftReg[2];
 
-    logic dataNotYetRead, next_dataNotYetRead;
+    assign rxDataValid_o = isDataShiftReg[3];
 
-    logic prev_inputBufFull;
     logic prev_receiveCLK_i;
     always_ff @(posedge clk48_i) begin
-        prev_inputBufFull <= inputBufFull;
         prev_receiveCLK_i <= receiveCLK_i;
     end
-
-    logic rxDataSwapPhase, next_rxDataSwapPhase;
-
-    assign rxDataValid_o = dataNotYetRead && ~rxDataSwapPhase;
 
     logic byteWasNotReceived, next_byteWasNotReceived;
     assign keepPacket_o = ~(dropPacket || byteWasNotReceived);
 
-    always_comb begin
-        next_dataNotYetRead = dataNotYetRead;
-        next_byteWasNotReceived = byteWasNotReceived;
-        next_rxDataSwapPhase = rxDataSwapPhase || (~prev_receiveCLK_i && ~receiveCLK_i && prev_inputBufFull);
+    logic rxHandshake;
+    assign rxHandshake = rxDataValid_o && rxAcceptNewData_i;
 
-        if (rxDataValid_o && rxAcceptNewData_i) begin
-            // If handshake condition is met -> data was read
-            next_dataNotYetRead = 1'b0;
-        end if (prev_inputBufFull && ~inputBufFull) begin
-            // Only execute this on negedge of inputBufFull (synchronized via clk48_i)
-            next_rxDataSwapPhase = 1'b0;
-            if (isDataShiftReg[3]) begin
-                // New data is available
-                next_dataNotYetRead = 1'b1;
-                // If the previous byte was not yet read but we got a new byte to read -> error data missing
-                next_byteWasNotReceived = byteWasNotReceived || dataNotYetRead;
+    logic flushBuffersFast, next_flushBuffersFast;
+    // Start flushing fast when EOP was detected and stop as soon as the buffers are empty / the last byte at the front -> no more propagations required
+    assign next_flushBuffersFast = (flushBuffersFast || eopDetected_i) && isDataShiftReg[2];
+
+    logic rxPropagatePipeline;
+    // Propagate the pipeline when inputBufFull is set and we see the negedge of receiveCLK
+    // -> triggers only once!
+    // propagate faster (independent from inputBufFull) after we received the EOP signal
+    assign rxPropagatePipeline = (prev_receiveCLK_i && ~receiveCLK_i && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
+
+    always_comb begin
+        next_byteWasNotReceived = byteWasNotReceived;
+
+        // Data output pipeline
+        next_inputBufRescue = inputBufRescue;
+        next_inputBufDelay1 = inputBufDelay1;
+        next_inputBufDelay2 = inputBufDelay2;
+        next_rxData = rxData_o;
+        next_isDataShiftReg = isDataShiftReg;
+
+        if (rxPropagatePipeline) begin
+            // Propagate pipeline
+            next_inputBufRescue = inputBuf;
+            next_inputBufDelay1 = inputBufRescue;
+            next_inputBufDelay2 = inputBufDelay1;
+            next_rxData = inputBufDelay2;
+            next_isDataShiftReg = {isDataShiftReg[2:0], isByteData && !flushBuffersFast};
+
+            // If we want to propagate the pipeline and there was still unread data (isData is set & we have no handshake in the same cycle)
+            // Then the backend missed reading a byte -> error, we need to drop the entire packet!
+            if (!rxHandshake && isDataShiftReg[3]) begin
+                next_byteWasNotReceived = 1'b1;
+            end
+        end else if (rxHandshake) begin
+            // If handshake condition is met -> data was read, clear the data signal
+            next_isDataShiftReg[3] = 1'b0;
+        end
+
+        // Apply patching isData when we received the EndOfPacket signal
+        if (eopDetected_i) begin
+            if (needCRC16Handling) begin
+                // When CRC16 is used then the last two crc bytes in the pipeline are no user data
+                // -> the thrid byte in the delay queue is the last byte
+                next_isDataShiftReg[1:0] = 2'b0;
+            end else begin
+                // Else when CRC5 or no CRC at all is used then the first byte in the queue is the last one
+                // Also no CRC byte has to be invalidated!
+                // -> nothing to do here!
             end
         end
+
     end
 
     //===================================================
@@ -116,24 +153,25 @@ module usb_rx#()(
     //===================================================
     initial begin
         byteWasNotReceived = 1'b0;
-        prev_inputBufFull = 1'b0;
         prev_receiveCLK_i = 1'b0;
-        rxDataSwapPhase = 1'b0;
-        dataNotYetRead = 1'b0;
+        flushBuffersFast = 1'b0;
         isDataShiftReg = 4'b0;
     end
 
     // Use faster clock domain for the handshaking logic
     always_ff @(posedge clk48_i) begin
         if (rxRST_i) begin
-            dataNotYetRead <= 1'b0;
             byteWasNotReceived <= 1'b0;
-            rxDataSwapPhase <= 1'b0;
         end else begin
-            dataNotYetRead <= next_dataNotYetRead;
             byteWasNotReceived <= next_byteWasNotReceived;
-            rxDataSwapPhase <= next_rxDataSwapPhase;
         end
+
+        inputBufRescue <= next_inputBufRescue;
+        inputBufDelay1 <= next_inputBufDelay1;
+        inputBufDelay2 <= next_inputBufDelay2;
+        rxData_o <= next_rxData;
+        isDataShiftReg <= next_isDataShiftReg;
+        flushBuffersFast <= next_flushBuffersFast;
     end
 
 //=========================================================================================
@@ -146,12 +184,9 @@ module usb_rx#()(
 
     // Reset signals
     logic rxInputShiftRegReset;
-
-    logic rxEopDetectorReset; // Requires explicit RST to clear eop flag again
-    assign ackEOP_o = rxEopDetectorReset;
     logic rxNRZiDecodeReset;
-    logic byteGotSignalError;
 
+    logic byteGotSignalError;
 
     //===================================================
     // Initialization
@@ -183,20 +218,12 @@ module usb_rx#()(
     always_comb begin
         rxInputShiftRegReset = 1'b0;
         rxNRZiDecodeReset = 1'b0;
-        rxEopDetectorReset = 1'b1; // by default reset EOP detection
         rxCRCReset_o = 1'b0;
 
         next_rxState = rxState;
         nextNeedCRC16Handling = needCRC16Handling;
         next_dropPacket = defaultNextDropPacket;
         next_lastByteValidCRC = lastByteValidCRC;
-
-        // Data output pipeline
-        next_inputBufRescue = inputBufFull ? inputBuf : inputBufRescue;
-        next_inputBufDelay1 = inputBufFull ? inputBufRescue : inputBufDelay1;
-        next_inputBufDelay2 = inputBufFull ? inputBufDelay1 : inputBufDelay2;
-        next_rxData = inputBufFull ? inputBufDelay2 : rxData_o;
-        next_isDataShiftReg = inputBufFull ? {isDataShiftReg[2:0], 1'b0} : isDataShiftReg;
 
         unique case (rxState)
             RX_WAIT_FOR_SYNC: begin
@@ -223,9 +250,6 @@ module usb_rx#()(
                 if (inputBufFull) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
-
-                    // This byte is data!
-                    next_isDataShiftReg[0] = 1'b1;
                 end else begin
                     // If inputBufFull is set, we already receive the first data bit -> hence crc needs to receive this bit -> but CRC reset low
                     rxCRCReset_o = 1'b1;
@@ -238,32 +262,17 @@ module usb_rx#()(
                 // Sanity check: does the CRC match?
                 next_dropPacket = defaultNextDropPacket || (eopDetected_i && !lastByteValidCRC);
 
-                // We need the EOP detection -> clear RST flag
-                rxEopDetectorReset = 1'b0;
-
                 if (eopDetected_i) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
-                    if (needCRC16Handling) begin
-                        // When CRC16 is used then the last two crc bytes in the pipeline are no user data
-                        // -> the thrid byte in the delay queue is the last byte
-                        next_isDataShiftReg[1:0] = 2'b0;
-                    end else begin
-                        // Else when CRC5 or no CRC at all is used then the first byte in the queue is the last one
-                        // Also no CRC byte has to be invalidated!
-                        // -> nothing to do here!
-                    end
                 end else if (inputBufFull) begin
+                    // Update is valid crc flag after each byte such that when we receive EOP we can check if the crc was correct for the last byte -> the entire packet!
                     next_lastByteValidCRC = isValidCRC_i;
-
-                    // This byte is data!
-                    next_isDataShiftReg[0] = 1'b1;
                 end
             end
             RX_RST_PHASE: begin
                 // Go back to the initial state
                 next_rxState = RX_WAIT_FOR_SYNC;
-
 
                 // Trigger some resets
                 // TODO is a RST needed for the NRZI decoder?
@@ -285,12 +294,6 @@ module usb_rx#()(
         byteGotSignalError <= inputBufFull ? signalError : next_byteGotSignalError;
         // We need to delay isValidDPSignal_i because our nrzi decoder introduces a delay to the decoded signal too
         gotInvalidDPSignal <= !isValidDPSignal_i;
-
-        inputBufRescue <= next_inputBufRescue;
-        inputBufDelay1 <= next_inputBufDelay1;
-        inputBufDelay2 <= next_inputBufDelay2;
-        rxData_o <= next_rxData;
-        isDataShiftReg <= next_isDataShiftReg;
     end
 
     // Stage 0
