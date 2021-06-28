@@ -71,9 +71,9 @@ module usb_rx#()(
     logic [7:0] inputBufDelay1, next_inputBufDelay1;
     logic [7:0] inputBufDelay2, next_inputBufDelay2;
     logic [7:0] next_rxData;
-    logic [3:0] isLastShiftReg, next_isLastShiftReg;
     logic [3:0] isDataShiftReg, next_isDataShiftReg;
-    assign rxIsLastByte_o = isLastShiftReg[3];
+    // This is the last data byte if this currently is a data byte but the next one is not!
+    assign rxIsLastByte_o = isDataShiftReg[3] && !isDataShiftReg[2];
 
     logic dataNotYetRead, next_dataNotYetRead;
 
@@ -120,7 +120,6 @@ module usb_rx#()(
         prev_receiveCLK_i = 1'b0;
         rxDataSwapPhase = 1'b0;
         dataNotYetRead = 1'b0;
-        isLastShiftReg = 4'b0;
         isDataShiftReg = 4'b0;
     end
 
@@ -197,7 +196,6 @@ module usb_rx#()(
         next_inputBufDelay1 = inputBufFull ? inputBufRescue : inputBufDelay1;
         next_inputBufDelay2 = inputBufFull ? inputBufDelay1 : inputBufDelay2;
         next_rxData = inputBufFull ? inputBufDelay2 : rxData_o;
-        next_isLastShiftReg = inputBufFull ? {isLastShiftReg[2:0], 1'b0} : isLastShiftReg;
         next_isDataShiftReg = inputBufFull ? {isDataShiftReg[2:0], 1'b0} : isDataShiftReg;
 
         unique case (rxState)
@@ -248,13 +246,12 @@ module usb_rx#()(
                     next_rxState = rxStateAdd1;
                     if (needCRC16Handling) begin
                         // When CRC16 is used then the last two crc bytes in the pipeline are no user data
+                        // -> the thrid byte in the delay queue is the last byte
                         next_isDataShiftReg[1:0] = 2'b0;
-                        // Also the thrid byte in the delay queue is the last byte
-                        next_isLastShiftReg[2] = 1'b1;
                     end else begin
                         // Else when CRC5 or no CRC at all is used then the first byte in the queue is the last one
                         // Also no CRC byte has to be invalidated!
-                        next_isLastShiftReg[0] = 1'b1;
+                        // -> nothing to do here!
                     end
                 end else if (inputBufFull) begin
                     next_lastByteValidCRC = isValidCRC_i;
@@ -293,7 +290,6 @@ module usb_rx#()(
         inputBufDelay1 <= next_inputBufDelay1;
         inputBufDelay2 <= next_inputBufDelay2;
         rxData_o <= next_rxData;
-        isLastShiftReg <= next_isLastShiftReg;
         isDataShiftReg <= next_isDataShiftReg;
     end
 
