@@ -103,7 +103,7 @@ module usb_rx#()(
     // Propagate the pipeline when inputBufFull is set and we see the negedge of receiveCLK
     // -> triggers only once!
     // propagate faster (independent from inputBufFull) after we received the EOP signal
-    assign rxPropagatePipeline = (prev_receiveCLK_i && ~receiveCLK_i && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
+    assign rxPropagatePipeline = (rxState != RX_WAIT_FOR_SYNC && prev_receiveCLK_i && ~receiveCLK_i && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
 
     always_comb begin
         next_byteWasNotReceived = byteWasNotReceived;
