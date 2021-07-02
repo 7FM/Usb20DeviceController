@@ -220,13 +220,54 @@ int main(int argc, char **argv) {
             }
 
             case 4: {
-                txState.dataToSend.push_back(PID_DATA0 ^ 1);
+                txState.dataToSend.push_back(PID_DATA0 ^ 0x80);
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
                 txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
 
-                std::cout << "Test packet with invalid PID -> we expect keepPacket = 0" << std::endl;
+                std::cout << "Test data packet with invalid PID \"checksum\" -> we expect keepPacket = 0" << std::endl;
+                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                expectedKeepPacket = false;
+                break;
+            }
+
+            case 5: {
+                txState.dataToSend.push_back(PID_HANDSHAKE_ACK);
+
+                std::cout << "Test handshake packet ACK" << std::endl;
+                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                break;
+            }
+
+            case 6: {
+                txState.dataToSend.push_back(PID_HANDSHAKE_NACK);
+
+                std::cout << "Test handshake packet NACK" << std::endl;
+                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                break;
+            }
+
+            case 7: {
+                txState.dataToSend.push_back(PID_HANDSHAKE_STALL);
+
+                std::cout << "Test handshake packet STALL" << std::endl;
+                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                break;
+            }
+
+            case 8: {
+                txState.dataToSend.push_back(PID_HANDSHAKE_NYET);
+
+                std::cout << "Test handshake packet NYET" << std::endl;
+                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                break;
+            }
+
+            case 9: {
+                txState.dataToSend.push_back(PID_DATA0 ^ 0x01);
+
+                std::cout << "Test handshake packet with invalid PID \"checksum\" -> we expect keepPacket = 0" << std::endl;
                 std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
                 expectedKeepPacket = false;
                 break;
