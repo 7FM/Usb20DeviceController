@@ -148,6 +148,7 @@ int main(int argc, char **argv) {
         reset();
 
         //TODO test different packet types!
+        bool expectedKeepPacket = true;
 
         switch (it) {
 
@@ -210,6 +211,19 @@ int main(int argc, char **argv) {
                 break;
             }
 
+            case 4: {
+                txState.dataToSend.push_back(PID_DATA0 ^ 1);
+                txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
+                txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
+                txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
+                txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
+
+                std::cout << "Test packet with invalid PID -> we expect keepPacket = 0" << std::endl;
+                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                expectedKeepPacket = false;
+                break;
+            }
+
             default: {
                 std::cout << "No more test packets left" << std::endl;
                 goto exitAndCleanup;
@@ -227,7 +241,7 @@ int main(int argc, char **argv) {
         // First compare amount of data
         if (txState.dataToSend.size() != rxState.receivedData.size()) {
             std::cerr << "Send and received byte count differs!\n    Expected: " << txState.dataToSend.size() << " got: " << rxState.receivedData.size() << std::endl;
-            testFailed = 1;
+            ++testFailed;
         }
 
         // Then compare the data itself
@@ -235,14 +249,14 @@ int main(int argc, char **argv) {
         for (size_t i = 0; i < compareSize; ++i) {
             if (txState.dataToSend[i] != rxState.receivedData[i]) {
                 std::cerr << "Send and received byte " << i << "differ!\n    Expected: 0x" << std::hex << static_cast<int>(txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(rxState.receivedData[i]) << std::endl;
-                testFailed = 1;
+                ++testFailed;
             }
         }
 
         // Finally check that the packet should be kept!
-        if (!rxState.keepPacket) {
-            std::cerr << "Packet transmission failed, likely CRC calculation or transmission failed!" << std::endl;
-            testFailed = 1;
+        if (expectedKeepPacket != rxState.keepPacket) {
+            std::cerr << "Keep packet has an unexpected value! Expected: " << expectedKeepPacket << " got: " << rxState.keepPacket << std::endl;
+            ++testFailed;
         }
 
         std::cout << std::endl;
