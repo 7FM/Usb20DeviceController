@@ -97,7 +97,7 @@ module usb_rx#()(
 
     logic flushBuffersFast, next_flushBuffersFast;
     // Start flushing fast when EOP was detected and stop as soon as the buffers are empty / the last byte at the front -> no more propagations required
-    assign next_flushBuffersFast = (flushBuffersFast || eopDetected_i) && isDataShiftReg[2];
+    assign next_flushBuffersFast = (flushBuffersFast || eopDetected_i) && |isDataShiftReg[2:0];
 
     logic rxPropagatePipeline;
     // Propagate the pipeline when inputBufFull is set and we see the negedge of receiveCLK
