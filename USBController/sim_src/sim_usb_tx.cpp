@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <atomic>
 #include <bitset>
+#include <csignal>
 #include <cstdint>
 #include <getopt.h>
 #include <verilated.h> // Defines common routines
@@ -20,11 +22,19 @@ static VerilatedVcdC *tfp = nullptr;
 
 static vluint64_t main_time = 0; // Current simulation time
 
+static std::atomic_bool forceStop = false;
+
 static bool stopCondition();
 
 static void sanityChecks();
 static void onRisingEdge();
 static void onFallingEdge();
+
+static void signalHandler(int signal) {
+    if (signal == SIGINT) {
+        forceStop = true;
+    }
+}
 
 /**
 * Called by $time in Verilog
@@ -71,7 +81,7 @@ static void sanityChecks() {
 }
 
 static bool stopCondition() {
-    return rxState.receivedLastByte;
+    return rxState.receivedLastByte || forceStop;
 }
 
 static void onRisingEdge() {
@@ -108,6 +118,8 @@ static void reset() {
 
 /******************************************************************************/
 int main(int argc, char **argv) {
+    std::signal(SIGINT, signalHandler);
+
     Verilated::commandArgs(argc, argv);
     ptop = new TOP_MODULE; // Create instance
 
@@ -144,7 +156,7 @@ int main(int argc, char **argv) {
     }
 
     // start things going
-    for (int it = 0; true; ++it) {
+    for (int it = 0; !forceStop; ++it) {
         reset();
 
         //TODO test different packet types!
@@ -235,8 +247,14 @@ int main(int argc, char **argv) {
         }
         // Execute till stop condition
         run(0, true);
+        if (forceStop) {
+            goto exitAndCleanup;
+        }
         // Execute a few more cycles
         run(4 * 10, true, false);
+        if (forceStop) {
+            goto exitAndCleanup;
+        }
 
         // First compare amount of data
         if (txState.dataToSend.size() != rxState.receivedData.size()) {
@@ -266,7 +284,11 @@ exitAndCleanup:
 
     std::cout << std::endl
               << "Tests ";
-    if (testFailed) {
+
+    if (forceStop) {
+        std::cout << "ABORTED!" << std::endl;
+        std::cerr << "The user requested a forced stop!" << std::endl;
+    } else if (testFailed) {
         std::cout << "FAILED!" << std::endl;
     } else {
         std::cout << "PASSED!" << std::endl;
