@@ -5,7 +5,6 @@
 module usb_rx#()(
     input logic clk48_i,
     input logic receiveCLK_i,
-    input logic rxRST_i,
 
     // CRC interface
     output logic rxCRCReset_o,
@@ -106,7 +105,8 @@ module usb_rx#()(
     assign rxPropagatePipeline = (rxState != RX_WAIT_FOR_SYNC && prev_receiveCLK_i && ~receiveCLK_i && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
 
     always_comb begin
-        next_byteWasNotReceived = byteWasNotReceived;
+        // If there is no more data left then we can clear the flag!
+        next_byteWasNotReceived = byteWasNotReceived && (isDataShiftReg[3] || isDataShiftReg[2]);
 
         // Data output pipeline
         next_inputBufRescue = inputBufRescue;
@@ -160,17 +160,12 @@ module usb_rx#()(
 
     // Use faster clock domain for the handshaking logic
     always_ff @(posedge clk48_i) begin
-        if (rxRST_i) begin
-            byteWasNotReceived <= 1'b0;
-        end else begin
-            byteWasNotReceived <= next_byteWasNotReceived;
-        end
-
         inputBufRescue <= next_inputBufRescue;
         inputBufDelay1 <= next_inputBufDelay1;
         inputBufDelay2 <= next_inputBufDelay2;
         rxData_o <= next_rxData;
         isDataShiftReg <= next_isDataShiftReg;
+        byteWasNotReceived <= next_byteWasNotReceived;
         flushBuffersFast <= next_flushBuffersFast;
     end
 

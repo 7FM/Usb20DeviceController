@@ -93,7 +93,6 @@ module sim_usb_rx_connection (
     usb_rx uut(
         .clk48_i(CLK),
         .receiveCLK_i(rxClk12),
-        .rxRST_i(rxRST),
 
         // CRC interface
         .rxCRCReset_o(rxCRCReset),

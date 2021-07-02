@@ -183,12 +183,9 @@ module usb_sie (
     // RECEIVE Modules
     // =====================================================================================================
 
-    logic rxRST = isSendingPhase_i; //TODO
-
     usb_rx#() usbRxModules(
         .clk48_i(clk48_i),
         .receiveCLK_i(rxClk12),
-        .rxRST_i(rxRST),
 
         // CRC interface
         .rxCRCReset_o(rxCRCReset),
