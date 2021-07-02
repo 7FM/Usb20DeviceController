@@ -126,7 +126,7 @@ $$(V_DIR)/$(sim_top)/Vsim_$(sim_top).mk: $(call rwildcard,$(SIM_SRC)/$(sim_top),
 	 	-LDFLAGS "$$(LDFLAGS)$$(if $$(PROFILE), -g -pg,)" \
 		-I$$(SRC) -I$$(INCLUDE_DIR) \
 		--exe $$(PWD)$$(SIM_SRC)/sim_$(sim_top).cpp $(call rwildcard,$$(PWD)$$(SIM_SRC)/$(sim_top),*.cpp) \
-		-sv --top-module sim_$(sim_top) --trace --trace-structs $$(srcs) || true
+		-sv --top-module sim_$(sim_top) --trace --trace-structs --trace-underscore $$(srcs) || true
 	@echo "============================================================================================"
 endef
 
