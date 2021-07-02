@@ -124,12 +124,11 @@ int main(int argc, char **argv) {
     ptop = new TOP_MODULE; // Create instance
 
     int verbose = 0;
-    int start = 0;
     int testFailed = 0;
 
     int opt;
 
-    while ((opt = getopt(argc, argv, ":s:t:v:")) != -1) {
+    while ((opt = getopt(argc, argv, ":t:v:")) != -1) {
         switch (opt) {
             case 'v':
                 verbose = std::atoi(optarg);
@@ -140,9 +139,6 @@ int main(int argc, char **argv) {
                 tfp = new VerilatedVcdC;
                 ptop->trace(tfp, 99);
                 tfp->open(optarg);
-                break;
-            case 's':
-                start = std::atoi(optarg);
                 break;
             case ':':
                 std::cout << "option needs a value" << std::endl;
@@ -242,9 +238,6 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (start) {
-            run(start, false);
-        }
         // Execute till stop condition
         run(0, true);
         if (forceStop) {
