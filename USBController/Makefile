@@ -8,6 +8,8 @@ SIM_DEFS ?= -DRUN_SIM
 
 TOP_MODULE ?= top
 
+SV2V_TOP_V ?= top.v
+
 LOG ?= build.log
 
 TARGET ?= ice40
@@ -37,15 +39,23 @@ else
    $(error Unsupported Target!)
 endif
 
+# Required Tools
 SYN_PREFIX ?=
 SYN := $(SYN_PREFIX)yosys
+
 PNR_PREFIX ?=
 PNR := $(PNR_PREFIX)nextpnr-$(TARGET)
+
 BITGEN_PREFIX ?=
 BITGEN := $(BITGEN_PREFIX)$(BITGEN)
+
 VERILATOR_PREFIX ?=
 VERILATOR := $(VERILATOR_PREFIX)verilator
 
+SV2V_PREFIX ?=
+SV2V := $(SV2V_PREFIX)sv2v
+
+# (System-)Verilog and simulation sources
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 srcs := $(call rwildcard,$(INCLUDE_DIR),*.v)
@@ -60,6 +70,7 @@ sim_tops := $(patsubst sim_%.cpp,%,$(notdir $(sim_targets)))
 
 deps := $(call rwildcard,$(V_DIR),*.d)
 
+sv2v_target := $(BUILDDIR)/$(SV2V_TOP_V)
 syn_target := $(BUILDDIR)/$(TOP_MODULE).json
 
 PWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -100,12 +111,17 @@ genBitstream: $(pnr_target)
 	@echo "============================================================================================"
 
 # Synthesis
-$(syn_target): $(srcs)
+$(syn_target): $(sv2v_target)
 	@mkdir -p $(BUILDDIR)
 # Uses patched yosys version to allow specifying include dirs before all files are read
-	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
-#	$(SYN) -T -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+#	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+	$(SYN) -T -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
 	@echo "============================================================================================"
+
+# Compile SV files to a single verilog file that yosys can handle
+$(sv2v_target): $(srcs)
+	@mkdir -p $(BUILDDIR)
+	$(SV2V) -I $(INCLUDE_DIR) -w $@ $^
 
 define GEN_SIM_RULES
 .PHONY: sim_$(sim_top)
