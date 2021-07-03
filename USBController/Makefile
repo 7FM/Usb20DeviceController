@@ -10,7 +10,7 @@ TOP_MODULE ?= top
 
 SV2V_TOP_V ?= top.v
 
-LOG ?= build.log
+LOG ?= $(BUILDDIR)/build.log
 
 TARGET ?= ice40
 #TARGET_FREQ ?= 48
