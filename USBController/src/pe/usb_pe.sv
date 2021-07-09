@@ -256,7 +256,7 @@ Device Transaction State Machine Hierarchy Overview:
             .deviceAddr_o(deviceAddr),
             .deviceConf_o(deviceConf),
 
-            .transStartPID_i(transStartPID),
+            .transStartTokenID_i(transStartPID[3:2]),
             .gotTransStartPacket_i(gotTransStartPacket),
 
             // Device IN interface

@@ -21,7 +21,7 @@ module usb_endpoint_0 #(
     output logic [USB_DEV_CONF_WID-1:0] deviceConf_o,
 
     input logic gotTransStartPacket_i,
-    input usb_packet_pkg::PID_Types transStartPID_i,
+    input logic[1:0] transStartTokenID_i,
 
     // Device IN interface
     input logic EP_IN_fillTransDone_i,
@@ -124,19 +124,12 @@ module usb_endpoint_0 #(
         deviceConf_o <= nextDeviceConf;
     end
 
-    //TODO adjust data width
-    typedef enum logic[1:0] {
-        //TODO
-        NEW_DEV_REQUEST,
-        HANDLE_REQUEST
-    } EP0_State;
-
     logic packetBufRst;
     logic packetBufFull;
-    
     localparam BUF_WID = BUF_BYTE_COUNT * 8;
-
     logic [BUF_WID-1:0] packetBuf;
+
+    logic byteIsData, nextByteIsData;
 
     vector_buf #(
         .DATA_WID(8),
@@ -146,40 +139,71 @@ module usb_endpoint_0 #(
         .rst_i(packetBufRst),
 
         .data_i(EP_IN_data_i),
-        .dataValid_i(EP_IN_dataValid_i),
+        .dataValid_i(EP_IN_dataValid_i && byteIsData),
 
         .buffer_o(packetBuf),
         .isFull_o(packetBufFull)
     );
 
+    //TODO adjust data width
+    typedef enum logic[1:0] {
+        //TODO
+        NEW_DEV_REQUEST,
+        HANDLE_REQUEST
+    } EP0_State;
     EP0_State ep0State, nextEp0State;
     usb_dev_req_pkg::RequestCode deviceRequest;
+    logic requestError, nextRequestError;
+    logic pidData1Expected, nextPidData1Expected;
 
     assign setupDataPacket = usb_dev_req_pkg::SetupDataPacket'(packetBuf[usb_dev_req_pkg::SETUP_DATA_PACKET_BYTE_COUNT * 8 - 1 : 0]);
 
     initial begin
+        pidData1Expected = 1'b0;
         ep0State = NEW_DEV_REQUEST;
     end
 
     assign EP_IN_full_o = packetBufFull || (ep0State == NEW_DEV_REQUEST ? 1'b0 //TODO
         : setupDataPacket.bmRequestType.dataTransDevToHost /*Error if we expect to send data!*/);
 
+    generate
     always_comb begin
         nextEp0State = ep0State;
         gotAddrAssigned = 1'b0;
         gotDevConfig = 1'b0;
-        packetBufRst = EP_IN_fillTransDone_i || gotTransStartPacket_i;
+        packetBufRst = gotTransStartPacket_i;
+
+        nextRomReadIdx = romReadIdx;
+        nextRomEndReadIdx = romEndReadIdx;
+        nextRequestError = requestError;
+        // Set this byte as soon as we have a handshake -> we skipped PID
+        nextByteIsData = byteIsData;
+        nextPidData1Expected = pidData1Expected;
 
         // A new transaction started
         if (gotTransStartPacket_i) begin
-            if (transStartPID_i[3:2] == usb_packet_pkg::PID_SETUP_TOKEN[3:2]) begin
+            // Ignore the first byte which is the PID
+            nextByteIsData = 1'b0;
+            if (transStartTokenID_i == usb_packet_pkg::PID_SETUP_TOKEN[3:2]) begin
                 // it is an setup token -> go to new_dev_req state
                 nextEp0State = NEW_DEV_REQUEST;
+                nextRequestError = 1'b0;
             end else begin
-                //TODO check if PID is valid (i.e. correct DATA toggle value)!
+                //TODO check if token PID is valid, I guess we only allow Host IN tokens, otherwise it should be a setup TOKEN!
             end
         end else if (ep0State == NEW_DEV_REQUEST) begin
-            if (EP_IN_fillTransDone_i) begin
+            if (!byteIsData && EP_IN_dataValid_i && !EP_IN_full_o) begin
+                // Once we have skipped the PID we have data bytes!
+                nextByteIsData = 1'b1;
+                //TODO make PID checks (i.e. correct DATA toggle value)!
+                if (EP_IN_data_i[0] != pidData1Expected) begin
+                   //TODO ignore this packet (except its setup then it should not matter)
+                end else begin
+                    // Else if the DATA toggle value is as expected, toggle it for the next transaction!
+                    //TODO this must be reverted if during rx an error occurred!
+                    nextPidData1Expected = !pidData1Expected;
+                end
+            end else if (EP_IN_fillTransDone_i) begin
                 nextEp0State = HANDLE_REQUEST;
 
                 if (EP_IN_fillTransSuccess_i) begin
@@ -187,96 +211,112 @@ module usb_endpoint_0 #(
                     unique case (setupDataPacket.bRequest)                    
                         usb_dev_req_pkg::GET_STATUS: begin
                             if (`GET_STATUS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO apply
+                                //TODO This requests returns the status for the specified recipient
+                                //TODO as we currently do not support features as remote wakeup or endpoint halting, we can always return 2 bytes set to 0
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
+                        /*
                         usb_dev_req_pkg::CLEAR_FEATURE: begin
                             if (`CLEAR_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO apply
+                                //TODO do we want to support this?
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
                         usb_dev_req_pkg::SET_FEATURE: begin
                             if (`SET_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO apply
+                                //TODO do we want to support this?
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
+                        */
                         usb_dev_req_pkg::SET_ADDRESS: begin
                             if (`SET_ADDRESS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 gotAddrAssigned = 1'b1;
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
                         usb_dev_req_pkg::GET_DESCRIPTOR: begin
                             if (`GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 //TODO apply
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
+                        /*
                         usb_dev_req_pkg::SET_DESCRIPTOR: begin
                             // This request is optional to implement
-                            //TODO request error!
+                            nextRequestError = 1'b1;
                         end
+                        */
                         usb_dev_req_pkg::GET_CONFIGURATION: begin
                             if (`GET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO apply
+                                //TODO send current configuration value
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
                         usb_dev_req_pkg::SET_CONFIGURATION: begin
                             if (`SET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 gotDevConfig = 1'b1;
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
                         usb_dev_req_pkg::GET_INTERFACE: begin
                             if (`GET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO apply
+                                //TODO This request returns the selected alternate setting for the specified interface
+                                //TODO as we currently do not allow setting an alternate interface we can simply return 1 byte set to 0 which is the default interface!
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
+                        /*
                         usb_dev_req_pkg::SET_INTERFACE: begin
                             if (`SET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO apply
+                                //TODO select an alternate setting for the specified interface
+                                //TODO do we want to support alternate interfaces???
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
+                        */
                         usb_dev_req_pkg::SYNCH_FRAME: begin
                             if (`SYNCH_FRAME_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 // Is only used for isochronous data transfers using implicit pattern synchronization.
                                 //TODO apply
+                                //TODO this is required for isochronous endpoints
                             end else begin
-                                //TODO request error!
+                                nextRequestError = 1'b1;
                             end
                         end
+                        /*
                         usb_dev_req_pkg::RESERVED_2, usb_dev_req_pkg::RESERVED_4: begin
-                            //TODO request error!
+                            nextRequestError = 1'b1;
                         end
+                        */
                         default: begin
                             //IMPL_SPECIFIC_13_255
                             // Else we have vendor/implementation specific requests -> delegate?
                             // For now lets just issue an request error
-                            //TODO request error!
+                            nextRequestError = 1'b1;
                         end
                     endcase
                 end
             end
         end
     end
+    endgenerate
 
     always_ff @(posedge clk48_i) begin
         ep0State <= nextEp0State;
+        requestError <= nextRequestError;
+        //TODO this needs to be reset to 0 on transition to certain device states too
+        pidData1Expected <= nextPidData1Expected;
     end
 
     //===============================================================================================================
