@@ -8,8 +8,6 @@ SIM_DEFS ?= -DRUN_SIM
 
 TOP_MODULE ?= top
 
-SV2V_TOP_V ?= top.v
-
 LOG ?= $(BUILDDIR)/build.log
 
 TARGET ?= ice40
@@ -70,7 +68,8 @@ sim_tops := $(patsubst sim_%.cpp,%,$(notdir $(sim_targets)))
 
 deps := $(call rwildcard,$(V_DIR),*.d)
 
-sv2v_target := $(BUILDDIR)/$(SV2V_TOP_V)
+sv2v_target_imm := $(BUILDDIR)/$(TOP_MODULE).v
+sv2v_target := $(BUILDDIR)/$(TOP_MODULE).sv
 syn_target := $(BUILDDIR)/$(TOP_MODULE).json
 
 PWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -111,17 +110,20 @@ genBitstream: $(pnr_target)
 	@echo "============================================================================================"
 
 # Synthesis
-$(syn_target): $(sv2v_target)
-	@mkdir -p $(BUILDDIR)
+#$(syn_target): $(srcs)
 # Uses patched yosys version to allow specifying include dirs before all files are read
 #	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+$(syn_target): $(sv2v_target)
+	@mkdir -p $(BUILDDIR)
 	$(SYN) -T -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
 	@echo "============================================================================================"
 
-# Compile SV files to a single verilog file that yosys can handle
-$(sv2v_target): $(srcs)
+# Compile SV files to a single verilog file that yosys can handle, then rename it to an system verilog file
+$(sv2v_target): $(sv2v_target_imm)
+	mv $^ $@
+$(sv2v_target_imm): $(srcs)
 	@mkdir -p $(BUILDDIR)
-	$(SV2V) -I $(INCLUDE_DIR) -w $@ $^
+	$(SV2V) -I $(INCLUDE_DIR) --exclude=logic --exclude=always -w $@ $^
 
 define GEN_SIM_RULES
 .PHONY: sim_$(sim_top)
