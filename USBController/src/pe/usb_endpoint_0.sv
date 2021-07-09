@@ -58,6 +58,17 @@ module usb_endpoint_0 #(
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     logic [7:0] rom [0:EP0_ROM_SIZE-1];
 
+    localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
+    logic [ROM_IDX_WID-1:0] romReadIdx, romTransReadIdx, romEndReadIdx;
+    logic [ROM_IDX_WID-1:0] nextRomReadIdx, nextRomTransReadIdx, nextRomEndReadIdx;
+
+    logic [ROM_IDX_WID * (USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + 1 + USB_DEV_EP_CONF.stringDescCount + (USB_DEV_EP_CONF.stringDescCount > 0 ? 1 : 0)) - 1:0] descStartIdx;
+
+
+    //TODO bounds check!
+    logic [7:0] romReadData;
+    assign romReadData = rom[romTransReadIdx];
+
     usb_dev_req_pkg::SetupDataPacket setupDataPacket;
 
     //===============================================================================================================
@@ -243,6 +254,43 @@ module usb_endpoint_0 #(
                         usb_dev_req_pkg::GET_DESCRIPTOR: begin
                             if (`GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 //TODO apply
+
+                                case (setupDataPacket.wValue[15:8])
+                                    usb_desc_pkg::DESC_DEVICE: begin
+                                        // We only have a single device descriptor!
+                                        nextRomReadIdx = {ROM_IDX_WID{1'b0}};
+                                        nextRomEndReadIdx = usb_desc_pkg::DeviceDescriptorHeader.bLength - 1; // Last device descriptor idx, as we start at idx 0 this is also the global address!
+                                    end
+                                    usb_desc_pkg::DESC_CONFIGURATION: begin
+                                        // Depends on the descriptor index!
+                                        if (setupDataPacket[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
+                                            // Index is valid
+                                            {nextRomEndReadIdx, nextRomReadIdx} = descStartIdx[setupDataPacket[7:0] * ROM_IDX_WID +: 2 * ROM_IDX_WID];
+                                        end else begin
+                                            // Index is out of bounds!
+                                            // TODO request error
+                                        end
+                                    end
+                                    usb_desc_pkg::DESC_STRING: begin
+                                        // Depends on the descriptor index!
+                                        if (USB_DEV_EP_CONF.stringDescCount > 0) begin
+                                            if (setupDataPacket[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
+                                                // Index is valid
+                                                {nextRomEndReadIdx, nextRomReadIdx} = descStartIdx[(USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + setupDataPacket[7:0]) * ROM_IDX_WID +: 2 * ROM_IDX_WID];
+                                            end else begin
+                                                // Index is out of bounds!
+                                                // TODO request error
+                                            end
+                                        end else begin
+                                            // Index is out of bounds!
+                                            // TODO request error
+                                        end
+                                    end
+                                    default: begin
+                                        nextRequestError = 1'b1;
+                                    end
+                                endcase
+
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -327,6 +375,14 @@ module usb_endpoint_0 #(
                 rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                    \
             end                                                                     \
         end
+
+    //TODO do we want to use register or assigns here?
+    `define INIT_ROM_IDX_LUT(OFFSET, IDX, LUT_NAME)                                    \
+        /*initial begin*/                                                              \
+        /*assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = {OFFSET}[ROM_IDX_WID-1:0];*/ \
+        /*as yosys does not seem to parse {x}[y:z] expressions correctly, this macro expects that OFFSET is no expression! */ \
+        assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = OFFSET[ROM_IDX_WID-1:0]; \
+        /*end*/
 
     `MUTE_LINT(UNUSED)
     function automatic int calcROMOffset(usb_ep_pkg::UsbDeviceEpConfig usbDevConfig, int maxConfIdx, int maxIfaceIdx, int maxEpIdx);
@@ -415,6 +471,7 @@ module usb_endpoint_0 #(
         // Iterate over all available configurations
         for (confIdx = 0; confIdx < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations; confIdx++) begin
             localparam ROM_CONF_OFFSET = calcROMOffset(USB_DEV_EP_CONF, confIdx, 0, 0);
+            `INIT_ROM_IDX_LUT(ROM_CONF_OFFSET, confIdx, descStartIdx)
             // Starting with the configuration descriptor!
             `INIT_ROM(ROM_CONF_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::ConfigurationDescriptorHeader)
             `INIT_ROM(ROM_CONF_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::ConfigurationDescriptorBodyBytes, USB_DEV_EP_CONF.devConfigs[confIdx].confDesc)
@@ -437,6 +494,8 @@ module usb_endpoint_0 #(
 
         localparam ROM_STR_OFFSET = calcROMOffset(USB_DEV_EP_CONF, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations}, 0, 0);
 
+        `INIT_ROM_IDX_LUT(ROM_STR_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations, descStartIdx)
+
         // Optional string descriptors:
         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
             // String Descriptor Zero provides a list of supported languages!
@@ -445,9 +504,14 @@ module usb_endpoint_0 #(
 
             localparam FIXED_ROM_STR_OFFSET = ROM_STR_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES + usb_desc_pkg::StringDescriptorZeroBodyBytes;
 
+            `INIT_ROM_IDX_LUT(FIXED_ROM_STR_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + 1, descStartIdx)
+
             // Now traverse all given string descriptors
             for (strDescIdx = 0; strDescIdx < USB_DEV_EP_CONF.stringDescCount; strDescIdx++) begin
                 localparam ROM_STR_DESC_OFFSET = FIXED_ROM_STR_OFFSET + calcRelativeStrDescOffset(USB_DEV_EP_CONF, strDescIdx);
+
+                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + 1 + strDescIdx, descStartIdx)
+
                 `INIT_ROM(ROM_STR_DESC_OFFSET, USB_DEV_EP_CONF.stringDescs[strDescIdx].bLength, USB_DEV_EP_CONF.stringDescs[strDescIdx])
             end
         end
