@@ -9,7 +9,7 @@ package usb_packet_pkg;
     Common USB Packet Fields:
     - 8 Low Bits for sync
     - 8 bits PID: actually only 4 but they are inverted and repeated PID0, PID1, PID2, PID3, ~PID0, ~PID1, ~PID2, ~PID3
-        Possible Values:
+        Possible Values:                                      LSb ---^                                                ^--- MSb
         Group    | PID[3:0] |  Packet Identifier
         -----------------------------------------------
         Token    |   0001   |  OUT Token
