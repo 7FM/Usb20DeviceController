@@ -1,7 +1,8 @@
 module FIFO #(
     parameter ADDR_WID = 9,
     parameter DATA_WID = 8,
-    parameter ENTRIES = 0
+    parameter ENTRIES = 0,
+    parameter bit REDUCE_COMB_PATH = 1
 )(
     input logic clk_i,
 
@@ -30,22 +31,8 @@ module FIFO #(
     logic [ADDR_WID-1:0] dataCounter, readCounter;
     logic [ADDR_WID-1:0] transDataCounter, transReadCounter, next_transDataCounter, next_transReadCounter;
 
+    // the data available flag compares registers -> okish combinatorial path
     assign dataAvailable_o = transReadCounter != dataCounter;
-
-generate
-    if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
-        // if entries == -1 is set then we assume that the entire address space is memory backed
-        // Else if entries is set we can manually test this assumption and optimize if possible!
-        assign next_transDataCounter = transDataCounter + 1; // Abuses overflows to avoid wrap around logic
-        assign next_transReadCounter = transReadCounter + 1; // Abuses overflows to avoid wrap around logic
-    end else begin
-        // Otherwise not the entire address space is memory backed -> we need to make bounds checks to avoid invalid states & memory requests
-        assign next_transDataCounter = transDataCounter == ENTRIES - 1 ? {ADDR_WID{1'b0}} : transDataCounter + 1;
-        assign next_transReadCounter = transReadCounter == ENTRIES - 1 ? {ADDR_WID{1'b0}} : transReadCounter + 1;
-    end
-endgenerate
-
-    assign full_o = next_transDataCounter == readCounter;
 
     logic writeHandshake, readHandshake;
     assign writeHandshake = !full_o && dataValid_i;
@@ -58,11 +45,37 @@ endgenerate
     assign rAddr_o = transReadCounter;
     assign data_o = rData_i;
 
+    localparam MAX_IDX = ENTRIES - 1;
+generate
+    if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
+        // if entries == -1 is set then we assume that the entire address space is memory backed
+        // Else if entries is set we can manually test this assumption and optimize if possible!
+        assign next_transDataCounter = transDataCounter + 1; // Abuses overflows to avoid wrap around logic
+        assign next_transReadCounter = transReadCounter + 1; // Abuses overflows to avoid wrap around logic
+    end else begin
+        // Otherwise not the entire address space is memory backed -> we need to make bounds checks to avoid invalid states & memory requests
+        assign next_transDataCounter = transDataCounter == MAX_IDX[ADDR_WID-1:0] ? {ADDR_WID{1'b0}} : transDataCounter + 1;
+        assign next_transReadCounter = transReadCounter == MAX_IDX[ADDR_WID-1:0] ? {ADDR_WID{1'b0}} : transReadCounter + 1;
+    end
+
+    // Reduce the combinatorial path by adding an additional counter that stores how many elements are left
+    if (REDUCE_COMB_PATH) begin
+        logic [ADDR_WID-1:0] prevReadCounter;
+        // We can shorten the critical path by storing the prevReadCounter to compare the current transDataCounter with
+        assign full_o = transDataCounter == prevReadCounter;
+    end else begin
+        // this flag has a rather long critial path as it has to perform an addition before comparing!
+        assign full_o = next_transDataCounter == readCounter;
+    end
+
     initial begin
         dataCounter = 0;
         transDataCounter = 0;
         readCounter = 0;
         transReadCounter = 0;
+        if (REDUCE_COMB_PATH) begin
+            prevReadCounter = MAX_IDX[ADDR_WID-1:0];
+        end
     end
 
     always_ff @(posedge clk_i) begin
@@ -87,6 +100,13 @@ endgenerate
             if (popTransSuccess_i) begin
                 // if it was successful we want to update our permanent read counter
                 readCounter <= transReadCounter;
+                if (REDUCE_COMB_PATH) begin
+                    if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
+                        prevReadCounter <= transReadCounter - 1;
+                    end else begin
+                        prevReadCounter <= transReadCounter == 0 ? MAX_IDX : transReadCounter - 1;
+                    end
+                end
             end else begin
                 // if it was unsuccessful we need to reset out transaction read counter
                 transReadCounter <= readCounter;
@@ -96,5 +116,6 @@ endgenerate
             transReadCounter <= next_transReadCounter;
         end
     end
+endgenerate
 
 endmodule
