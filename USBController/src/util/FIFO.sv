@@ -1,3 +1,5 @@
+`include "util_macros.sv"
+
 module FIFO #(
     parameter ADDR_WID = 9,
     parameter DATA_WID = 8,
@@ -46,6 +48,7 @@ module FIFO #(
     assign data_o = rData_i;
 
     localparam MAX_IDX = ENTRIES - 1;
+
 generate
     if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
         // if entries == -1 is set then we assume that the entire address space is memory backed
@@ -59,8 +62,10 @@ generate
     end
 
     // Reduce the combinatorial path by adding an additional counter that stores how many elements are left
+    `MUTE_LINT(UNUSED)
+    logic [ADDR_WID-1:0] prevReadCounter;
+    `UNMUTE_LINT(UNUSED)
     if (REDUCE_COMB_PATH) begin
-        logic [ADDR_WID-1:0] prevReadCounter;
         // We can shorten the critical path by storing the prevReadCounter to compare the current transDataCounter with
         assign full_o = transDataCounter == prevReadCounter;
     end else begin
