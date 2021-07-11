@@ -300,7 +300,7 @@ int main(int argc, char **argv) {
         size_t compareSize = std::min(txState.dataToSend.size(), rxState.receivedData.size());
         for (size_t i = 0; i < compareSize; ++i) {
             if (txState.dataToSend[i] != rxState.receivedData[i]) {
-                std::cerr << "Send and received byte " << i << "differ!\n    Expected: 0x" << std::hex << static_cast<int>(txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(rxState.receivedData[i]) << std::endl;
+                std::cerr << "Send and received byte " << i << " differ!\n    Expected: 0x" << std::hex << static_cast<int>(txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(rxState.receivedData[i]) << std::endl;
                 ++testFailed;
             }
         }
