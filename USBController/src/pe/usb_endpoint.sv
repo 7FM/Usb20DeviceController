@@ -31,7 +31,11 @@ module usb_endpoint#(
     input logic EP_OUT_popData_i,
     output logic EP_OUT_dataAvailable_o,
     output logic EP_OUT_isLastPacketByte_o, //TODO
-    output logic [7:0] EP_OUT_data_o
+    output logic [7:0] EP_OUT_data_o,
+
+    output logic respValid_o, //TODO
+    output logic respHandshakePID_o, //TODO
+    output logic [1:0] respPacketID_o //TODO
 );
 
     localparam EP_ADDR_WID = 9;
