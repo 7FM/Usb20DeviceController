@@ -3,32 +3,15 @@
 #include <bitset>
 #include <csignal>
 #include <cstdint>
-#include <getopt.h>
-#include <verilated.h> // Defines common routines
-#include <verilated_vcd_c.h>
 
 #define TOP_MODULE Vsim_usb_tx
 #include "Vsim_usb_tx.h"       // basic Top header
 #include "Vsim_usb_tx__Syms.h" // all headers to access exposed internal signals
 
+#include "common/VerilatorTB.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
 
-#ifndef PHASE_LENGTH
-#define PHASE_LENGTH 5
-#endif
-
-static TOP_MODULE *ptop = nullptr; // Instantiation of module
-static VerilatedVcdC *tfp = nullptr;
-
-static vluint64_t main_time = 0; // Current simulation time
-
 static std::atomic_bool forceStop = false;
-
-static bool stopCondition();
-
-static void sanityChecks();
-static void onRisingEdge();
-static void onFallingEdge();
 
 static void signalHandler(int signal) {
     if (signal == SIGINT) {
@@ -36,124 +19,57 @@ static void signalHandler(int signal) {
     }
 }
 
-/**
-* Called by $time in Verilog
-****************************************************************************/
-double sc_time_stamp() {
-    return main_time; // converts to double, to match what SystemC does
-}
-
-/******************************************************************************/
-static void tick(int count, bool dump) {
-    do {
-        //if (tfp)
-        //tfp->dump(main_time); // dump traces (inputs stable before outputs change)
-        ptop->eval(); // Evaluate model
-        main_time++;  // Time passes...
-        if (tfp && dump)
-            tfp->dump(main_time); // inputs and outputs all updated at same time
-    } while (--count);
-}
-
 /******************************************************************************/
 
-static void run(uint64_t limit, bool dump, bool checkStopCondition = true) {
-    bool stop;
-    do {
-        stop = checkStopCondition && stopCondition();
-        ptop->CLK = 1;
-        onRisingEdge();
-        tick(PHASE_LENGTH, dump);
-        ptop->CLK = 0;
-        onFallingEdge();
-        tick(PHASE_LENGTH, dump);
-        sanityChecks();
-    } while (--limit && !stop);
-}
+class UsbTxSim : public VerilatorTB<TOP_MODULE> {
+  public:
+    virtual void simReset(TOP_MODULE *top) override {
 
-/******************************************************************************/
+        // Data send/transmit interface
+        top->txReqSendPacket = 0;
+        top->txIsLastByte = 0;
+        top->txDataValid = 0;
+        top->txData = 0;
+        // Data receive interface
+        top->rxAcceptNewData = 0;
 
-// Usb data receive state variables
-static UsbReceiveState rxState;
-static UsbTransmitState txState;
+        top->rxRST = 1;
+        // Give modules some time to settle
+        constexpr int resetCycles = 10;
+        run<false, false, false, false, false>(resetCycles);
+        top->rxRST = 0;
 
-static void sanityChecks() {
-}
+        rxState.reset();
+        txState.reset();
+    }
 
-static bool stopCondition() {
-    return rxState.receivedLastByte || forceStop;
-}
+    virtual bool stopCondition(TOP_MODULE *top) override {
+        return rxState.receivedLastByte || forceStop;
+    }
 
-static void onRisingEdge() {
-    receiveDeserializedInput(ptop, rxState);
-    feedTransmitSerializer(ptop, txState);
-}
+    virtual void onRisingEdge(TOP_MODULE *top) override {
+        receiveDeserializedInput(top, rxState);
+        feedTransmitSerializer(top, txState);
+    }
 
-static void onFallingEdge() {
-}
-
-static void reset() {
-    // Data send/transmit interface
-    ptop->txReqSendPacket = 0;
-    ptop->txIsLastByte = 0;
-    ptop->txDataValid = 0;
-    ptop->txData = 0;
-    // Data receive interface
-    ptop->rxAcceptNewData = 0;
-
-    ptop->rxRST = 1;
-    // Give modules some time to settle
-    int resetCycles = 10;
-    do {
-        ptop->CLK = 1;
-        tick(PHASE_LENGTH, true);
-        ptop->CLK = 0;
-        tick(PHASE_LENGTH, true);
-    } while (--resetCycles);
-    ptop->rxRST = 0;
-
-    rxState.reset();
-    txState.reset();
-}
+  public:
+    // Usb data receive state variables
+    UsbReceiveState rxState;
+    UsbTransmitState txState;
+};
 
 /******************************************************************************/
 int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
 
-    Verilated::commandArgs(argc, argv);
-    ptop = new TOP_MODULE; // Create instance
-
-    int verbose = 0;
     int testFailed = 0;
 
-    int opt;
-
-    while ((opt = getopt(argc, argv, ":t:v:")) != -1) {
-        switch (opt) {
-            case 'v':
-                verbose = std::atoi(optarg);
-                break;
-            case 't':
-                // init trace dump
-                Verilated::traceEverOn(true);
-                tfp = new VerilatedVcdC;
-                ptop->trace(tfp, 99);
-                tfp->open(optarg);
-                break;
-            case ':':
-                std::cout << "option needs a value" << std::endl;
-                goto exitAndCleanup;
-                break;
-            case '?': //used for some unknown options
-                std::cout << "unknown option: " << optopt << std::endl;
-                goto exitAndCleanup;
-                break;
-        }
-    }
+    UsbTxSim sim;
+    sim.init(argc, argv);
 
     // start things going
     for (int it = 0; !forceStop; ++it) {
-        reset();
+        sim.reset();
 
         //TODO test different packet types!
         bool expectedKeepPacket = true;
@@ -161,114 +77,114 @@ int main(int argc, char **argv) {
         switch (it) {
 
             case 0: {
-                txState.dataToSend.push_back(PID_DATA0);
+                sim.txState.dataToSend.push_back(PID_DATA0);
                 // Single byte packet that triggers the CRC bitstuffing at end edge case!
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
                 std::cout << "Test single data byte CRC16 bitstuffing edge case:" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xF9)>(CRC_Type::CRC16)) << std::endl;
                 break;
             }
 
             case 1: {
-                txState.dataToSend.push_back(PID_DATA0);
+                sim.txState.dataToSend.push_back(PID_DATA0);
                 // Two byte packet that triggers the CRC bitstuffing at end edge case!
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
                 std::cout << "Test 2 data bytes CRC16 bitstuffing edge case:" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xFF), static_cast<uint8_t>(0xFA)>(CRC_Type::CRC16)) << std::endl;
                 break;
             }
 
             case 2: {
-                txState.dataToSend.push_back(PID_DATA0);
+                sim.txState.dataToSend.push_back(PID_DATA0);
                 // Another edge case: empty data packet!
                 std::cout << "Test 0 data bytes packet edge case:" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<>(CRC_Type::CRC16)) << std::endl;
                 break;
             }
 
             case 3: {
-                txState.dataToSend.push_back(PID_DATA0);
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x11));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x22));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x33));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x44));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x55));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x66));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x77));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x88));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0x99));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xAA));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xBB));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xCC));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xDD));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
+                sim.txState.dataToSend.push_back(PID_DATA0);
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x11));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x22));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x33));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x44));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x55));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x66));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x77));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x88));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0x99));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xAA));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xBB));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xCC));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xDD));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
                 // Ensure that at least one bit stuffing is required!
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
 
                 std::cout << "Test \"normal\" data packet:" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0x11), static_cast<uint8_t>(0x22), static_cast<uint8_t>(0x33), static_cast<uint8_t>(0x44), static_cast<uint8_t>(0x55), static_cast<uint8_t>(0x66), static_cast<uint8_t>(0x77), static_cast<uint8_t>(0x88), static_cast<uint8_t>(0x99), static_cast<uint8_t>(0xAA), static_cast<uint8_t>(0xBB), static_cast<uint8_t>(0xCC), static_cast<uint8_t>(0xDD), static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF), static_cast<uint8_t>(0xFF)>(CRC16))
                           << std::endl;
                 break;
             }
 
             case 4: {
-                txState.dataToSend.push_back(PID_DATA0 ^ 0x80);
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
-                txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
+                sim.txState.dataToSend.push_back(PID_DATA0 ^ 0x80);
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xDE));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xAD));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xBE));
+                sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
 
                 std::cout << "Test data packet with invalid PID \"checksum\" -> we expect keepPacket = 0" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 expectedKeepPacket = false;
                 break;
             }
 
             case 5: {
-                txState.dataToSend.push_back(PID_HANDSHAKE_ACK);
+                sim.txState.dataToSend.push_back(PID_HANDSHAKE_ACK);
 
                 std::cout << "Test handshake packet ACK" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
             case 6: {
-                txState.dataToSend.push_back(PID_HANDSHAKE_NACK);
+                sim.txState.dataToSend.push_back(PID_HANDSHAKE_NACK);
 
                 std::cout << "Test handshake packet NACK" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
             case 7: {
-                txState.dataToSend.push_back(PID_HANDSHAKE_STALL);
+                sim.txState.dataToSend.push_back(PID_HANDSHAKE_STALL);
 
                 std::cout << "Test handshake packet STALL" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
             case 8: {
-                txState.dataToSend.push_back(PID_HANDSHAKE_NYET);
+                sim.txState.dataToSend.push_back(PID_HANDSHAKE_NYET);
 
                 std::cout << "Test handshake packet NYET" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
             case 9: {
-                txState.dataToSend.push_back(PID_DATA0 ^ 0x01);
+                sim.txState.dataToSend.push_back(PID_DATA0 ^ 0x01);
 
                 std::cout << "Test handshake packet with invalid PID \"checksum\" -> we expect keepPacket = 0" << std::endl;
-                std::cout << "Expected packet size: " << txState.dataToSend.size() << std::endl;
+                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 expectedKeepPacket = false;
                 break;
             }
@@ -280,34 +196,36 @@ int main(int argc, char **argv) {
         }
 
         // Execute till stop condition
-        run(0, true);
+        while (!sim.run<true>(0));
+
         if (forceStop) {
             goto exitAndCleanup;
         }
         // Execute a few more cycles
-        run(4 * 10, true, false);
+        sim.run<true, false>(4 * 10);
+
         if (forceStop) {
             goto exitAndCleanup;
         }
 
         // First compare amount of data
-        if (txState.dataToSend.size() != rxState.receivedData.size()) {
-            std::cerr << "Send and received byte count differs!\n    Expected: " << txState.dataToSend.size() << " got: " << rxState.receivedData.size() << std::endl;
+        if (sim.txState.dataToSend.size() != sim.rxState.receivedData.size()) {
+            std::cerr << "Send and received byte count differs!\n    Expected: " << sim.txState.dataToSend.size() << " got: " << sim.rxState.receivedData.size() << std::endl;
             ++testFailed;
         }
 
         // Then compare the data itself
-        size_t compareSize = std::min(txState.dataToSend.size(), rxState.receivedData.size());
+        size_t compareSize = std::min(sim.txState.dataToSend.size(), sim.rxState.receivedData.size());
         for (size_t i = 0; i < compareSize; ++i) {
-            if (txState.dataToSend[i] != rxState.receivedData[i]) {
-                std::cerr << "Send and received byte " << i << " differ!\n    Expected: 0x" << std::hex << static_cast<int>(txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(rxState.receivedData[i]) << std::endl;
+            if (sim.txState.dataToSend[i] != sim.rxState.receivedData[i]) {
+                std::cerr << "Send and received byte " << i << " differ!\n    Expected: 0x" << std::hex << static_cast<int>(sim.txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << std::endl;
                 ++testFailed;
             }
         }
 
         // Finally check that the packet should be kept!
-        if (expectedKeepPacket != rxState.keepPacket) {
-            std::cerr << "Keep packet has an unexpected value! Expected: " << expectedKeepPacket << " got: " << rxState.keepPacket << std::endl;
+        if (expectedKeepPacket != sim.rxState.keepPacket) {
+            std::cerr << "Keep packet has an unexpected value! Expected: " << expectedKeepPacket << " got: " << sim.rxState.keepPacket << std::endl;
             ++testFailed;
         }
 
@@ -327,16 +245,6 @@ exitAndCleanup:
     } else {
         std::cout << "PASSED!" << std::endl;
     }
-
-    if (tfp)
-        tfp->close();
-
-    ptop->final(); // Done simulating
-
-    if (tfp)
-        delete tfp;
-
-    delete ptop;
 
     return testFailed;
 }
