@@ -14,9 +14,9 @@ module usb_pe #(
     output logic ackUsbResetDetect_o,
 
     // State information
-    input logic txDoneSending_i, //TODO use
+    input logic txDoneSending_i,
     input logic rxDPPLGotSignal_i,
-    output logic isSendingPhase_o, //TODO
+    output logic isSendingPhase_o,
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
     // Data Receive Interface: synced with clk48_i!
@@ -48,112 +48,6 @@ module usb_pe #(
     output logic [ENDPOINTS-2:0] EP_OUT_full_o
 );
 
-    /* Request Error:
-    When a request is received by a device that is not defined for the device, is inappropriate for the current
-    setting of the device, or has values that are not compatible with the request, then a Request Error exists.
-    The device deals with the Request Error by returning a STALL PID in response to the next Data stage
-    transaction or in the Status stage of the message. It is preferred that the STALL PID be returned at the next
-    Data stage transaction, as this avoids unnecessary bus activity
-    */
-    /* Handling of an INVALID Feature Select, Descriptor Type, Request Type
-    If an unsupported or invalid request is made to a USB device, the device responds by returning STALL in
-    the Data or Status stage of the request. If the device detects the error in the Setup stage, it is preferred that
-    the device returns STALL at the earlier of the Data or Status stage. Receipt of an unsupported or invalid
-    request does NOT cause the optional Halt feature on the control pipe to be set.
-    */
-
-/*
-Device Transaction State Machine Hierarchy Overview:
-
-    Device_Process_trans
-      - Dev_do_OUT: if pid == PID_OUT_TOKEN || (pid == PID_SETUP_TOKEN && ep_type == control)
-        - Dev_Do_IsochO: if type of selected endpoint (ep_type) == isochronous
-        - Dev_Do_BCINTO: if ep_type == interrupt || (not high speed && (ep_type == bulk || ep_type == control))
-        (- Dev_HS_BCO) <- For HighSpeed devices: if high speed && (ep_type == bulk || ep_type == control)
-
-      - Dev_do_IN: if pid == PID_IN_TOKEN
-        - Dev_Do_IsochI: if ep_type == isochronous
-        - Dev_Do_BCINTI: (if ep_type == bulk || ep_type == control || ep_type == interrupt) aka else
-
-      (- Dev_HS_ping: if pid == PID_SPECIAL_PING) <- For HighSpeed devices
-
-*/
-
-    /*
-    typedef enum logic[2:0] {
-        PE_RST_RX_CLK,
-        PE_WAIT_FOR_TRANSACTION,
-        PE_DO_OUT_ISO,
-        PE_DO_OUT_BCINT,
-        PE_DO_IN_ISOCH,
-        PE_DO_IN_BCINT
-    } PEState;
-
-    typedef enum logic[1:0] {
-        BCINTO_RST_RX_CLK,
-        BCINTO_AWAIT_PACKET,
-        BCINTO_HANDLE_PACKET,
-        BCINTO_ISSUE_RESPONSE
-    } RX_BCINTState;
-
-    typedef enum logic[1:0] {
-        IsochO_RST_RX_CLK,
-        IsochO_AWAIT_PACKET,
-        IsochO_HANDLE_PACKET
-        // Has no handshake phase
-    } RX_IsochState;
-
-
-    typedef enum logic[1:0] {
-        BCINTI_ISSUE_PACKET,
-        BCINTI_RST_RX_CLK,
-        BCINTI_AWAIT_RESPONSE
-    } TX_BCINTState;
-
-    typedef enum logic[0:0] {
-        IsochI_ISSUE_PACKET
-        // Has no handshake phase
-    } TX_IsochState;
-    */
-
-    //TODO adjust length as needed!
-    typedef enum logic[4:0] {
-        PE_RST_RX_CLK,
-        PE_WAIT_FOR_TRANSACTION,
-
-        // Host sends data: PE_DO_OUT_ISO: page 229 NOTE: No DATA toggle checks!
-        IsochO_RST_RX_CLK, //TODO needs timeout handling
-        IsochO_AWAIT_PACKET,
-        IsochO_HANDLE_PACKET,
-        // Has no handshake phase -> can be simulated as transmission error -> nothing is send in return!
-
-        // Host sends data: PE_DO_OUT_BCINT: page 221
-        BCINTO_RST_RX_CLK, //TODO needs timeout handling
-        BCINTO_AWAIT_PACKET,
-        BCINTO_HANDLE_PACKET,
-        //BCINTO_ISSUE_RESPONSE,
-        // Issue response
-        RX_SUCCESS, // Send ACK
-        RX_REQUEST_ERROR, // Send STALL
-        RX_RECEIVE_ERROR, // Do nothing and go back to the initial state!
-
-
-        // Device sends data: PE_DO_IN_ISOCH: page 229 NOTE: Always use DATA0 PID!
-        IsochI_ISSUE_PACKET,
-        // Has no handshake phase -> no wait needed, directly go back to initial state!
-
-        // Device sends data: PE_DO_IN_BCINT: page 221
-        BCINTI_ISSUE_PACKET,
-        BCINTI_RST_RX_CLK, //TODO needs timeout handling
-        BCINTI_AWAIT_RESPONSE,
-
-        TX_NOTHING_AVAILABLE, // Sends NAK instead of data & handshake phase
-        TX_STALL // TODO when is this required?
-
-    } TransactionState;
-
-    logic packetWaitTimeout; //TODO use
-
 //====================================================================================
 //==============================Endpoint logic========================================
 //====================================================================================
@@ -164,16 +58,16 @@ Device Transaction State Machine Hierarchy Overview:
     logic gotTransStartPacket;
 
     // Used for received data
-    logic fillTransDone; //TODO
-    logic fillTransSuccess; //TODO
-    logic EP_WRITE_EN; //TODO
+    logic fillTransDone;
+    logic fillTransSuccess;
+    logic EP_WRITE_EN;
     logic [EP_DATA_WID-1:0] wData;
     logic writeFifoFull;
 
     // Used for data to be output
-    logic popTransDone; //TODO
-    logic popTransSuccess; //TODO
-    logic EP_READ_EN; //TODO
+    logic popTransDone;
+    logic popTransSuccess;
+    logic EP_READ_EN;
     logic readDataAvailable;
     logic readIsLastPacketByte;
     logic [EP_DATA_WID-1:0] rData;
@@ -361,16 +255,15 @@ Device Transaction State Machine Hierarchy Overview:
 //===============================RX Interface=========================================
 //====================================================================================
 
-
-    logic transactionStarted; //TODO
+    logic transactionStarted, transactionDone;
 
     // This buffer is used to receive the first packet that might initiate a transaction
     localparam TRANS_START_BUF_MAX_BIT_IDX = usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN-1;
     logic [TRANS_START_BUF_MAX_BIT_IDX:0] transStartPacketBuf;
     logic transStartPacketBufFull;
 
-    logic transBufRst; //TODO
-    assign transBufRst = receiveDone;
+    logic transBufRst;
+    assign transBufRst = transactionDone;
     vector_buf #(
         .DATA_WID(8),
         .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_BYTE_COUNT),
@@ -395,7 +288,6 @@ Device Transaction State Machine Hierarchy Overview:
     // Endpoint FIFO connections
     logic receiveDone;
     logic receiveSuccess;
-    //TODO use these flags to issue a receive response, i.e. ACK!
     initial begin
         receiveDone = 1'b0;
         receiveSuccess = 1'b1;
@@ -403,19 +295,15 @@ Device Transaction State Machine Hierarchy Overview:
 
     // Serial frontend connections
     logic rxHandshake;
+    assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
     logic packetReceived;
 
-    //TODO on wait for handshake, the local buffer is used too
-
-    assign fillTransSuccess = receiveSuccess;
-    assign fillTransDone = transactionStarted && receiveDone;
-    assign EP_WRITE_EN = transactionStarted && rxHandshake; //TODO we neither want to store token packets nor PIDs here!
+    assign EP_WRITE_EN = transactionStarted && rxHandshake;
     assign wData = rxData_i;
 
     logic rxBufFull;
     assign rxBufFull = transactionStarted ? writeFifoFull : transStartPacketBufFull;
     assign rxAcceptNewData_o = !receiveDone && !rxBufFull;
-    assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
     assign packetReceived = rxHandshake && rxIsLastByte_i;
 
     usb_packet_pkg::PacketHeader packetHeader;
@@ -428,13 +316,13 @@ Device Transaction State Machine Hierarchy Overview:
     logic isTokenPID;
     assign isTokenPID = packetHeader.pid[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
 
-    //TODO this flag should be state dependent! -> only activate if a new transaction is expected
-    assign gotTransStartPacket = !transactionStarted && receiveDone && receiveSuccess;
+    logic isValidTransStartPacket;
+    assign isValidTransStartPacket = receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0];
+    assign gotTransStartPacket = !transactionStarted && receiveDone && isValidTransStartPacket;
 
+    //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
     always_ff @(posedge clk48_i) begin
-        if (rxHandshake) begin
-            //TODO if writeFifoFull is set then rxHandshake will never be true!
-            //TODO we need to avoid missing the last byte signal -> we may not block & wait for fifo to become available!
+        if (rxIsLastByte_i || rxHandshake) begin
             if (rxBufFull || (rxIsLastByte_i && !keepPacket_i)) begin
                 // treat full buffer as error -> not all data could be stored!
                 // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
@@ -446,10 +334,14 @@ Device Transaction State Machine Hierarchy Overview:
             receiveSuccess <= 1'b1;
 
             // check that the endptSel is in bounds!
-            if (tokenPacketPart.endptSel < ENDPOINTS[3:0]) begin
-                //TODO needs to consider PID & device state!
-                transactionStarted <= 1'b1; //TODO needs to be cleared too!
-                epSelect <= tokenPacketPart.endptSel[EP_SELECT_WID-1:0];
+            if (!transactionStarted) begin
+                // Only start the transaction if we recieved the packet correctly!
+                if (isValidTransStartPacket) begin
+                    transactionStarted <= 1'b1;
+                    epSelect <= tokenPacketPart.endptSel[EP_SELECT_WID-1:0];
+                end
+            end else begin
+                transactionStarted <= !transactionDone;
             end
         end
     end
@@ -458,18 +350,287 @@ Device Transaction State Machine Hierarchy Overview:
 //===============================TX Interface=========================================
 //====================================================================================
 
-//TODO output logic txReqSendPacket_o
-//TODO handshake phase is handled with the local buffer here!
-    assign txData_o = rData;
-    assign txDataValid_o = readDataAvailable;
-    assign txIsLastByte_o = readIsLastPacketByte;
-    assign EP_READ_EN = txAcceptNewData_i;
+    logic [10:0] maxPacketSize;
+    // This counter is used to ensure that we do not send more than max. packet size many bytes!
+    logic [10:0] maxBytesLeft;
 
-// Needs to wait for Handshake / Timeout!
-//TODO logic popTransDone;
-//TODO logic popTransSuccess;
-    //assign popTransSuccess = !packetWaitTimeout &&;
-//TODO
+    logic sendPID, nextSendPID;
+    assign txReqSendPacket_o = sendPID;
+    logic sendHandshake, nextSendHandshake;
+    logic isLast, nextIsPidLast;
+    logic [3:0] pidData;
+    assign pidData = {epResponsePacketID, sendHandshake ? usb_packet_pkg::HANDSHAKE_PACKET_MASK_VAL : usb_packet_pkg::DATA_PACKET_MASK_VAL};
+
+    assign txData_o = sendPID ? {~pidData, pidData} : rData;
+    assign txDataValid_o = sendPID || (readDataAvailable && !isLast);
+    assign txIsLastByte_o = isLast || (!sendPID && (readIsLastPacketByte || maxBytesLeft == 0));
+    assign EP_READ_EN = !sendPID && txAcceptNewData_i && !isLast;
+
+    logic txHandshake;
+    assign txHandshake = txDataValid_o && txAcceptNewData_i;
+
+    initial begin
+        isLast = 1'b1;
+        sendPID = 1'b0;
+    end
+
+    always_ff @(posedge clk48_i) begin
+        sendPID <= sendPID ? !txHandshake : nextSendPID;
+
+        if (!sendPID && nextSendPID) begin
+            sendHandshake <= nextSendHandshake;
+            isLast <= nextIsPidLast;
+            maxBytesLeft <= maxPacketSize;
+        end else begin
+            sendHandshake <= sendHandshake;
+            isLast <= txIsLastByte_o;
+
+            // Update maxBytesLeft at every handshake
+            maxBytesLeft <= txHandshake ? maxBytesLeft - 1 : maxBytesLeft;
+        end
+
+    end
+
+genvar epIdx;
+generate
+    logic [11*ENDPOINTS - 1:0] maxPacketSizeOutLut;
+
+    assign maxPacketSizeOutLut[0 * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.ep0Conf.maxPacketSize};
+
+    for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
+        if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
+            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.epConfs[epIdx].conf.controlEpConf.maxPacketSize};
+        end else begin
+            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.maxPacketSize;
+        end
+    end
+
+    assign maxPacketSize = maxPacketSizeOutLut[epSelect * 11 +: 11];
+endgenerate
+
+//====================================================================================
+//===========================Transaction Handling=====================================
+//====================================================================================
+
+/*
+Device Transaction State Machine Hierarchy Overview:
+
+    Device_Process_trans
+      - Dev_do_OUT: if pid == PID_OUT_TOKEN || (pid == PID_SETUP_TOKEN && ep_type == control)
+        - Dev_Do_IsochO: if type of selected endpoint (ep_type) == isochronous
+        - Dev_Do_BCINTO: if ep_type == interrupt || (not high speed && (ep_type == bulk || ep_type == control))
+        (- Dev_HS_BCO) <- For HighSpeed devices: if high speed && (ep_type == bulk || ep_type == control)
+
+      - Dev_do_IN: if pid == PID_IN_TOKEN
+        - Dev_Do_IsochI: if ep_type == isochronous
+        - Dev_Do_BCINTI: (if ep_type == bulk || ep_type == control || ep_type == interrupt) aka else
+
+      (- Dev_HS_ping: if pid == PID_SPECIAL_PING) <- For HighSpeed devices
+
+*/
+
+    //TODO adjust length as needed!
+    typedef enum logic[3:0] {
+        PE_RST_RX_CLK = 0,
+        PE_WAIT_FOR_TRANSACTION,
+
+        // Host sends data: PE_DO_OUT_ISO: page 229 NOTE: No DATA toggle checks!
+        IsochO_HANDLE_PACKET,
+        // Has no handshake phase -> can be simulated as transmission error -> nothing is send in return!
+
+        // Host sends data: PE_DO_OUT_BCINT: page 221
+        BCINTO_HANDLE_PACKET,
+        // Issue response
+        BCINTO_ISSUE_RESPONSE,
+        BCINTO_WAIT_RESPONSE_SENT,
+
+        // Device sends data: PE_DO_IN_ISOCH: page 229 NOTE: Always use DATA0 PID!
+        IsochI_ISSUE_PACKET,
+        IsochI_WAIT_PACKET_SENT,
+        // Has no handshake phase -> no wait needed, directly go back to initial state!
+
+        // Device sends data: PE_DO_IN_BCINT: page 221
+        BCINTI_ISSUE_PACKET,
+        BCINTI_WAIT_PACKET_SENT,
+        BCINTI_AWAIT_RESPONSE
+    } TransactionState;
+
+    TransactionState transState, nextTransState;
+
+    initial begin
+        transState = PE_WAIT_FOR_TRANSACTION;
+        isSendingPhase_o = 1'b0;
+    end
+
+    logic isDevIn;
+    assign isDevIn = packetHeader.pid[3:2] == usb_packet_pkg::PID_IN_TOKEN[3:2];
+    logic isEpIsochronous;
+
+    logic packetWaitTimeout;
+    logic readTimerRst;
+    //assign readTimerRst = isSendingPhase_o || receiveDone;
+
+    logic nextIsSendingPhase;
+
+    always_comb begin
+        nextTransState = transState;
+        readTimerRst = 1'b0;
+        nextIsSendingPhase = isSendingPhase_o;
+        transactionDone = 1'b0;
+
+        nextSendPID = 1'b0;
+        nextIsPidLast = 1'b1;
+        nextSendHandshake = 1'b1;
+
+        fillTransSuccess = 1'b0;
+        fillTransDone = 1'b0;
+        popTransDone = 1'b0;
+        popTransSuccess = 1'b0;
+
+        unique case (transState)
+            PE_RST_RX_CLK: begin
+                // Ensure that the we start with a new transaction
+                fillTransDone = 1'b1;
+                popTransDone = 1'b1;
+                // Next we are receiving data to from the device
+                nextIsSendingPhase = 1'b0;
+                transactionDone = 1'b1;
+
+                //TODO reset DPPL?
+
+                nextTransState = PE_WAIT_FOR_TRANSACTION;
+            end
+            PE_WAIT_FOR_TRANSACTION: begin
+                if (transactionStarted) begin
+                    if (isDevIn) begin
+                        // We are sending data to the device
+                        nextIsSendingPhase = 1'b1;
+                        // Either IsochI_ISSUE_PACKET or BCINTI_ISSUE_PACKET
+                        nextTransState = isEpIsochronous ? IsochI_ISSUE_PACKET : BCINTI_ISSUE_PACKET;
+                    end else begin
+                        // Read after read -> TODO reset DPPL?
+
+                        // Either IsochO_AWAIT_PACKET or BCINTO_AWAIT_PACKET
+                        nextTransState = isEpIsochronous ? IsochO_HANDLE_PACKET : BCINTO_HANDLE_PACKET;
+                    end
+                end
+
+                // Just always reset the read timeout watchdog in this state!
+                readTimerRst = 1'b1;
+            end
+
+            IsochO_HANDLE_PACKET: begin
+                fillTransSuccess = receiveSuccess;
+                fillTransDone = receiveDone;
+
+                if (packetWaitTimeout || receiveDone) begin
+                    // We are done after receiving!
+                    nextTransState = PE_RST_RX_CLK;
+                end
+            end
+
+            BCINTO_HANDLE_PACKET: begin
+                fillTransSuccess = receiveSuccess;
+                fillTransDone = receiveDone;
+
+                if (packetWaitTimeout) begin
+                    nextTransState = PE_RST_RX_CLK;
+                end else if (receiveDone) begin
+                    // We are done after receiving!
+                    nextTransState = receiveSuccess ? BCINTO_ISSUE_RESPONSE : PE_RST_RX_CLK;
+
+                    // We are sending data to the device
+                    nextIsSendingPhase = 1'b1;
+                end
+            end
+            BCINTO_ISSUE_RESPONSE: begin
+                nextSendPID = epResponseValid;
+
+                if (epResponseValid) begin
+                    nextTransState = BCINTO_WAIT_RESPONSE_SENT;
+                end
+            end
+            BCINTO_WAIT_RESPONSE_SENT: begin
+                if (txDoneSending_i) begin
+                    // We are done here
+                    nextTransState = PE_RST_RX_CLK;
+                end
+            end
+
+           IsochI_ISSUE_PACKET, BCINTI_ISSUE_PACKET: begin
+                nextSendPID = epResponseValid;
+                // If its an handshake PID we are done, if the EP signals that its ready to respond but no data is available -> send zero data length packet!
+                // Otherwise if the EP want's to indicate that there is no data then it should respond with an NAK and no DATA PID
+                nextIsPidLast = epResponseIsHandshakePID || !readDataAvailable;
+                nextSendHandshake = epResponseIsHandshakePID;
+
+                if (epResponseValid) begin
+                    // If we have a bulk transfer and the PID is handshake, then there won't be a handshake stage afterwards -> reuse isochronous logic
+                    nextTransState = epResponseIsHandshakePID ? IsochI_WAIT_PACKET_SENT : transState + 1;
+                end
+            end
+
+            IsochI_WAIT_PACKET_SENT: begin
+                // We do not care about errors -> always successful
+                popTransSuccess = 1'b1;
+                popTransDone = txDoneSending_i;
+
+                if (txDoneSending_i) begin
+                    // We are done here
+                    nextTransState = PE_RST_RX_CLK;
+                end
+            end
+
+            BCINTI_WAIT_PACKET_SENT: begin
+                // Just always reset the read timeout watchdog in this state!
+                readTimerRst = 1'b1;
+
+                if (txDoneSending_i) begin
+                    // We are done here
+                    nextTransState = BCINTI_AWAIT_RESPONSE;
+                    nextIsSendingPhase = 1'b0;
+                end
+            end
+            BCINTI_AWAIT_RESPONSE: begin
+                // Success only when we received an ACK!
+                popTransSuccess = receiveSuccess && packetHeader.pid == usb_packet_pkg::PID_HANDSHAKE_ACK;
+                popTransDone = receiveDone;
+
+                if (packetWaitTimeout) begin
+                    nextTransState = PE_RST_RX_CLK;
+                end else if (receiveDone) begin
+                    // We are done after receiving!
+                    nextTransState = BCINTO_ISSUE_RESPONSE;
+                end
+            end
+        endcase
+    end
+
+    always_ff @(posedge clk48_i) begin
+        transState <= nextTransState;
+        isSendingPhase_o <= nextIsSendingPhase;
+    end
+
+generate
+    if (USB_DEV_EP_CONF.endpointCount > 0) begin
+        logic [USB_DEV_EP_CONF.endpointCount-1:0] isEpInIsochronousLUT;
+        logic [USB_DEV_EP_CONF.endpointCount-1:0] isEpOutIsochronousLUT;
+
+        for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
+            if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
+                assign isEpInIsochronousLUT[epIdx] = 1'b0;
+                assign isEpOutIsochronousLUT[epIdx] = 1'b0;
+            end else begin
+                assign isEpInIsochronousLUT[epIdx] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.epTypeDevIn == usb_ep_pkg::ISOCHRONOUS;
+                assign isEpOutIsochronousLUT[epIdx] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.epTypeDevOut == usb_ep_pkg::ISOCHRONOUS;
+            end
+        end
+
+        assign isEpIsochronous = {(isDevIn ? isEpOutIsochronousLUT : isEpInIsochronousLUT), 1'b0}[epSelect];
+    end else begin
+        assign isEpIsochronous = 1'b0;
+    end
+endgenerate
 
 //====================================================================================
 
@@ -481,8 +642,6 @@ Device Transaction State Machine Hierarchy Overview:
         .clk_o(clk12)
     );
 
-    logic readTimerRst; //TODO
-    assign readTimerRst = isSendingPhase_o || receiveDone;
     usb_timeout readTimer(
         .clk48_i(clk48_i),
         .clk12_i(clk12),
