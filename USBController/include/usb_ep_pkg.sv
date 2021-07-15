@@ -16,12 +16,13 @@ package usb_ep_pkg;
     typedef struct packed {
         EndpointType epTypeDevIn;
         EndpointType epTypeDevOut;
+        logic [10:0] maxPacketSize;
         //TODO
     } NonControlEndpointConfig;
 
     typedef struct packed {
+        usb_desc_pkg::EP0_MaxPacketSize maxPacketSize;
         //TODO
-        int dummy; //TODO remove
     } ControlEndpointConfig;
 
     typedef union packed {
@@ -63,12 +64,13 @@ package usb_ep_pkg;
     } UsbDeviceEpConfig;
 
     localparam ControlEndpointConfig DefaultControlEpConfig = '{
-        dummy: 0 //TODO remove
+        maxPacketSize: usb_desc_pkg::EP0_MAX_8_BYTES
     };
 
     localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
         epTypeDevIn: NONE,
-        epTypeDevOut: BULK
+        epTypeDevOut: BULK,
+        maxPacketSize: 64
     };
 
     localparam EndpointConfig DefaultEpConfig = '{
