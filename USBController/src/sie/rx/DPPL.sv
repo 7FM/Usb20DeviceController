@@ -38,7 +38,8 @@ module DPPL(
 
     assign readCLK12_o = fsmState[1];
     //assign data = fsmState[2];
-    assign DPPLGotSignal_o = fsmState == STATE_D;
+    // We got a signal if we are within the left cycle -> received a 0
+    assign DPPLGotSignal_o = fsmState == STATE_D || fsmState <= STATE_3;
 
     initial begin
         fsmState = STATE_C;
