@@ -204,7 +204,7 @@ module usb_endpoint_0 #(
     // Also it is expected that if the device is supposed to send something and respValid_o == 1'b1 and EP_OUT_dataAvailable_o == 1'b0, then a zero length data packet should be send!
     // If a packet was incorrectly received then it is also expected that the usb_pe automatically issues a response timeout and ignores these signals!
     assign respValid_o = 1'b1;
-    assign respPacketID_o = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2] ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::PID_HANDSHAKE_STALL[3:2] : usb_packet_pkg::PID_HANDSHAKE_ACK[3:2]);
+    assign respPacketID_o = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2] ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
 
     generate
     always_comb begin

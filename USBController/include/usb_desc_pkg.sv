@@ -106,7 +106,7 @@ package usb_desc_pkg;
     typedef struct packed {
         logic [7:0] bReserved; // Zero
         logic [7:0] bNumConfigurations;
-        logic [7:0] bMaxPacketSize0;
+        EP0_MaxPacketSize bMaxPacketSize0;
         logic [7:0] bDeviceProtocol;
         logic [7:0] bDeviceSubClass;
         logic [7:0] bDeviceClass;
