@@ -21,7 +21,7 @@ module usb_endpoint_0 #(
     output logic [USB_DEV_CONF_WID-1:0] deviceConf_o,
 
     input logic gotTransStartPacket_i,
-    input logic[1:0] transStartTokenID_i,
+    input logic [1:0] transStartTokenID_i,
 
     // Device IN interface
     input logic EP_IN_fillTransDone_i,

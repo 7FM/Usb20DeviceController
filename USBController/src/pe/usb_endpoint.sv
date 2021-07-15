@@ -6,6 +6,9 @@ module usb_endpoint#(
 )(
     input logic clk48_i,
 
+    input logic gotTransStartPacket_i, //TODO
+    input logic [1:0] transStartTokenID_i, //TODO
+
     // Device IN interface
     input logic EP_IN_fillTransDone_i,
     input logic EP_IN_fillTransSuccess_i,

@@ -231,6 +231,8 @@ Device Transaction State Machine Hierarchy Overview:
     `define CREATE_EP_CASE(x)                                                   \
         x: `EP_``x``_MODULE(epConfig) epX (                                     \
             .clk48_i(clk48_i),                                                  \
+            .transStartTokenID_i(transStartPID[3:2]),                           \
+            .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),        \
                                                                                 \
             /* Device IN interface */                                           \
             .EP_IN_fillTransDone_i(fillTransDone),                              \
@@ -284,7 +286,7 @@ Device Transaction State Machine Hierarchy Overview:
             .deviceConf_o(deviceConf),
 
             .transStartTokenID_i(transStartPID[3:2]),
-            .gotTransStartPacket_i(gotTransStartPacket),
+            .gotTransStartPacket_i(gotTransStartPacket && isEp0Selected),
 
             // Device IN interface
             .EP_IN_fillTransDone_i(fillTransDone),
