@@ -187,7 +187,7 @@ module usb_endpoint_0 #(
     end
 
     assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
-    assign EP_OUT_dataAvailable_o = ep0State == SEND_DESC || ep0State == SEND_VAL;
+    assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && (ep0State == SEND_DESC || ep0State == SEND_VAL);
     assign EP_IN_full_o = packetBufFull || ep0State != NO_OUTPUT_EXPECTED;
 
     logic epInHandshake;
