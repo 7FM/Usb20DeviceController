@@ -1,10 +1,10 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
-#include <array>
 
 #define BIT_STUFF_AFTER_X_ONES 6
 
@@ -332,23 +332,33 @@ constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'000
 constexpr auto usbEOPSignal = createEOPSignal();
 
 struct UsbReceiveState {
+    //TODO use correct value given by the spec!
+    static constexpr uint8_t TIMEOUT_AFTER_X_CYCLES = 42;
+
     std::vector<uint8_t> receivedData;
     bool receivedLastByte = false;
     bool keepPacket = false;
     uint8_t delayedDataAccept = 0;
     const uint8_t acceptAfterXAvailableCycles = 5;
+    bool enableTimeout = false;
+    bool timedOut = false;
+    uint8_t timeoutCnt = TIMEOUT_AFTER_X_CYCLES;
 
     void reset() {
         receivedData.clear();
+        enableTimeout = false;
         receivedLastByte = false;
         keepPacket = false;
         delayedDataAccept = 0;
+        timedOut = false;
+        timeoutCnt = TIMEOUT_AFTER_X_CYCLES;
     }
 };
 
 template <typename T>
-void receiveDeserializedInput(T ptop, UsbReceiveState &usbRxState) {
+void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState) {
     if (ptop->rxAcceptNewData && ptop->rxDataValid) {
+        usbRxState.timeoutCnt = UsbReceiveState::TIMEOUT_AFTER_X_CYCLES;
         usbRxState.receivedData.push_back(ptop->rxData);
 
         if (ptop->rxIsLastByte) {
@@ -372,6 +382,12 @@ void receiveDeserializedInput(T ptop, UsbReceiveState &usbRxState) {
             }
 
             ++usbRxState.delayedDataAccept;
+        } else if (usbRxState.enableTimeout) {
+            if (usbRxState.timeoutCnt > 1) {
+                --usbRxState.timeoutCnt;
+            } else {
+                usbRxState.timedOut = true;
+            }
         }
     }
 }
@@ -380,16 +396,20 @@ struct UsbTransmitState {
     std::vector<uint8_t> dataToSend;
     std::size_t transmitIdx = 0;
     bool requestedSendPacket = false;
+    bool doneSending = false;
+    bool prevSending = false;
 
     void reset() {
         dataToSend.clear();
         transmitIdx = 0;
         requestedSendPacket = false;
+        doneSending = false;
+        prevSending = false;
     }
 };
 
 template <typename T>
-void feedTransmitSerializer(T ptop, UsbTransmitState &usbTxState) {
+void feedTransmitSerializer(T *ptop, UsbTransmitState &usbTxState) {
     if (usbTxState.requestedSendPacket) {
         ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
         if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
@@ -419,4 +439,21 @@ void feedTransmitSerializer(T ptop, UsbTransmitState &usbTxState) {
         usbTxState.requestedSendPacket = true;
         ptop->txReqSendPacket = 1;
     }
+
+    if (!usbTxState.doneSending && usbTxState.prevSending && !ptop->sending) {
+        usbTxState.doneSending = true;
+    }
+
+    usbTxState.prevSending = ptop->sending;
 }
+
+struct SetupPacket {
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint8_t wValueLsB;
+    uint8_t wValueMsB;
+    uint8_t wIndexLsB;
+    uint8_t wIndexMsB;
+    uint8_t wLengthLsB;
+    uint8_t wLengthMsB;
+} __attribute((packed))__;
