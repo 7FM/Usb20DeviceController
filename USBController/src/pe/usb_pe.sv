@@ -317,7 +317,7 @@ module usb_pe #(
     assign isTokenPID = packetHeader.pid[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
 
     logic isValidTransStartPacket;
-    assign isValidTransStartPacket = receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0];
+    assign isValidTransStartPacket = receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
     assign gotTransStartPacket = !transactionStarted && receiveDone && isValidTransStartPacket;
 
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
