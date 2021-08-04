@@ -222,6 +222,16 @@ int main(int argc, char **argv) {
         // First compare amount of data
         if (sim.txState.dataToSend.size() != sim.rxState.receivedData.size()) {
             std::cerr << "Send and received byte count differs!\n    Expected: " << sim.txState.dataToSend.size() << " got: " << sim.rxState.receivedData.size() << std::endl;
+            std::cerr << "        Send Data: ";
+            for (size_t i = 0; i < sim.txState.dataToSend.size(); ++i) {
+                std::cerr << "0x" << std::hex << static_cast<int>(sim.txState.dataToSend[i]) << ' ';
+            }
+            std::cerr << std::endl;
+            std::cerr << "    Received Data: ";
+            for (size_t i = 0; i < sim.rxState.receivedData.size(); ++i) {
+                std::cerr << "0x" << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << ' ';
+            }
+            std::cerr << std::endl;
             ++testFailed;
         }
 
