@@ -179,6 +179,24 @@ int main(int argc, char **argv) {
                 break;
             }
 
+            case 10: {
+                TokenPacket tokenPacket;
+                tokenPacket.token = PID_SETUP_TOKEN;
+                tokenPacket.addr = 0;
+                tokenPacket.endpoint = 0;
+                tokenPacket.crc = 0b11111; // Should be a dont care!
+
+                const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
+                for (int i = 0; i < sizeof(tokenPacket); ++i) {
+                    sim.txState.dataToSend.push_back(*rawPtr);
+                    ++rawPtr;
+                }
+
+                std::cout << "Test sending a setup token packet" << std::endl;
+
+                break;
+            }
+
             default: {
                 std::cout << "No more test packets left" << std::endl;
                 goto exitAndCleanup;
