@@ -81,7 +81,6 @@ int main(int argc, char **argv) {
                 // Single byte packet that triggers the CRC bitstuffing at end edge case!
                 sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xF9));
                 std::cout << "Test single data byte CRC16 bitstuffing edge case:" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xF9)>(CRC_Type::CRC16)) << std::endl;
                 break;
             }
@@ -92,7 +91,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
                 sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xFA));
                 std::cout << "Test 2 data bytes CRC16 bitstuffing edge case:" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0xFF), static_cast<uint8_t>(0xFA)>(CRC_Type::CRC16)) << std::endl;
                 break;
             }
@@ -101,7 +99,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(PID_DATA0);
                 // Another edge case: empty data packet!
                 std::cout << "Test 0 data bytes packet edge case:" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<>(CRC_Type::CRC16)) << std::endl;
                 break;
             }
@@ -129,7 +126,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xFF));
 
                 std::cout << "Test \"normal\" data packet:" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0x11), static_cast<uint8_t>(0x22), static_cast<uint8_t>(0x33), static_cast<uint8_t>(0x44), static_cast<uint8_t>(0x55), static_cast<uint8_t>(0x66), static_cast<uint8_t>(0x77), static_cast<uint8_t>(0x88), static_cast<uint8_t>(0x99), static_cast<uint8_t>(0xAA), static_cast<uint8_t>(0xBB), static_cast<uint8_t>(0xCC), static_cast<uint8_t>(0xDD), static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF), static_cast<uint8_t>(0xFF)>(CRC16))
                           << std::endl;
                 break;
@@ -143,7 +139,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(static_cast<uint8_t>(0xEF));
 
                 std::cout << "Test data packet with invalid PID \"checksum\" -> we expect keepPacket = 0" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 expectedKeepPacket = false;
                 break;
             }
@@ -152,7 +147,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(PID_HANDSHAKE_ACK);
 
                 std::cout << "Test handshake packet ACK" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
@@ -160,7 +154,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(PID_HANDSHAKE_NACK);
 
                 std::cout << "Test handshake packet NACK" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
@@ -168,7 +161,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(PID_HANDSHAKE_STALL);
 
                 std::cout << "Test handshake packet STALL" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
@@ -176,7 +168,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(PID_HANDSHAKE_NYET);
 
                 std::cout << "Test handshake packet NYET" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 break;
             }
 
@@ -184,7 +175,6 @@ int main(int argc, char **argv) {
                 sim.txState.dataToSend.push_back(PID_DATA0 ^ 0x01);
 
                 std::cout << "Test handshake packet with invalid PID \"checksum\" -> we expect keepPacket = 0" << std::endl;
-                std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
                 expectedKeepPacket = false;
                 break;
             }
@@ -194,6 +184,8 @@ int main(int argc, char **argv) {
                 goto exitAndCleanup;
             }
         }
+
+        std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
 
         // Execute till stop condition
         while (!sim.run<true>(0));
