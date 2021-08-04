@@ -184,6 +184,7 @@ int main(int argc, char **argv) {
                 tokenPacket.token = PID_SETUP_TOKEN;
                 tokenPacket.addr = 0;
                 tokenPacket.endpoint = 0;
+                //TODO this breaks later comparison & should be patched or ignored!
                 tokenPacket.crc = 0b11111; // Should be a dont care!
 
                 const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
