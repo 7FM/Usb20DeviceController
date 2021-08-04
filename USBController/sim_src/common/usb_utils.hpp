@@ -456,4 +456,4 @@ struct SetupPacket {
     uint8_t wIndexMsB;
     uint8_t wLengthLsB;
     uint8_t wLengthMsB;
-} __attribute((packed))__;
+} __attribute__((packed));
