@@ -457,3 +457,10 @@ struct SetupPacket {
     uint8_t wLengthLsB;
     uint8_t wLengthMsB;
 } __attribute__((packed));
+
+struct TokenPacket {
+    PID_Types token;
+    uint16_t addr : 7;
+    uint16_t endpoint : 4;
+    uint16_t crc : 5;
+} __attribute__((packed));

@@ -58,13 +58,17 @@ class UsbTopSim : public VerilatorTB<TOP_MODULE> {
 
 class InTransaction {
   public:
-    PID_Types inToken;
+    TokenPacket inTokenPacket;
     PID_Types handshakeToken;
 
     void send(UsbTopSim &sim) {
         std::cout << "Send IN token!" << std::endl;
 
-        sim.txState.dataToSend.push_back(inToken);
+        const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&inTokenPacket);
+        for (int i = 0; i < sizeof(inTokenPacket); ++i) {
+            sim.txState.dataToSend.push_back(*rawPtr);
+            ++rawPtr;
+        }
 
         // Execute till stop condition
         while (!sim.run<true>(0));
@@ -98,13 +102,17 @@ class InTransaction {
 
 class OutTransaction {
   public:
-    PID_Types outToken;
+    TokenPacket outTokenPacket;
     std::vector<uint8_t> dataPacket;
 
     void send(UsbTopSim &sim) {
         std::cout << "Send OUT token!" << std::endl;
 
-        sim.txState.dataToSend.push_back(outToken);
+        const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&outTokenPacket);
+        for (int i = 0; i < sizeof(outTokenPacket); ++i) {
+            sim.txState.dataToSend.push_back(*rawPtr);
+            ++rawPtr;
+        }
 
         // Execute till stop condition
         while (!sim.run<true>(0));
@@ -160,7 +168,11 @@ int main(int argc, char **argv) {
 
     // Test 1: Setup transaction
     OutTransaction setupTrans;
-    setupTrans.outToken = PID_SETUP_TOKEN;
+    setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
+    setupTrans.outTokenPacket.addr = 0;
+    setupTrans.outTokenPacket.endpoint = 0;
+    setupTrans.outTokenPacket.crc = 0b11111; // Should be a dont care!
+
     SetupPacket packet; //TODO fill
     setupTrans.dataPacket.push_back(PID_DATA0);
     const uint8_t *rawPtr = reinterpret_cast<const uint8_t*>(&packet);
@@ -178,7 +190,10 @@ int main(int argc, char **argv) {
     sim.reset();
 
     InTransaction getDesc;
-    getDesc.inToken = PID_IN_TOKEN;
+    getDesc.inTokenPacket.token = PID_IN_TOKEN;
+    getDesc.inTokenPacket.addr = 0;
+    getDesc.inTokenPacket.endpoint = 0;
+    getDesc.inTokenPacket.crc = 0b11111; // Should be a dont care!
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
     setupTrans.send(sim);
