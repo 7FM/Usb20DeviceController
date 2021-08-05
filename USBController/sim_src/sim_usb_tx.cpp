@@ -73,6 +73,7 @@ int main(int argc, char **argv) {
 
         //TODO test different packet types!
         bool expectedKeepPacket = true;
+        bool crc5Patching = false;
 
         switch (it) {
 
@@ -185,7 +186,7 @@ int main(int argc, char **argv) {
                 tokenPacket.addr = 0;
                 tokenPacket.endpoint = 0;
                 //TODO this breaks later comparison & should be patched or ignored!
-                tokenPacket.crc = 0b11111; // Should be a dont care!
+                tokenPacket.crc = 0b1'1111; // Should be a dont care!
 
                 const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
                 for (int i = 0; i < sizeof(tokenPacket); ++i) {
@@ -193,7 +194,30 @@ int main(int argc, char **argv) {
                     ++rawPtr;
                 }
 
+                crc5Patching = true;
+
                 std::cout << "Test sending a setup token packet" << std::endl;
+
+                break;
+            }
+
+            case 11: {
+                TokenPacket tokenPacket;
+                tokenPacket.token = PID_SETUP_TOKEN;
+                tokenPacket.addr = 0b110'0000;
+                tokenPacket.endpoint = 0b1111;
+                //TODO this breaks later comparison & should be patched or ignored!
+                tokenPacket.crc = 0b1'1111; // Should be a dont care!
+
+                const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
+                for (int i = 0; i < sizeof(tokenPacket); ++i) {
+                    sim.txState.dataToSend.push_back(*rawPtr);
+                    ++rawPtr;
+                }
+
+                crc5Patching = true;
+
+                std::cout << "Test sending a setup token packet with bit stuffing right before the crc5" << std::endl;
 
                 break;
             }
@@ -219,6 +243,22 @@ int main(int argc, char **argv) {
             goto exitAndCleanup;
         }
 
+        // If crc5 patching is enabled then 5 Msb of the last byte will be patched to include the specified crc5
+        // Else the byte wise comparison between sent & received data will fail!
+        if (crc5Patching) {
+            // First calculate the desired crc5 value
+            std::vector<uint8_t> tmpVec;
+            for (int i = 1; i < sim.txState.dataToSend.size(); ++i) {
+                tmpVec.push_back(sim.txState.dataToSend[i]);
+            }
+            uint8_t crc5 = calculateDataCRC(CRC_Type::CRC5, tmpVec, tmpVec.size());
+            std::cout << "Expected CRC: " << std::bitset<5>(crc5) << std::endl;
+
+            uint8_t lastByte = sim.txState.dataToSend[sim.txState.dataToSend.size() - 1];
+            lastByte = (lastByte & 0x07) | (crc5 << 3);
+            sim.txState.dataToSend[sim.txState.dataToSend.size() - 1] = lastByte;
+        }
+
         // First compare amount of data
         if (sim.txState.dataToSend.size() != sim.rxState.receivedData.size()) {
             std::cerr << "Send and received byte count differs!\n    Expected: " << sim.txState.dataToSend.size() << " got: " << sim.rxState.receivedData.size() << std::endl;
@@ -239,7 +279,7 @@ int main(int argc, char **argv) {
         size_t compareSize = std::min(sim.txState.dataToSend.size(), sim.rxState.receivedData.size());
         for (size_t i = 0; i < compareSize; ++i) {
             if (sim.txState.dataToSend[i] != sim.rxState.receivedData[i]) {
-                std::cerr << "Send and received byte " << i << " differ!\n    Expected: 0x" << std::hex << static_cast<int>(sim.txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << std::endl;
+                std::cerr << "Send and received byte at idx " << i << " differ!\n    Expected: 0x" << std::hex << static_cast<int>(sim.txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << std::endl;
                 ++testFailed;
             }
         }
