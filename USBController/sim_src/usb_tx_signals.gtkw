@@ -2,10 +2,6 @@
 [*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
 [*] Sun May 30 17:37:18 2021
 [*]
-[dumpfile] "/home/deppian/hdl_revival/USBController/txSendRxReceive2.vcd"
-[dumpfile_mtime] "Sun May 30 17:33:00 2021"
-[dumpfile_size] 57303
-[savefile] "/home/deppian/hdl_revival/USBController/usb_tx_signals.gtkw"
 [timestart] 1453
 [size] 1862 911
 [pos] -1 -1
@@ -13,22 +9,22 @@
 [treeopen] TOP.
 [treeopen] TOP.sim_usb_tx.
 [treeopen] TOP.sim_usb_tx.usbDeserializer.
-[treeopen] TOP.sim_usb_tx.uut.
+[treeopen] TOP.sim_usb_tx.usbSerializer.uut.
 [sst_width] 300
 [signals_width] 316
 [sst_expanded] 1
 [sst_vpaned_height] 443
 @28
 TOP.sim_usb_tx.CLK
-TOP.sim_usb_tx.usbDeserializer.uut.dataInP
+TOP.sim_usb_tx.usbDeserializer.uut.dataInP_i
 TOP.sim_usb_tx.usbDeserializer.rxClk12
 TOP.sim_usb_tx.usbDeserializer.uut.syncDetect
-TOP.sim_usb_tx.usbDeserializer.uut.eopDetected
-TOP.sim_usb_tx.usbDeserializer.uut.keepPacket
+TOP.sim_usb_tx.usbDeserializer.uut.eopDetected_i
+TOP.sim_usb_tx.usbDeserializer.uut.keepPacket_o
 TOP.sim_usb_tx.usbDeserializer.uut.dropPacket
-TOP.sim_usb_tx.usbDeserializer.uut.isValidDPSignal
-TOP.sim_usb_tx.usbDeserializer.uut.receiveBitStuffingError
-TOP.sim_usb_tx.usbDeserializer.uut.isValidCRC
+TOP.sim_usb_tx.usbDeserializer.uut.isValidDPSignal_i
+TOP.sim_usb_tx.usbDeserializer.uut.rxBitStuffError_i
+TOP.sim_usb_tx.usbDeserializer.uut.isValidCRC_i
 TOP.sim_usb_tx.usbDeserializer.uut.lastByteValidCRC
 @200
 -
@@ -41,38 +37,38 @@ TOP.sim_usb_tx.txReqSendPacket
 @200
 -
 @28
-TOP.sim_usb_tx.uut.reqSendPacket
-TOP.sim_usb_tx.uut.txRstModules
+TOP.sim_usb_tx.usbSerializer.uut.txReqSendPacket_i
+TOP.sim_usb_tx.usbSerializer.uut.txRstModules
 @22
-TOP.sim_usb_tx.uut.txState[3:0]
+TOP.sim_usb_tx.usbSerializer.uut.txState[3:0]
 @28
-TOP.sim_usb_tx.uut.txHasDataFetched
-TOP.sim_usb_tx.uut.txDataBufNewByte[7:0]
-TOP.sim_usb_tx.uut.txDataSerializerIn[7:0]
-TOP.sim_usb_tx.uut.txGotNewData
-TOP.sim_usb_tx.uut.txReqNewData
-TOP.sim_usb_tx.uut.outputSerializer.dataBuf[7:0]
+TOP.sim_usb_tx.usbSerializer.uut.txHasDataFetched
+TOP.sim_usb_tx.usbSerializer.uut.txDataBufNewByte[7:0]
+TOP.sim_usb_tx.usbSerializer.uut.txDataSerializerIn[7:0]
+TOP.sim_usb_tx.usbSerializer.uut.txGotNewData
+TOP.sim_usb_tx.usbSerializer.uut.txReqNewData
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.dataBuf[7:0]
 @24
-TOP.sim_usb_tx.uut.outputSerializer.bitsLeft[3:0]
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.bitsLeft[3:0]
 @28
-TOP.sim_usb_tx.uut.txSerializerOut
-TOP.sim_usb_tx.uut.txNoBitStuffingNeeded
-TOP.sim_usb_tx.uut.txBitStuffedData
-TOP.sim_usb_tx.uut.txNRZiEncodedData
-TOP.sim_usb_tx.uut.txDataOut
+TOP.sim_usb_tx.usbSerializer.uut.txSerializerOut
+TOP.sim_usb_tx.usbSerializer.uut.txNoBitStuffingNeeded_i
+TOP.sim_usb_tx.usbSerializer.uut.txBitStuffDataOut_i
+TOP.sim_usb_tx.usbSerializer.uut.txNRZiEncodedData
+TOP.sim_usb_tx.usbSerializer.uut.txDataOut
 @25
-TOP.sim_usb_tx.uut.txBitStuffing.oneCounter[2:0]
+TOP.sim_usb_tx.usbSerializer.bitStuffWrap.unstuffer.oneCounter[2:0]
 @28
-TOP.sim_usb_tx.dataOutP_reg
-TOP.sim_usb_tx.dataOutN_reg
-TOP.sim_usb_tx.txClk12
-TOP.sim_usb_tx.sending
+TOP.sim_usb_tx.usbSerializer.dataOutP_reg
+TOP.sim_usb_tx.usbSerializer.dataOutN_reg
+TOP.sim_usb_tx.usbSerializer.txClk12
+TOP.sim_usb_tx.usbSerializer.sending
 @22
-TOP.sim_usb_tx.uut.txPID[3:0]
+TOP.sim_usb_tx.usbSerializer.uut.txPID[3:0]
 @28
-TOP.sim_usb_tx.uut.useCRC16
-TOP.sim_usb_tx.txCRCReset
-TOP.sim_usb_tx.uut.crc16[15:0]
-TOP.sim_usb_tx.uut.crc5[4:0]
+TOP.sim_usb_tx.usbSerializer.uut.txUseCRC16_o
+TOP.sim_usb_tx.usbSerializer.txCRCReset
+TOP.sim_usb_tx.usbSerializer.uut.crc16[15:0]
+TOP.sim_usb_tx.usbSerializer.uut.crc5[4:0]
 [pattern_trace] 1
 [pattern_trace] 0

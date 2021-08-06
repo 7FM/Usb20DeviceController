@@ -2,10 +2,6 @@
 [*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
 [*] Sat May 15 15:38:14 2021
 [*]
-[dumpfile] "/home/deppian/hdl_revival/USBController/deadBeefRxReceive.vcd"
-[dumpfile_mtime] "Sat May 15 15:35:21 2021"
-[dumpfile_size] 48362
-[savefile] "/home/deppian/hdl_revival/USBController/usb_rx_signals.gtkw"
 [timestart] 1910
 [size] 1854 911
 [pos] -1 -1
