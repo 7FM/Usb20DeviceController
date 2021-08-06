@@ -185,7 +185,6 @@ int main(int argc, char **argv) {
                 tokenPacket.token = PID_SETUP_TOKEN;
                 tokenPacket.addr = 0;
                 tokenPacket.endpoint = 0;
-                //TODO this breaks later comparison & should be patched or ignored!
                 tokenPacket.crc = 0b1'1111; // Should be a dont care!
 
                 const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
@@ -206,7 +205,6 @@ int main(int argc, char **argv) {
                 tokenPacket.token = PID_SETUP_TOKEN;
                 tokenPacket.addr = 0b110'0000;
                 tokenPacket.endpoint = 0b1111;
-                //TODO this breaks later comparison & should be patched or ignored!
                 tokenPacket.crc = 0b1'1111; // Should be a dont care!
 
                 const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
@@ -218,6 +216,26 @@ int main(int argc, char **argv) {
                 crc5Patching = true;
 
                 std::cout << "Test sending a setup token packet with bit stuffing right before the crc5" << std::endl;
+
+                break;
+            }
+
+            case 12: {
+                TokenPacket tokenPacket;
+                tokenPacket.token = PID_SETUP_TOKEN;
+                tokenPacket.addr = 0b111'0000;
+                tokenPacket.endpoint = 0b1111;
+                tokenPacket.crc = 0b1'1111; // Should be a dont care!
+
+                const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
+                for (int i = 0; i < sizeof(tokenPacket); ++i) {
+                    sim.txState.dataToSend.push_back(*rawPtr);
+                    ++rawPtr;
+                }
+
+                crc5Patching = true;
+
+                std::cout << "Test sending a setup token packet with bit stuffing 1 bit before the crc5" << std::endl;
 
                 break;
             }
