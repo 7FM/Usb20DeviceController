@@ -39,8 +39,8 @@ module usb_tx#()(
         TX_SEND_SYNC,
         TX_SEND_PID,
         TX_SEND_DATA,
-        TX_SEND_CRC16,
-        TX_SEND_CRC5,
+        TX_SEND_CRC16_LOWER,
+        TX_SEND_CRC16_UPPER,
         TX_EOP_BITSTUFFING_EDGECASE,
         TX_SEND_EOP_1,
         TX_SEND_EOP_2,
@@ -153,6 +153,8 @@ module usb_tx#()(
     logic txRstModules;
 
     logic [7:0] txDataSerializerIn;
+    logic crc5PatchNow;
+    logic crc5Patch;
 
     assign txRstModules = txState == TX_WAIT_SEND_REQ;
 
@@ -168,16 +170,22 @@ module usb_tx#()(
         txDataSerializerIn = txDataBufNewByte;
         next_sendingLastDataByte = (sendingLastDataByte ^ txReqNewData) && txFetchedDataIsLast;
 
-        if (sendingLastDataByte) begin
-            // the final byte is currently sent -> hence we get our final crc value
-            if (useCRC16) begin
+        crc5Patch = 1'b0;
+
+        if (useCRC16) begin
+            if (sendingLastDataByte) begin
+                // the final byte is currently sent -> hence we get our final crc value
                 // Start sending the lower crc16 byte
                 txDataSerializerIn = crc16[7:0];
-            end else begin
-                // CRC5 needs special treatment as it needs 3 data bits
-                // We need to patch the data that will be read as the last byte already contains the crc5!
-                txDataSerializerIn = {crc5, txDataBufNewByte[2:0]};
             end
+        end else if (!noDataAndCrcStage && sendingLastDataByte && crc5PatchNow) begin
+            // CRC5 needs special treatment as the last data byte has only 3 data bits & the crc is appended!
+            // We need to patch the data that will be read as the last byte already contains the crc5!
+            //TODO the final CRC5 is calculated while the byte that contains the crc itself is currently send -> we need to patch the shift register content!
+            txDataSerializerIn[4:0] = crc5;
+            // Mid sending patch...
+            txGotNewData = 1'b1;
+            crc5Patch = 1'b1;
         end
 
         // State transitions
@@ -207,12 +215,10 @@ module usb_tx#()(
                         next_txState = TX_EOP_BITSTUFFING_EDGECASE;
                     end else begin
                         next_txState = txStateAdd1;
+
+                        // Edge case for 0 length data packet -> if this flag is set in this state we can be sure it is crc16 for a data packet
                         if (sendingLastDataByte) begin
-                            if (useCRC16) begin
-                                next_txState = TX_SEND_CRC16;
-                            end else begin
-                                next_txState = TX_SEND_CRC5;
-                            end
+                            next_txState = TX_SEND_CRC16_LOWER;
                         end
                     end
                 end
@@ -224,12 +230,12 @@ module usb_tx#()(
                         if (useCRC16) begin
                             next_txState = txStateAdd1;
                         end else begin
-                            next_txState = TX_SEND_CRC5;
+                            next_txState = TX_EOP_BITSTUFFING_EDGECASE;
                         end
                     end
                 end
             end
-            TX_SEND_CRC16, TX_SEND_CRC5: begin
+            TX_SEND_CRC16_LOWER, TX_SEND_CRC16_UPPER: begin
                 if (txReqNewData) begin
                     // CRC16 byte 1: Lower crc16 byte was send
                     // CRC5: We can continue after CRC5 with remaining 3 data bits was sent
@@ -289,9 +295,11 @@ module usb_tx#()(
         .clk12_i(transmitCLK_i),
         .en_i(txNoBitStuffingNeeded_i),
         .dataValid_i(txGotNewData),
+        .crc5Patch_i(crc5Patch),
         .data_i(txDataSerializerIn),
         .dataBit_o(txSerializerOut),
-        .bufferEmpty_o(txReqNewData)
+        .bufferEmpty_o(txReqNewData),
+        .crc5PatchNow_o(crc5PatchNow)
     );
 
     // CRC signals
