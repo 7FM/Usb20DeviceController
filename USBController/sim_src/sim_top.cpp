@@ -56,6 +56,15 @@ class UsbTopSim : public VerilatorTB<TOP_MODULE> {
     UsbTransmitState txState;
 };
 
+template<class T>
+static void fillVector(std::vector<uint8_t>& vec, const T& data) {
+    const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&data);
+    for (int i = 0; i < sizeof(T); ++i) {
+        vec.push_back(*rawPtr);
+        ++rawPtr;
+    }
+}
+
 class InTransaction {
   public:
     TokenPacket inTokenPacket;
@@ -64,11 +73,7 @@ class InTransaction {
     void send(UsbTopSim &sim) {
         std::cout << "Send IN token!" << std::endl;
 
-        const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&inTokenPacket);
-        for (int i = 0; i < sizeof(inTokenPacket); ++i) {
-            sim.txState.dataToSend.push_back(*rawPtr);
-            ++rawPtr;
-        }
+        fillVector(sim.txState.dataToSend, inTokenPacket);
 
         // Execute till stop condition
         while (!sim.run<true>(0));
@@ -108,11 +113,7 @@ class OutTransaction {
     void send(UsbTopSim &sim) {
         std::cout << "Send OUT token!" << std::endl;
 
-        const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&outTokenPacket);
-        for (int i = 0; i < sizeof(outTokenPacket); ++i) {
-            sim.txState.dataToSend.push_back(*rawPtr);
-            ++rawPtr;
-        }
+        fillVector(sim.txState.dataToSend, outTokenPacket);
 
         // Execute till stop condition
         while (!sim.run<true>(0));
@@ -175,18 +176,16 @@ int main(int argc, char **argv) {
 
     SetupPacket packet; //TODO fill
     setupTrans.dataPacket.push_back(PID_DATA0);
-    const uint8_t *rawPtr = reinterpret_cast<const uint8_t*>(&packet);
-    for (int i = 0; i < sizeof(SetupPacket); ++i) {
-        setupTrans.dataPacket.push_back(*rawPtr);
-        ++rawPtr;
-    }
+    fillVector(setupTrans.dataPacket, packet);
 
+    std::cout << "Send Setup transaction packet" << std::endl;
     setupTrans.send(sim);
     std::cout << "Got Response:" << std::endl;
     for (auto data : sim.rxState.receivedData) {
         std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
     }
     //TODO check results
+
     sim.reset();
 
     InTransaction getDesc;
@@ -196,12 +195,14 @@ int main(int argc, char **argv) {
     getDesc.inTokenPacket.crc = 0b11111; // Should be a dont care!
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
+    std::cout << "Send Input transaction packet" << std::endl;
     setupTrans.send(sim);
     std::cout << "Got Response:" << std::endl;
     for (auto data : sim.rxState.receivedData) {
         std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
     }
     //TODO check results
+
     sim.reset();
 
     return 0;
