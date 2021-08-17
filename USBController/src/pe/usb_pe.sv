@@ -279,32 +279,27 @@ module usb_pe #(
         .isFull_o(transStartPacketBufFull)
     );
 
-    initial begin
-        transactionStarted = 1'b0;
-    end
-
-    // Based on transactionStarted we need to switch between the Endpoint FIFOs and the internal buffer to receive i.e. Token Packets that might start an transaction
-
     // Endpoint FIFO connections
     logic receiveDone;
     logic receiveSuccess;
     initial begin
         receiveDone = 1'b0;
         receiveSuccess = 1'b1;
+        // Based on transactionStarted we need to switch between the Endpoint FIFOs and the internal buffer to receive i.e. Token Packets that might start an transaction
+        transactionStarted = 1'b0;
     end
 
     // Serial frontend connections
-    logic rxHandshake;
-    assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
-    logic packetReceived;
-
     assign EP_WRITE_EN = transactionStarted && rxHandshake;
     assign wData = rxData_i;
 
     logic rxBufFull;
     assign rxBufFull = transactionStarted ? writeFifoFull : transStartPacketBufFull;
-    assign rxAcceptNewData_o = !receiveDone && !rxBufFull;
-    assign packetReceived = rxHandshake && rxIsLastByte_i;
+    // If this is the last byte, always accept
+    assign rxAcceptNewData_o = (!receiveDone && !rxBufFull) || rxIsLastByte_i;
+
+    logic rxHandshake;
+    assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
 
     usb_packet_pkg::PacketHeader packetHeader;
     assign packetHeader = usb_packet_pkg::PacketHeader'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS]);
@@ -322,13 +317,8 @@ module usb_pe #(
 
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
     always_ff @(posedge clk48_i) begin
-        if (rxIsLastByte_i || rxHandshake) begin
-            if (rxBufFull || (rxIsLastByte_i && !keepPacket_i)) begin
-                // treat full buffer as error -> not all data could be stored!
-                // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
-                receiveSuccess <= 1'b0;
-            end
-            receiveDone <= rxIsLastByte_i;
+        if (transactionDone) begin
+            transactionStarted <= 1'b0;
         end else if (receiveDone) begin
             receiveDone <= 1'b0;
             receiveSuccess <= 1'b1;
@@ -340,9 +330,14 @@ module usb_pe #(
                     transactionStarted <= 1'b1;
                     epSelect <= tokenPacketPart.endptSel[EP_SELECT_WID-1:0];
                 end
-            end else begin
-                transactionStarted <= !transactionDone;
             end
+        end else if (rxHandshake) begin
+            if (rxBufFull || (rxIsLastByte_i && !keepPacket_i)) begin
+                // treat full buffer as error -> not all data could be stored!
+                // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
+                receiveSuccess <= 1'b0;
+            end
+            receiveDone <= rxIsLastByte_i;
         end
     end
 
