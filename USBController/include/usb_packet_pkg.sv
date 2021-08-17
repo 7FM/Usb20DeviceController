@@ -123,8 +123,8 @@ package usb_packet_pkg;
 
     localparam _MAX_INIT_TRANS_PACKET_LEN = _SOF_LENGTH > _TOKEN_LENGTH ? _SOF_LENGTH : _TOKEN_LENGTH;
     // Round buffer length up to the next byte boundary!
-    localparam INIT_TRANS_PACKET_BUF_LEN = 2 ** $clog2(_MAX_INIT_TRANS_PACKET_LEN);
-    localparam INIT_TRANS_PACKET_BUF_BYTE_COUNT = INIT_TRANS_PACKET_BUF_LEN / 8;
+    localparam INIT_TRANS_PACKET_BUF_BYTE_COUNT = (_MAX_INIT_TRANS_PACKET_LEN + 8 - 1) / 8;
+    localparam INIT_TRANS_PACKET_BUF_LEN = INIT_TRANS_PACKET_BUF_BYTE_COUNT * 8 - 1;
 
 endpackage
 
