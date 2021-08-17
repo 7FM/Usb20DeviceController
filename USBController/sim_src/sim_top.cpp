@@ -196,7 +196,7 @@ int main(int argc, char **argv) {
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
     std::cout << "Send Input transaction packet" << std::endl;
-    setupTrans.send(sim);
+    getDesc.send(sim);
     std::cout << "Got Response:" << std::endl;
     for (auto data : sim.rxState.receivedData) {
         std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
