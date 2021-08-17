@@ -353,6 +353,12 @@ struct UsbReceiveState {
         timedOut = false;
         timeoutCnt = TIMEOUT_AFTER_X_CYCLES;
     }
+
+    void actAsNop() {
+        // Do not trigger stop conditions by signaling beeing done / timing out!
+        receivedLastByte = false;
+        enableTimeout = false;
+    }
 };
 
 template <typename T>
@@ -405,6 +411,15 @@ struct UsbTransmitState {
         requestedSendPacket = false;
         doneSending = false;
         prevSending = false;
+    }
+
+    void actAsNop() {
+        reset();
+
+        // fake that the request send packet was already set -> no new send is initiated
+        requestedSendPacket = true;
+        // prevent triggering a stop condition
+        doneSending = false;
     }
 };
 

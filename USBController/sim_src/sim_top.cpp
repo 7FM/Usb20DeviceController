@@ -1,6 +1,7 @@
 #include <atomic>
 #include <csignal>
 #include <cstdint>
+#include <functional>
 
 #define TOP_MODULE Vsim_top
 #include "Vsim_top.h"       // basic Top header
@@ -56,8 +57,8 @@ class UsbTopSim : public VerilatorTB<TOP_MODULE> {
     UsbTransmitState txState;
 };
 
-template<class T>
-static void fillVector(std::vector<uint8_t>& vec, const T& data) {
+template <class T>
+static void fillVector(std::vector<uint8_t> &vec, const T &data) {
     const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&data);
     for (int i = 0; i < sizeof(T); ++i) {
         vec.push_back(*rawPtr);
@@ -65,95 +66,124 @@ static void fillVector(std::vector<uint8_t>& vec, const T& data) {
     }
 }
 
+static bool sendStuff(UsbTopSim &sim, std::function<void()> fillSendData) {
+    // Disable receive logic
+    sim.rxState.actAsNop();
+
+    // Reset done sending flag
+    sim.txState.reset();
+
+    fillSendData();
+
+    // Execute till stop condition
+    while (!sim.run<true>(0));
+
+    assert(sim.txState.doneSending);
+
+    return forceStop;
+}
+
+static bool receiveStuff(UsbTopSim &sim, const char *errMsg) {
+
+    // Enable timeout for receiving a response
+    sim.rxState.reset();
+    sim.rxState.enableTimeout = true;
+
+    // Disable sending logic
+    sim.txState.actAsNop();
+
+    // Execute till stop condition
+    while (!sim.run<true>(0));
+
+    if (sim.rxState.timedOut) {
+        std::cerr << errMsg << std::endl;
+        return true;
+    }
+    assert(sim.rxState.receivedLastByte);
+
+    return forceStop;
+}
+
 class InTransaction {
+    /*
+    In Transaction:
+    1. Send Token packet
+    2. Receive Data packet / Timeout
+    3. (Send Handshake)
+    */
   public:
     TokenPacket inTokenPacket;
     PID_Types handshakeToken;
 
     void send(UsbTopSim &sim) {
+        //=========================================================================
+        // 1. Send Token packet
         std::cout << "Send IN token!" << std::endl;
 
-        fillVector(sim.txState.dataToSend, inTokenPacket);
+        if(sendStuff(sim, [&]{
+            fillVector(sim.txState.dataToSend, inTokenPacket);
+        })) return;
 
-        // Execute till stop condition
-        while (!sim.run<true>(0));
+        //=========================================================================
+        // 2. Receive Data packet / Timeout
 
         std::cout << "Receive IN data!" << std::endl;
-        // Enable timeout for receiving a response
-        sim.rxState.enableTimeout = true;
 
-        // Reset done sending flag
-        assert(sim.txState.doneSending);
-        sim.txState.dataToSend.clear();
-        sim.txState.doneSending = false;
+        if (receiveStuff(sim, "Timeout waiting for input data!"))
+            return;
 
-        // Execute till stop condition
-        while (!sim.run<true>(0));
+        //=========================================================================
+        // 3. (Send Handshake)
 
         std::cout << "Send handshake!" << std::endl;
 
-        // Reset receive flag
-        assert(sim.rxState.receivedLastByte);
-        sim.rxState.receivedLastByte = false;
-
-        sim.txState.reset();
-        sim.txState.dataToSend.push_back(handshakeToken);
-        // Execute till stop condition
-        while (!sim.run<true>(0));
-
-        assert(sim.txState.doneSending);
+        if(sendStuff(sim, [&]{
+            sim.txState.dataToSend.push_back(handshakeToken);
+        })) return;
     }
 };
 
 class OutTransaction {
+    /*
+    Out Transaction:
+    1. Send Token packet
+    2. Send Data packet
+    3. Receive Handshake / Timeout
+    */
   public:
     TokenPacket outTokenPacket;
     std::vector<uint8_t> dataPacket;
 
     void send(UsbTopSim &sim) {
+        //=========================================================================
+        // 1. Send Token packet
+
         std::cout << "Send OUT token!" << std::endl;
 
-        fillVector(sim.txState.dataToSend, outTokenPacket);
-
-        // Execute till stop condition
-        while (!sim.run<true>(0));
+        if(sendStuff(sim, [&]{
+            fillVector(sim.txState.dataToSend, outTokenPacket);
+        })) return;
 
         // Execute a few more cycles to give the logic some time between the packages
         sim.run<true, false>(10);
 
+        //=========================================================================
+        // 2. Send Data packet
         std::cout << "Send OUT data!" << std::endl;
 
-        // Reset done sending flag
-        assert(sim.txState.doneSending);
-        sim.txState.reset();
+        if(sendStuff(sim, [&]{
+            for (uint8_t data : dataPacket) {
+                sim.txState.dataToSend.push_back(data);
+            }
+        })) return;
 
-        for (uint8_t data : dataPacket) {
-            sim.txState.dataToSend.push_back(data);
-        }
-
-        // Execute till stop condition
-        while (!sim.run<true>(0));
+        //=========================================================================
+        // 3. Receive Handshake / Timeout
 
         std::cout << "Wait for response!" << std::endl;
-        // Enable timeout for receiving a response
-        sim.rxState.enableTimeout = true;
 
-        // Reset receive flag
-        if (!sim.txState.doneSending) {
+        if (receiveStuff(sim, "Timeout waiting for a response!"))
             return;
-        }
-
-        sim.txState.dataToSend.clear();
-        sim.txState.doneSending = false;
-
-        // Execute till stop condition
-        while (!sim.run<true>(0));
-
-        if (sim.rxState.timedOut) {
-            std::cerr << "Timeout waiting for a response!" << std::endl;
-            return;
-        }
-        assert(sim.rxState.receivedLastByte);
     }
 };
 
