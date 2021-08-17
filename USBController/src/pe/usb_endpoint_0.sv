@@ -187,8 +187,10 @@ module usb_endpoint_0 #(
     end
 
     assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
+    // Only show data is available, when we are in a sending state!
     assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && (ep0State == SEND_DESC || ep0State == SEND_VAL);
-    assign EP_IN_full_o = packetBufFull || ep0State != NO_OUTPUT_EXPECTED;
+    // Currently we only expect input for a new device request!
+    assign EP_IN_full_o = packetBufFull || ep0State != NEW_DEV_REQUEST;
 
     logic epInHandshake;
     assign epInHandshake = EP_IN_dataValid_i && !EP_IN_full_o;
