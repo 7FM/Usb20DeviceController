@@ -203,6 +203,24 @@ class OutTransaction {
     }
 };
 
+static void printResponse(const std::vector<uint8_t>& response) {
+    if (response.empty()) {
+        std::cerr << "No response received!" << std::endl;
+        return;
+    }
+
+    std::cout << "Got Response:" << std::endl;
+    bool first = true;
+    for (auto data : response) {
+        if (first) {
+            std::cout << "    " << pidToString(static_cast<PID_Types>(data)) << std::endl;
+        } else {
+            std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+        }
+        first = false;
+    }
+}
+
 /******************************************************************************/
 int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
@@ -228,10 +246,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Send Setup transaction packet" << std::endl;
     failed |= setupTrans.send(sim);
-    std::cout << "Got Response:" << std::endl;
-    for (auto data : sim.rxState.receivedData) {
-        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
-    }
+    printResponse(sim.rxState.receivedData);
     //TODO check results
 
     sim.reset();
@@ -245,10 +260,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Send Input transaction packet" << std::endl;
     failed |= getDesc.send(sim);
-    std::cout << "Got Response:" << std::endl;
-    for (auto data : sim.rxState.receivedData) {
-        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
-    }
+    printResponse(sim.rxState.receivedData);
     //TODO check results
 
     sim.reset();

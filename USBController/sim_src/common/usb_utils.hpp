@@ -3,7 +3,8 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
-#include <stdexcept>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #define BIT_STUFF_AFTER_X_ONES 6
@@ -36,6 +37,42 @@ typedef enum : uint8_t {
     PID_SPECIAL_PING = createPID(0b0100),     // unused: High-speed only
     _PID_RESERVED = createPID(0b0000)
 } PID_Types;
+
+#define STRINGIFY_CASE(x) \
+    case x:               \
+        return #x
+
+std::string pidToString(PID_Types pid) {
+    switch (pid)
+    {
+        STRINGIFY_CASE(PID_OUT_TOKEN);
+        STRINGIFY_CASE(PID_IN_TOKEN);
+        STRINGIFY_CASE(PID_SOF_TOKEN);
+        STRINGIFY_CASE(PID_SETUP_TOKEN);
+        STRINGIFY_CASE(PID_DATA0);
+        STRINGIFY_CASE(PID_DATA1);
+        STRINGIFY_CASE(PID_DATA2);
+        STRINGIFY_CASE(PID_MDATA);
+        STRINGIFY_CASE(PID_HANDSHAKE_ACK);
+        STRINGIFY_CASE(PID_HANDSHAKE_NACK);
+        STRINGIFY_CASE(PID_HANDSHAKE_STALL);
+        STRINGIFY_CASE(PID_HANDSHAKE_NYET);
+        STRINGIFY_CASE(PID_SPECIAL_PRE__ERR);
+        STRINGIFY_CASE(PID_SPECIAL_SPLIT);
+        STRINGIFY_CASE(PID_SPECIAL_PING);
+        STRINGIFY_CASE(_PID_RESERVED);
+        default:
+            break;
+    }
+
+    std::stringstream ss;
+    ss<< "Unknown PID: 0x";
+    ss << std::hex << static_cast<unsigned int>(pid);
+
+    return ss.str();
+}
+
+#undef STRINGIFY_CASE
 
 typedef enum {
     NO_CRC,
