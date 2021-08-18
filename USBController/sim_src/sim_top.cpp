@@ -125,7 +125,7 @@ class InTransaction {
     TokenPacket inTokenPacket;
     PID_Types handshakeToken;
 
-    void send(UsbTopSim &sim) {
+    bool send(UsbTopSim &sim) {
         //=========================================================================
         // 1. Send Token packet
         sim.issueDummySignal();
@@ -133,7 +133,7 @@ class InTransaction {
 
         if(sendStuff(sim, [&]{
             fillVector(sim.txState.dataToSend, inTokenPacket);
-        })) return;
+        })) return true;
 
         //=========================================================================
         // 2. Receive Data packet / Timeout
@@ -141,7 +141,7 @@ class InTransaction {
         std::cout << "Receive IN data!" << std::endl;
 
         if (receiveStuff(sim, "Timeout waiting for input data!"))
-            return;
+            return true;
 
         //=========================================================================
         // 3. (Send Handshake)
@@ -150,7 +150,9 @@ class InTransaction {
 
         if(sendStuff(sim, [&]{
             sim.txState.dataToSend.push_back(handshakeToken);
-        })) return;
+        })) return true;
+
+        return false;
     }
 };
 
@@ -165,7 +167,7 @@ class OutTransaction {
     TokenPacket outTokenPacket;
     std::vector<uint8_t> dataPacket;
 
-    void send(UsbTopSim &sim) {
+    bool send(UsbTopSim &sim) {
         //=========================================================================
         // 1. Send Token packet
         sim.issueDummySignal();
@@ -173,7 +175,7 @@ class OutTransaction {
 
         if(sendStuff(sim, [&]{
             fillVector(sim.txState.dataToSend, outTokenPacket);
-        })) return;
+        })) return true;
 
         // Execute a few more cycles to give the logic some time between the packages
         sim.run<true, false>(10);
@@ -187,7 +189,7 @@ class OutTransaction {
             for (uint8_t data : dataPacket) {
                 sim.txState.dataToSend.push_back(data);
             }
-        })) return;
+        })) return true;
 
         //=========================================================================
         // 3. Receive Handshake / Timeout
@@ -195,7 +197,9 @@ class OutTransaction {
         std::cout << "Wait for response!" << std::endl;
 
         if (receiveStuff(sim, "Timeout waiting for a response!"))
-            return;
+            return true;
+
+        return false;
     }
 };
 
@@ -209,6 +213,8 @@ int main(int argc, char **argv) {
     // start things going
     sim.reset();
 
+    bool failed = false;
+
     // Test 1: Setup transaction
     OutTransaction setupTrans;
     setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
@@ -221,7 +227,7 @@ int main(int argc, char **argv) {
     fillVector(setupTrans.dataPacket, packet);
 
     std::cout << "Send Setup transaction packet" << std::endl;
-    setupTrans.send(sim);
+    failed |= setupTrans.send(sim);
     std::cout << "Got Response:" << std::endl;
     for (auto data : sim.rxState.receivedData) {
         std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
@@ -238,7 +244,7 @@ int main(int argc, char **argv) {
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
     std::cout << "Send Input transaction packet" << std::endl;
-    getDesc.send(sim);
+    failed |= getDesc.send(sim);
     std::cout << "Got Response:" << std::endl;
     for (auto data : sim.rxState.receivedData) {
         std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
@@ -246,6 +252,18 @@ int main(int argc, char **argv) {
     //TODO check results
 
     sim.reset();
+
+
+    std::cout << std::endl << "Tests ";
+
+    if (forceStop) {
+        std::cout << "ABORTED!" << std::endl;
+        std::cerr << "The user requested a forced stop!" << std::endl;
+    } else if (failed) {
+        std::cout << "FAILED!" << std::endl;
+    } else {
+        std::cout << "PASSED!" << std::endl;
+    }
 
     return 0;
 }
