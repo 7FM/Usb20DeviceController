@@ -14,7 +14,11 @@ module sim_usb_rx_connection (
     output logic rxDataValid, // rxData contains valid & new data
     output logic [7:0] rxData, // data to be retrieved
 
-    output logic keepPacket // should be tested when rxIsLastByte set to check whether an retrival error occurred
+    output logic keepPacket, // should be tested when rxIsLastByte set to check whether an retrival error occurred
+
+    // Timeout interface
+    input logic resetTimeout,
+    output logic gotTimeout
 );
 
     logic dataInP;
@@ -49,6 +53,7 @@ module sim_usb_rx_connection (
     // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
     assign rxClkGenRST = rxRST; //TODO change the rst -> then it can be used for tx as well!
     logic rxClk12;
+    logic DPPLGotSignal;
 
     DPPL #() asyncRxCLK (
         .clk48_i(CLK),
@@ -56,7 +61,15 @@ module sim_usb_rx_connection (
         .dpPosEdgeSync_i(dataInP),
         .dpNegEdgeSync_i(dataInP_negedge),
         .readCLK12_o(rxClk12),
-        `MUTE_PIN_CONNECT_EMPTY(DPPLGotSignal_o)
+        .DPPLGotSignal_o(DPPLGotSignal)
+    );
+
+    usb_timeout usbRxTimeout(
+        .clk48_i(CLK),
+        .clk12_i(rxClk12),
+        .rst_i(resetTimeout),
+        .rxGotSignal_i(DPPLGotSignal),
+        .rxTimeout_o(gotTimeout)
     );
 
     logic rxCRCReset;

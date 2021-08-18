@@ -21,7 +21,11 @@ module sim_top (
     output logic rxDataValid, // rxData contains valid & new data
     output logic [7:0] rxData, // data to be retrieved
 
-    output logic keepPacket
+    output logic keepPacket,
+
+    // Timeout interface
+    input logic resetTimeout,
+    output logic gotTimeout
 );
 
     logic USB_DP;
@@ -65,7 +69,10 @@ module sim_top (
         .rxIsLastByte(rxIsLastByte),
         .rxDataValid(rxDataValid),
         .rxData(rxData),
-        .keepPacket(keepPacket)
+        .keepPacket(keepPacket),
+
+        .resetTimeout(resetTimeout),
+        .gotTimeout(gotTimeout)
     );
 
 

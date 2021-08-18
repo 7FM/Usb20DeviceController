@@ -13,7 +13,11 @@ module sim_usb_rx (
     output logic rxDataValid, // rxData contains valid & new data
     output logic [7:0] rxData, // data to be retrieved
 
-    output logic keepPacket // should be tested when rxIsLastByte set to check whether an retrival error occurred
+    output logic keepPacket, // should be tested when rxIsLastByte set to check whether an retrival error occurred
+
+    // Timeout interface
+    input logic resetTimeout,
+    output logic gotTimeout
 );
 
     sim_usb_rx_connection rxCon (
@@ -25,7 +29,10 @@ module sim_usb_rx (
         .rxIsLastByte(rxIsLastByte),
         .rxDataValid(rxDataValid),
         .rxData(rxData),
-        .keepPacket(keepPacket)
+        .keepPacket(keepPacket),
+
+        .resetTimeout(resetTimeout),
+        .gotTimeout(gotTimeout)
     );
 
 endmodule

@@ -332,41 +332,41 @@ constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'000
 constexpr auto usbEOPSignal = createEOPSignal();
 
 struct UsbReceiveState {
-    // Timeout after 16 bit times (12 MHz domain)
-    static constexpr uint8_t TIMEOUT_AFTER_X_CYCLES = 16 * 4;
-
     std::vector<uint8_t> receivedData;
     bool receivedLastByte = false;
     bool keepPacket = false;
     uint8_t delayedDataAccept = 0;
     const uint8_t acceptAfterXAvailableCycles = 5;
+
     bool enableTimeout = false;
+    bool timerReset = false;
     bool timedOut = false;
-    uint8_t timeoutCnt = TIMEOUT_AFTER_X_CYCLES;
 
     void reset() {
         receivedData.clear();
-        enableTimeout = false;
         receivedLastByte = false;
         keepPacket = false;
         delayedDataAccept = 0;
+
+        enableTimeout = false;
         timedOut = false;
-        timeoutCnt = TIMEOUT_AFTER_X_CYCLES;
+        timerReset = false;
     }
 
     void actAsNop() {
         // Do not trigger stop conditions by signaling beeing done / timing out!
         receivedLastByte = false;
-        enableTimeout = false;
         keepPacket = false;
+
+        enableTimeout = false;
         timedOut = false;
+        timerReset = false;
     }
 };
 
 template <typename T>
 void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState) {
     if (ptop->rxAcceptNewData && ptop->rxDataValid) {
-        usbRxState.timeoutCnt = UsbReceiveState::TIMEOUT_AFTER_X_CYCLES;
         usbRxState.receivedData.push_back(ptop->rxData);
 
         if (ptop->rxIsLastByte) {
@@ -390,14 +390,13 @@ void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState) {
             }
 
             ++usbRxState.delayedDataAccept;
-        } else if (usbRxState.enableTimeout) {
-            if (usbRxState.timeoutCnt > 1) {
-                --usbRxState.timeoutCnt;
-            } else {
-                usbRxState.timedOut = true;
-            }
         }
     }
+
+    ptop->resetTimeout = !usbRxState.enableTimeout || !usbRxState.timerReset;
+    usbRxState.timerReset = true;
+
+    usbRxState.timedOut = ptop->gotTimeout;
 }
 
 struct UsbTransmitState {
