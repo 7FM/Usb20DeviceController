@@ -3,7 +3,7 @@
 `ifdef RUN_SIM
 module sim_top (
     input logic CLK,
-
+    input logic dummyPin,
     input logic rxRST,
 
     // Data send interface: synced with clk48!

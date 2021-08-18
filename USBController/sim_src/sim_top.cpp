@@ -51,6 +51,12 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         feedTransmitSerializer(top, txState);
     }
 
+    void issueDummySignal() {
+        top->dummyPin = 1;
+        run<true, false, false, false, false>(1);
+        top->dummyPin = 0;
+    }
+
     bool customInit(int opt) { return false; }
     void onFallingEdge() {}
     void sanityChecks() {}
@@ -122,6 +128,7 @@ class InTransaction {
     void send(UsbTopSim &sim) {
         //=========================================================================
         // 1. Send Token packet
+        sim.issueDummySignal();
         std::cout << "Send IN token!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -130,7 +137,7 @@ class InTransaction {
 
         //=========================================================================
         // 2. Receive Data packet / Timeout
-
+        sim.issueDummySignal();
         std::cout << "Receive IN data!" << std::endl;
 
         if (receiveStuff(sim, "Timeout waiting for input data!"))
@@ -138,7 +145,7 @@ class InTransaction {
 
         //=========================================================================
         // 3. (Send Handshake)
-
+        sim.issueDummySignal();
         std::cout << "Send handshake!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -161,7 +168,7 @@ class OutTransaction {
     void send(UsbTopSim &sim) {
         //=========================================================================
         // 1. Send Token packet
-
+        sim.issueDummySignal();
         std::cout << "Send OUT token!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -173,6 +180,7 @@ class OutTransaction {
 
         //=========================================================================
         // 2. Send Data packet
+        sim.issueDummySignal();
         std::cout << "Send OUT data!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -183,7 +191,7 @@ class OutTransaction {
 
         //=========================================================================
         // 3. Receive Handshake / Timeout
-
+        sim.issueDummySignal();
         std::cout << "Wait for response!" << std::endl;
 
         if (receiveStuff(sim, "Timeout waiting for a response!"))
