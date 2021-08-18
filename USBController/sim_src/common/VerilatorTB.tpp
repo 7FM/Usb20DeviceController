@@ -1,11 +1,11 @@
 #include <iostream>
 
-template <class TOP>
-VerilatorTB<TOP>::VerilatorTB() : simContext(new VerilatedContext), top(new TOP(simContext)) {
+template <class Impl, class TOP>
+VerilatorTB<Impl, TOP>::VerilatorTB() : simContext(new VerilatedContext), top(new TOP(simContext)) {
 }
 
-template <class TOP>
-VerilatorTB<TOP>::~VerilatorTB() {
+template <class Impl, class TOP>
+VerilatorTB<Impl, TOP>::~VerilatorTB() {
     top->final();
 
     if (traceFile) {
@@ -17,8 +17,9 @@ VerilatorTB<TOP>::~VerilatorTB() {
     delete top;
     delete simContext;
 }
-template <class TOP>
-bool VerilatorTB<TOP>::init(int argc, char **argv) {
+
+template <class Impl, class TOP>
+bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
     if (initialized) {
         return false;
     }
@@ -37,7 +38,7 @@ bool VerilatorTB<TOP>::init(int argc, char **argv) {
                 std::cout << "option needs a value" << std::endl;
                 return false;
             case '?': //used for some unknown options
-                if (!customInit(opt)) {
+                if (!static_cast<Impl *>(this)->customInit(opt)) {
                     std::cout << "unknown option: " << optopt << std::endl;
                     return false;
                 }
@@ -58,9 +59,9 @@ bool VerilatorTB<TOP>::init(int argc, char **argv) {
     return true;
 }
 
-template <class TOP>
+template <class Impl, class TOP>
 template <bool dump>
-void VerilatorTB<TOP>::tick() {
+void VerilatorTB<Impl, TOP>::tick() {
     simContext->timeInc(1);
     top->eval();
 
@@ -71,29 +72,29 @@ void VerilatorTB<TOP>::tick() {
     }
 }
 
-template <class TOP>
+template <class Impl, class TOP>
 template <bool dump, bool checkStopCondition, bool runSanityChecks, bool runOnRisingEdge, bool runOnFallingEdge>
-bool VerilatorTB<TOP>::run(uint64_t limit) {
+bool VerilatorTB<Impl, TOP>::run(uint64_t limit) {
     bool stop;
     do {
-        stop = checkStopCondition && stopCondition(top);
+        stop = checkStopCondition && static_cast<Impl *>(this)->stopCondition(top);
 
         top->CLK = 1;
 
         if constexpr (runOnRisingEdge) {
-            onRisingEdge(top);
+            static_cast<Impl *>(this)->onRisingEdge(top);
         }
         tick<dump>();
 
         top->CLK = 0;
 
         if constexpr (runOnFallingEdge) {
-            onFallingEdge(top);
+            static_cast<Impl *>(this)->onFallingEdge(top);
         }
         tick<dump>();
 
         if constexpr (runSanityChecks) {
-            sanityChecks(top);
+            static_cast<Impl *>(this)->sanityChecks(top);
         }
     } while (--limit && !stop);
 

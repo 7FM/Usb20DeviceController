@@ -4,20 +4,11 @@
 #include <verilated.h> // Defines common routines
 #include <verilated_vcd_c.h>
 
-template <class TOP>
+template <class Impl, class TOP>
 class VerilatorTB {
   private:
     template <bool dump>
     void tick();
-
-  protected:
-    virtual bool customInit(int opt) { return false; }
-    virtual void onRisingEdge(TOP *top) {}
-    virtual void onFallingEdge(TOP *top) {}
-    virtual void sanityChecks(const TOP *top) {}
-    virtual bool stopCondition(TOP *top) { return false; }
-
-    virtual void simReset(TOP *top) {}
 
   public:
     VerilatorTB();
@@ -35,7 +26,7 @@ class VerilatorTB {
         return simContext->gotFinish();
     }
     void reset() {
-        simReset(top);
+        static_cast<Impl*>(this)->simReset(top);
     }
 
     bool init(int argc, char **argv);

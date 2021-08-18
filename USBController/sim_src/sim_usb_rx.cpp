@@ -24,7 +24,8 @@ static void signalHandler(int signal) {
 }
 /******************************************************************************/
 
-class UsbRxSim : public VerilatorTB<TOP_MODULE> {
+class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
+  private:
     static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<true, PID_DATA0, static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
 
     int signalIdx;
@@ -41,7 +42,7 @@ class UsbRxSim : public VerilatorTB<TOP_MODULE> {
     }
 
   public:
-    virtual void simReset(TOP_MODULE *top) override {
+    void simReset(TOP_MODULE *top) {
         // Set inputs to valid states
         top->USB_DP = 1;
         top->USB_DN = 0;
@@ -55,22 +56,25 @@ class UsbRxSim : public VerilatorTB<TOP_MODULE> {
         delayCnt = 0;
     }
 
-    virtual bool stopCondition(TOP_MODULE *top) override {
+    bool stopCondition(TOP_MODULE *top) {
         return (signalIdx >= signalToReceive.size() && rxState.receivedLastByte) || forceStop;
     }
 
-    virtual void onRisingEdge(TOP_MODULE *top) override {
+    void onRisingEdge(TOP_MODULE *top) {
         receiveDeserializedInput(top, rxState);
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
         applyUsbSignal(top, signalToReceive.data(), signalToReceive.size());
 #endif
     }
 
-    virtual void onFallingEdge(TOP_MODULE *top) override {
+    void onFallingEdge(TOP_MODULE *top) {
 #if !APPLY_USB_SIGNAL_ON_RISING_EDGE
         applyUsbSignal(top, signalToReceive.data(), signalToReceive.size());
 #endif
     }
+
+    bool customInit(int opt) { return false; }
+    void sanityChecks(const TOP_MODULE *top) {}
 
   public:
     // Usb data receive state variables
@@ -88,7 +92,7 @@ int main(int argc, char **argv) {
     sim.reset();
 
     // Execute till stop condition
-    while(!sim.run<true>(0));
+    while (!sim.run<true>(0));
     // Execute a few more cycles
     sim.run<true, false>(4 * 10);
 

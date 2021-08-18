@@ -21,9 +21,10 @@ static void signalHandler(int signal) {
 
 /******************************************************************************/
 
-class UsbTxSim : public VerilatorTB<TOP_MODULE> {
+class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
+
   public:
-    virtual void simReset(TOP_MODULE *top) override {
+    void simReset(TOP_MODULE *top) {
 
         // Data send/transmit interface
         top->txReqSendPacket = 0;
@@ -43,14 +44,18 @@ class UsbTxSim : public VerilatorTB<TOP_MODULE> {
         txState.reset();
     }
 
-    virtual bool stopCondition(TOP_MODULE *top) override {
+    bool stopCondition(TOP_MODULE *top) {
         return rxState.receivedLastByte || forceStop;
     }
 
-    virtual void onRisingEdge(TOP_MODULE *top) override {
+    void onRisingEdge(TOP_MODULE *top) {
         receiveDeserializedInput(top, rxState);
         feedTransmitSerializer(top, txState);
     }
+
+    bool customInit(int opt) { return false; }
+    void onFallingEdge(TOP_MODULE *top) {}
+    void sanityChecks(const TOP_MODULE *top) {}
 
   public:
     // Usb data receive state variables
