@@ -31,7 +31,7 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
     int signalIdx;
     uint8_t delayCnt;
 
-    void applyUsbSignal(TOP_MODULE *top, const uint8_t *data, std::size_t arraySize) {
+    void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
         if (signalIdx + 1 < arraySize) {
             delayCnt = (delayCnt + 1) % USB_SIGNAL_LENGTH;
             if (delayCnt == 0) {
@@ -42,7 +42,7 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
     }
 
   public:
-    void simReset(TOP_MODULE *top) {
+    void simReset() {
         // Set inputs to valid states
         top->USB_DP = 1;
         top->USB_DN = 0;
@@ -56,25 +56,25 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
         delayCnt = 0;
     }
 
-    bool stopCondition(TOP_MODULE *top) {
+    bool stopCondition() {
         return (signalIdx >= signalToReceive.size() && rxState.receivedLastByte) || forceStop;
     }
 
-    void onRisingEdge(TOP_MODULE *top) {
+    void onRisingEdge() {
         receiveDeserializedInput(top, rxState);
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
-        applyUsbSignal(top, signalToReceive.data(), signalToReceive.size());
+        applyUsbSignal(signalToReceive.data(), signalToReceive.size());
 #endif
     }
 
-    void onFallingEdge(TOP_MODULE *top) {
+    void onFallingEdge() {
 #if !APPLY_USB_SIGNAL_ON_RISING_EDGE
-        applyUsbSignal(top, signalToReceive.data(), signalToReceive.size());
+        applyUsbSignal(signalToReceive.data(), signalToReceive.size());
 #endif
     }
 
     bool customInit(int opt) { return false; }
-    void sanityChecks(const TOP_MODULE *top) {}
+    void sanityChecks() {}
 
   public:
     // Usb data receive state variables

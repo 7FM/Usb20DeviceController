@@ -26,7 +26,7 @@ class VerilatorTB {
         return simContext->gotFinish();
     }
     void reset() {
-        static_cast<Impl*>(this)->simReset(top);
+        static_cast<Impl*>(this)->simReset();
     }
 
     bool init(int argc, char **argv);
@@ -37,8 +37,11 @@ class VerilatorTB {
     bool initialized = false;
 
     VerilatedContext *const simContext;
+
+  protected:
     TOP *const top;
 
+  private:
     VerilatedVcdC *traceFile = nullptr;
 };
 

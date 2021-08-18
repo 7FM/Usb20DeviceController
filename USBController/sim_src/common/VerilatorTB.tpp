@@ -77,24 +77,24 @@ template <bool dump, bool checkStopCondition, bool runSanityChecks, bool runOnRi
 bool VerilatorTB<Impl, TOP>::run(uint64_t limit) {
     bool stop;
     do {
-        stop = checkStopCondition && static_cast<Impl *>(this)->stopCondition(top);
+        stop = checkStopCondition && static_cast<Impl *>(this)->stopCondition();
 
         top->CLK = 1;
 
         if constexpr (runOnRisingEdge) {
-            static_cast<Impl *>(this)->onRisingEdge(top);
+            static_cast<Impl *>(this)->onRisingEdge();
         }
         tick<dump>();
 
         top->CLK = 0;
 
         if constexpr (runOnFallingEdge) {
-            static_cast<Impl *>(this)->onFallingEdge(top);
+            static_cast<Impl *>(this)->onFallingEdge();
         }
         tick<dump>();
 
         if constexpr (runSanityChecks) {
-            static_cast<Impl *>(this)->sanityChecks(top);
+            static_cast<Impl *>(this)->sanityChecks();
         }
     } while (--limit && !stop);
 
