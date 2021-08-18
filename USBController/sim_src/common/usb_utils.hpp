@@ -332,8 +332,8 @@ constexpr auto usbSyncSignal = nrziEncode<false, static_cast<uint8_t>(0b1000'000
 constexpr auto usbEOPSignal = createEOPSignal();
 
 struct UsbReceiveState {
-    //TODO use correct value given by the spec!
-    static constexpr uint8_t TIMEOUT_AFTER_X_CYCLES = 42;
+    // Timeout after 16 bit times (12 MHz domain)
+    static constexpr uint8_t TIMEOUT_AFTER_X_CYCLES = 16 * 4;
 
     std::vector<uint8_t> receivedData;
     bool receivedLastByte = false;
@@ -358,6 +358,8 @@ struct UsbReceiveState {
         // Do not trigger stop conditions by signaling beeing done / timing out!
         receivedLastByte = false;
         enableTimeout = false;
+        keepPacket = false;
+        timedOut = false;
     }
 };
 
