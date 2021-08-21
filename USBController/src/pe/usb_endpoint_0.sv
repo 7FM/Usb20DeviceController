@@ -434,9 +434,10 @@ module usb_endpoint_0 #(
         ep0State <= nextEp0State;
 
         requestError <= nextRequestError;
+        epOutDataToggleState <= nextEpOutDataToggleState;
         //TODO this needs to be reset to 0 on transition to certain device states too
         //pidData1Expected <= nextPidData1Expected;
-        epOutDataToggleState <= nextEpOutDataToggleState;
+        byteIsData <= nextByteIsData;
 
         requestedBytesLeft <= nextRequestedBytesLeft;
         romReadIdx <= nextRomReadIdx;
