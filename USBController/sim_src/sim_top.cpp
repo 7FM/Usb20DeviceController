@@ -1,6 +1,7 @@
 #include <atomic>
 #include <csignal>
 #include <cstdint>
+#include <cstring>
 #include <functional>
 
 #define TOP_MODULE Vsim_top
@@ -233,14 +234,28 @@ int main(int argc, char **argv) {
 
     bool failed = false;
 
-    // Test 1: Setup transaction
+    // Test 1: Setup transaction: request the device descriptor
     OutTransaction setupTrans;
     setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
     setupTrans.outTokenPacket.addr = 0;
     setupTrans.outTokenPacket.endpoint = 0;
     setupTrans.outTokenPacket.crc = 0b11111; // Should be a dont care!
 
-    SetupPacket packet; //TODO fill
+    SetupPacket packet;
+    std::memset(&packet, 0, sizeof(packet));
+    // Request type
+    packet.request = DEVICE_GET_DESCRIPTOR;
+
+    // Descriptor type
+    packet.wValueLsB = DESC_DEVICE;
+    // Descriptor index;
+    packet.wValueMsB = 0;
+    // Zero or Language ID
+    packet.wIndexLsB = packet.wIndexMsB = 0;
+    // Descriptor length, is unknown but can be determined by reading the first 8 bytes
+    packet.wLengthLsB = 8;
+    packet.wLengthMsB = 0;
+
     setupTrans.dataPacket.push_back(PID_DATA0);
     fillVector(setupTrans.dataPacket, packet);
 
