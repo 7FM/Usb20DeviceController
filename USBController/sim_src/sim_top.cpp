@@ -247,9 +247,9 @@ int main(int argc, char **argv) {
     packet.request = DEVICE_GET_DESCRIPTOR;
 
     // Descriptor type
-    packet.wValueLsB = DESC_DEVICE;
+    packet.wValueMsB = DESC_DEVICE;
     // Descriptor index;
-    packet.wValueMsB = 0;
+    packet.wValueLsB = 0;
     // Zero or Language ID
     packet.wIndexLsB = packet.wIndexMsB = 0;
     // Descriptor length, is unknown but can be determined by reading the first 8 bytes
