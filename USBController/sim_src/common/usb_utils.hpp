@@ -500,9 +500,73 @@ void feedTransmitSerializer(T *ptop, UsbTransmitState &usbTxState) {
     usbTxState.prevSending = ptop->sending;
 }
 
+enum RequestCode : uint8_t {
+    GET_STATUS = 0,
+    CLEAR_FEATURE = 1,
+    RESERVED_2 = 2,
+    SET_FEATURE = 3,
+    RESERVED_4 = 4,
+    SET_ADDRESS = 5,
+    GET_DESCRIPTOR = 6,
+    SET_DESCRIPTOR = 7,
+    GET_CONFIGURATION = 8,
+    SET_CONFIGURATION = 9,
+    GET_INTERFACE = 10,
+    SET_INTERFACE = 11,
+    SYNCH_FRAME = 12,
+    IMPL_SPECIFIC_13_255 = 13
+};
+
+static constexpr uint16_t swapBytes(uint16_t input) {
+    uint16_t immRes = 0;
+    immRes |= input & 0x0F;
+    immRes <<= 8;
+    input >>= 8;
+    immRes |= input & 0x0F;
+    return immRes;
+}
+
+enum StandardDeviceRequest : uint16_t {
+    DEVICE_CLEAR_FEATURE = swapBytes(0b0000'0000'0000'0000 + CLEAR_FEATURE),
+    INTERFACE_CLEAR_FEATURE = swapBytes(0b0000'0001'0000'0000 + CLEAR_FEATURE),
+    ENDPOINT_CLEAR_FEATURE = swapBytes(0b0000'0010'0000'0000 + CLEAR_FEATURE),
+
+    DEVICE_SET_FEATURE = swapBytes(0b0000'0000'0000'0000 + SET_FEATURE),
+    INTERFACE_SET_FEATURE = swapBytes(0b0000'0001'0000'0000 + SET_FEATURE),
+    ENDPOINT_SET_FEATURE = swapBytes(0b0000'0010'0000'0000 + SET_FEATURE),
+
+    DEVICE_GET_STATUS = swapBytes(0b1000'0000'0000'0000 + GET_STATUS),
+    INTERFACE_GET_STATUS = swapBytes(0b1000'0001'0000'0000 + GET_STATUS),
+    ENDPOINT_GET_STATUS = swapBytes(0b1000'0010'0000'0000 + GET_STATUS),
+
+    INTERFACE_GET_INTERFACE = swapBytes(0b1000'0001'0000'0000 + GET_INTERFACE),
+    INTERFACE_SET_INTERFACE = swapBytes(0b0000'0001'0000'0000 + SET_INTERFACE),
+
+    ENDPOINT_SYNCH_FRAME = swapBytes(0b1000'0010'0000'0000 + SYNCH_FRAME),
+
+    DEVICE_GET_CONFIGURATION = swapBytes(0b1000'0000'0000'0000 + GET_CONFIGURATION),
+    DEVICE_SET_CONFIGURATION = swapBytes(0b0000'0000'0000'0000 + SET_CONFIGURATION),
+
+    DEVICE_GET_DESCRIPTOR = swapBytes(0b1000'0000'0000'0000 + GET_DESCRIPTOR),
+    DEVICE_SET_DESCRIPTOR = swapBytes(0b0000'0000'0000'0000 + SET_DESCRIPTOR),
+
+    DEVICE_SET_ADDRESS = swapBytes(0b0000'0000'0000'0000 + SET_ADDRESS),
+};
+
+enum DescriptorType : uint8_t{
+    DESC_DEVICE = 1,
+    DESC_CONFIGURATION = 2,
+    DESC_STRING = 3,
+    DESC_INTERFACE = 4,
+    DESC_ENDPOINT = 5,
+    DESC_DEVICE_QUALIFIER = 6,
+    DESC_OTHER_SPEED_CONFIGURATION = 7,
+    DESC_INTERFACE_POWER = 8, // described in the USB Interface Power Management Specification
+    IMPL_SPECIFIC_9_255 = 9
+};
+
 struct SetupPacket {
-    uint8_t bmRequestType;
-    uint8_t bRequest;
+    StandardDeviceRequest request;
     uint8_t wValueLsB;
     uint8_t wValueMsB;
     uint8_t wIndexLsB;
