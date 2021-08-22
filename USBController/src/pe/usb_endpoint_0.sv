@@ -208,7 +208,7 @@ module usb_endpoint_0 #(
     assign respValid_o = 1'b1;
     assign respPacketID_o = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2] ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
 
-    generate
+generate
     always_comb begin
         nextEp0State = ep0State;
         gotAddrAssigned = 1'b0;
@@ -428,7 +428,7 @@ module usb_endpoint_0 #(
             end
         end
     end
-    endgenerate
+endgenerate
 
     always_ff @(posedge clk48_i) begin
         ep0State <= nextEp0State;
