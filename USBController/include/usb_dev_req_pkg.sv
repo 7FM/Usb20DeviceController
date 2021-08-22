@@ -329,9 +329,9 @@ package usb_dev_req_pkg;
     } RequestType;
 
     typedef struct packed {
-        logic dataTransDevToHost;
-        RequestType reqType;
         Recipient recipient;
+        RequestType reqType;
+        logic dataTransDevToHost;
     } BmRequestType;
 
     // Might be used in wIndex[15]
