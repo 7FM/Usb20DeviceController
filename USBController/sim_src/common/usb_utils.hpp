@@ -519,10 +519,10 @@ enum RequestCode : uint8_t {
 
 static constexpr uint16_t swapBytes(uint16_t input) {
     uint16_t immRes = 0;
-    immRes |= input & 0x0F;
+    immRes |= input & 0x0FF;
     immRes <<= 8;
     input >>= 8;
-    immRes |= input & 0x0F;
+    immRes |= input & 0x0FF;
     return immRes;
 }
 
