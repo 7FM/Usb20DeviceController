@@ -10,6 +10,8 @@
 
 #include "common/VerilatorTB.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
+#include "common/usb_packets.hpp"
+#include "common/usb_descriptors.hpp"
 
 static std::atomic_bool forceStop = false;
 
@@ -278,8 +280,19 @@ int main(int argc, char **argv) {
     printResponse(sim.rxState.receivedData);
     //TODO check results
 
+    DeviceDescriptor deviceDescriptor;
+    std::memset(&deviceDescriptor, 0, sizeof(deviceDescriptor));
+    uint8_t *rawDevDesc = reinterpret_cast<uint8_t *>(&deviceDescriptor);
+    for (int i = 1; i < sim.rxState.receivedData.size(); ++i) {
+        *rawDevDesc = sim.rxState.receivedData[i];
+        ++rawDevDesc;
+    }
+    std::cout << "Device Descriptor:" << std::endl;
+    prettyPrintDeviceDescriptor(deviceDescriptor);
+
     sim.reset();
 
+exitAndCleanup:
 
     std::cout << std::endl << "Tests ";
 
