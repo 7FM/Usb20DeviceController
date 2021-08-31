@@ -124,8 +124,8 @@ module usb_serial_frontend(
 `else // Fallback CASE
     // Tristate output logic
 `ifdef RUN_SIM
-    assign pinP_o = dataOutEn_i ? dataOutP_i : 1'bz;
-    assign pinN_o = dataOutEn_i ? dataOutN_i : 1'bz;
+    assign pinP_o = dataOutEn_i ? dataOutP_i : 1'b1;
+    assign pinN_o = dataOutEn_i ? dataOutN_i : 1'b0;
 `else
     assign pinP = dataOutEn_i ? dataOutP_i : 1'bz;
     assign pinN = dataOutEn_i ? dataOutN_i : 1'bz;
