@@ -234,7 +234,7 @@ static bool readItAll(std::vector<uint8_t> &result, UsbTopSim &sim, int addr, in
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
     do {
-        std::cout << "Send Input transaction packet" << std::endl;
+        std::cout << std::endl << "Send Input transaction packet" << std::endl;
         bool failed = getDesc.send(sim);
         printResponse(sim.rxState.receivedData);
 
@@ -312,9 +312,11 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
 
     if (descType == DESC_DEVICE) {
         ep0MaxDescriptorSize = result[7];
+        std::cout << "INFO: update EP0 Max packet size to: " << ep0MaxDescriptorSize << std::endl;
     }
 
     if (descriptorSize > 8) {
+        std::cout << std::endl << "Descriptor is larger than 8 bytes, requesting entire descriptor!" << std::endl;
         // We need to fetch the remaining data too!
         packet.wLengthLsB = descriptorSize;
 
