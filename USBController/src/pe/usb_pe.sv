@@ -256,14 +256,18 @@ module usb_pe #(
 //====================================================================================
 
     logic transactionStarted, transactionDone;
+    // Based on useInternalBuf we need to switch between the Endpoint FIFOs and the internal buffer to receive i.e. Token Packets that might start an transaction
+    // We also want to receive the host response in our internal buffer -> switch buffers back after data was sent!
+    logic useInternalBuf, forceInternalBuf;
+    assign useInternalBuf = !transactionStarted || forceInternalBuf;
 
     // This buffer is used to receive the first packet that might initiate a transaction
     localparam TRANS_START_BUF_MAX_BIT_IDX = usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN-1;
     logic [TRANS_START_BUF_MAX_BIT_IDX:0] transStartPacketBuf;
     logic transStartPacketBufFull;
 
-    logic transBufRst;
-    assign transBufRst = transactionDone;
+    logic transBufRst, forceTransBufRst;
+    assign transBufRst = transactionDone || forceTransBufRst;
     vector_buf #(
         .DATA_WID(8),
         .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_BYTE_COUNT),
@@ -273,7 +277,7 @@ module usb_pe #(
         .rst_i(transBufRst),
 
         .data_i(wData),
-        .dataValid_i(!transactionStarted && rxDataValid_i),
+        .dataValid_i(useInternalBuf && rxDataValid_i),
 
         .buffer_o(transStartPacketBuf),
         .isFull_o(transStartPacketBufFull)
@@ -285,16 +289,15 @@ module usb_pe #(
     initial begin
         receiveDone = 1'b0;
         receiveSuccess = 1'b1;
-        // Based on transactionStarted we need to switch between the Endpoint FIFOs and the internal buffer to receive i.e. Token Packets that might start an transaction
         transactionStarted = 1'b0;
     end
 
     // Serial frontend connections
-    assign EP_WRITE_EN = transactionStarted && rxHandshake;
+    assign EP_WRITE_EN = !useInternalBuf && rxHandshake;
     assign wData = rxData_i;
 
     logic rxBufFull;
-    assign rxBufFull = transactionStarted ? writeFifoFull : transStartPacketBufFull;
+    assign rxBufFull = useInternalBuf ? transStartPacketBufFull : writeFifoFull;
     // If this is the last byte, always accept
     assign rxAcceptNewData_o = (!receiveDone && !rxBufFull) || rxIsLastByte_i;
 
@@ -449,6 +452,7 @@ Device Transaction State Machine Hierarchy Overview:
         // Device sends data: PE_DO_IN_BCINT: page 221
         BCINTI_ISSUE_PACKET,
         BCINTI_WAIT_PACKET_SENT,
+        // We need to switch back to the internal buffer!
         BCINTI_AWAIT_RESPONSE
     } TransactionState;
 
@@ -483,6 +487,9 @@ Device Transaction State Machine Hierarchy Overview:
         fillTransDone = 1'b0;
         popTransDone = 1'b0;
         popTransSuccess = 1'b0;
+
+        forceInternalBuf = 1'b0;
+        forceTransBufRst = 1'b0;
 
         unique case (transState)
             PE_RST_RX_CLK: begin
@@ -586,18 +593,22 @@ Device Transaction State Machine Hierarchy Overview:
                     // We are done here
                     nextTransState = BCINTI_AWAIT_RESPONSE;
                     nextIsSendingPhase = 1'b0;
+
+                    // We need to reset the trans buffer to be able to receive a response!
+                    forceTransBufRst = 1'b1;
                 end
             end
             BCINTI_AWAIT_RESPONSE: begin
+                // We expect to receive the response in our internal transaction buffer and not to pass it to the EPs!
+                // DO NOT forget to issue forceTransBufRst for 1 cycle!
+                forceInternalBuf = 1'b1;
                 // Success only when we received an ACK!
                 popTransSuccess = receiveSuccess && packetHeader.pid == usb_packet_pkg::PID_HANDSHAKE_ACK;
                 popTransDone = receiveDone;
 
-                if (packetWaitTimeout) begin
+                if (packetWaitTimeout || receiveDone) begin
+                    // We are done after receiving the handshake or a timeout!
                     nextTransState = PE_RST_RX_CLK;
-                end else if (receiveDone) begin
-                    // We are done after receiving!
-                    nextTransState = BCINTO_ISSUE_RESPONSE;
                 end
             end
         endcase
