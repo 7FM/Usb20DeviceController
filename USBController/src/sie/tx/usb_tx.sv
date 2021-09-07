@@ -72,23 +72,32 @@ module usb_tx#()(
     logic reqSendPacket;
     logic prev_txReqNewData;
 
+    logic waitingForNewSendReq, prev_waitingForNewSendReq;
+
     initial begin
         //txPID and txDataBufNewByte are dont cares with the other states
         txHasDataFetched = 1'b1;
         txFetchedDataIsLast = 1'b0;
         prev_txReqNewData = 1'b0;
         reqSendPacket = 1'b0;
+        prev_waitingForNewSendReq = 1'b0;
     end
 
     assign txAcceptNewData_o = ~txHasDataFetched;
 
+    assign waitingForNewSendReq = txState == TX_WAIT_SEND_REQ;
+
     always_ff @(posedge clk48_i) begin
+        prev_waitingForNewSendReq <= waitingForNewSendReq;
         prev_txReqNewData <= txReqNewData;
         // If reqSendPacket was set, wait until the state machine in the slower domain has received the signal
         // and changed the state -> we can clear the flag
         // else if reqSendPacket is not set, check the interface request line
-        reqSendPacket <= reqSendPacket ? txState == TX_WAIT_SEND_REQ : txReqSendPacket_i;
+        reqSendPacket <= reqSendPacket ? waitingForNewSendReq : txReqSendPacket_i;
     end
+
+    logic isResetRegState;
+    assign isResetRegState = txState == TX_RST_REGS;
 
     always_comb begin
         next_txDataBufNewByte = txDataBufNewByte;
@@ -96,10 +105,17 @@ module usb_tx#()(
         next_txFetchedDataIsLast = txFetchedDataIsLast;
 
         // If we have data fetched and new one is required -> clear fetched status as it will be transfered to the shift buffer
-        // BUT: this bit may not be cleared if we are waiting for a new write request! and do not clear when the last byte was send -> wait for packet to end before starting with new data
+        // BUT: this bit may not be cleared if we are waiting for a new write request!
+        //      and do not clear while the last byte is sent -> wait for packet to end before starting with new data
+        // To avoid a race condition, we should always clear once we switch to sending the SYNC signal
         // Else if we do not have data fetched but the new data is valid -> handshake succeeds -> set fetched status
         // Avoid mutliple clears by only clearing on negedge of txReqNewData
-        next_txHasDataFetched = txHasDataFetched ? txFetchedDataIsLast || ~(txState > TX_WAIT_SEND_REQ && prev_txReqNewData && ~txReqNewData) : txDataValid_i;
+        //next_txHasDataFetched = txHasDataFetched ? txFetchedDataIsLast || ~(!waitingForNewSendReq && prev_txReqNewData && ~txReqNewData) : txDataValid_i;
+        next_txHasDataFetched = txHasDataFetched ?
+            // Negated clear condition of txHasDataFetched
+            waitingForNewSendReq || (!prev_waitingForNewSendReq && (txFetchedDataIsLast || !prev_txReqNewData || txReqNewData)) :
+            // Set condition of txHasDataFetched
+            txDataValid_i;
 
         // Data handshake condition
         if (txAcceptNewData_o && txDataValid_i) begin
@@ -109,7 +125,8 @@ module usb_tx#()(
             // During this state the final byte will be sent -> hence we get our final crc value
             next_txDataBufNewByte = crc16[15:8];
         end
-        if (txState == TX_RST_REGS) begin
+
+        if (isResetRegState) begin
             // Reset important state register: should be the same as in the initial block or after a RST
             next_txFetchedDataIsLast = 1'b0;
         end
@@ -156,7 +173,7 @@ module usb_tx#()(
     logic crc5PatchNow;
     logic crc5Patch;
 
-    assign txRstModules = txState == TX_WAIT_SEND_REQ;
+    assign txRstModules = waitingForNewSendReq;
 
     always_comb begin
         // This could be used to MUX special cases as EOP which should not mess with NRZI encoding
@@ -281,7 +298,7 @@ module usb_tx#()(
         // Output data
         // due to the encoding pipeline, starting and stopping has some latency! and this needs to be accounted for
         // As this is only one stage, we can easily account for the latency by making the 'sending_o' signal a register instead of a wire
-        sending_o <= txState > TX_WAIT_SEND_REQ && txState < TX_RST_REGS;
+        sending_o <= !waitingForNewSendReq && !isResetRegState;
         dataOutP_reg_o <= txDataOut;
         dataOutN_reg_o <= txSendSingleEnded ~^ txDataOut;
     end
