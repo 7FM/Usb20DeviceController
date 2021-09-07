@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include "common/print_utils.hpp"
+
 enum DescriptorType : uint8_t {
     DESC_DEVICE = 1,
     DESC_CONFIGURATION = 2,
@@ -68,6 +70,8 @@ struct DeviceDescriptor {
 
 void prettyPrintBcd(uint16_t bcd) {
     int fractionPos = 2;
+
+    IosFlagSaver flagSaver(std::cout);
 
     for (int shift = sizeof(bcd) * 8 - 4; shift > 0; shift -= 4, --fractionPos) {
         int literal = (bcd >> shift) & 0x0F;

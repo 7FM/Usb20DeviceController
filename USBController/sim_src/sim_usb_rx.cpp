@@ -7,6 +7,7 @@
 #include "Vsim_usb_rx__Syms.h" // all headers to access exposed internal signals
 
 #include "common/VerilatorTB.hpp"
+#include "common/print_utils.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
 
 #ifndef USB_SIGNAL_LENGTH
@@ -96,9 +97,12 @@ int main(int argc, char **argv) {
     // Execute a few more cycles
     sim.run<true, false>(4 * 10);
 
-    std::cout << "Received Data:" << std::endl;
-    for (auto data : sim.rxState.receivedData) {
-        std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+    {
+        IosFlagSaver flagSaver(std::cout);
+        std::cout << "Received Data:" << std::endl;
+        for (auto data : sim.rxState.receivedData) {
+            std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+        }
     }
 
     return 0;

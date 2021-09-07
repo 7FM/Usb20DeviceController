@@ -1,4 +1,5 @@
 #include "common/usb_utils.hpp"
+#include "common/print_utils.hpp"
 
 #include <bitset>
 #include <iostream>
@@ -19,6 +20,7 @@ int main() {
                 crc >>= 9;
                 // We desire first a zero bit followed by 6 ones to ensure that the after the crc 1 bit is stuffed!
                 if (crc == 0b11'1111'0) {
+                    IosFlagSaver flagSaver(std::cout);
                     std::cout << "Found 2 byte example for the CRC Bitstuffing Edge Case!" << std::endl;
                     std::cout << "Byte 0: " << std::hex << static_cast<uint32_t>(bytes[0]) << std::endl;
                     std::cout << "Byte 1: " << std::hex << static_cast<uint32_t>(bytes[1]) << std::endl;
@@ -38,6 +40,7 @@ int main() {
             crc >>= 9;
             // We desire first a zero bit followed by 6 ones to ensure that the after the crc 1 bit is stuffed!
             if (crc == 0b11'1111'0) {
+                IosFlagSaver flagSaver(std::cout);
                 std::cout << "Found 1 byte example for the CRC Bitstuffing Edge Case!" << std::endl;
                 std::cout << "Byte 0: " << std::hex << static_cast<uint32_t>(bytes[0]) << std::endl;
             }

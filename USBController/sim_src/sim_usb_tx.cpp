@@ -9,6 +9,7 @@
 #include "Vsim_usb_tx__Syms.h" // all headers to access exposed internal signals
 
 #include "common/VerilatorTB.hpp"
+#include "common/print_utils.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
 
 static std::atomic_bool forceStop = false;
@@ -284,6 +285,7 @@ int main(int argc, char **argv) {
 
         // First compare amount of data
         if (sim.txState.dataToSend.size() != sim.rxState.receivedData.size()) {
+            IosFlagSaver flagSaver(std::cerr);
             std::cerr << "Send and received byte count differs!\n    Expected: " << sim.txState.dataToSend.size() << " got: " << sim.rxState.receivedData.size() << std::endl;
             std::cerr << "        Send Data: ";
             for (size_t i = 0; i < sim.txState.dataToSend.size(); ++i) {
@@ -302,6 +304,7 @@ int main(int argc, char **argv) {
         size_t compareSize = std::min(sim.txState.dataToSend.size(), sim.rxState.receivedData.size());
         for (size_t i = 0; i < compareSize; ++i) {
             if (sim.txState.dataToSend[i] != sim.rxState.receivedData[i]) {
+                IosFlagSaver flagSaver(std::cerr);
                 std::cerr << "Send and received byte at idx " << i << " differ!\n    Expected: 0x" << std::hex << static_cast<int>(sim.txState.dataToSend[i]) << " got: 0x" << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << std::endl;
                 ++testFailed;
             }

@@ -9,6 +9,7 @@
 #include "Vsim_top__Syms.h" // all headers to access exposed internal signals
 
 #include "common/VerilatorTB.hpp"
+#include "common/print_utils.hpp"
 #include "common/usb_descriptors.hpp"
 #include "common/usb_packets.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
@@ -213,6 +214,7 @@ static void printResponse(const std::vector<uint8_t> &response) {
 
     std::cout << "Got Response:" << std::endl;
     bool first = true;
+    IosFlagSaver flagSaver(std::cout);
     for (auto data : response) {
         if (first) {
             std::cout << "    " << pidToString(static_cast<PID_Types>(data)) << std::endl;
