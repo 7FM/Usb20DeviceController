@@ -256,23 +256,39 @@ static bool readItAll(std::vector<uint8_t> &result, UsbTopSim &sim, int addr, in
             return true;
         }
 
-        //TODO is a sim.reset needed?
-
     } while (readSize > 0);
 
     return false;
 }
 
-static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, int &ep0MaxDescriptorSize, uint8_t addr) {
-    bool failed = false;
+static bool expectHandshake(std::vector<uint8_t> &response, PID_Types expectedResponse) {
+    if (response.size() != 1) {
+        std::cerr << "Expected only a Handshake as response but got multiple bytes!" << std::endl;
+        return true;
+    }
 
+    if (response[0] != expectedResponse) {
+        IosFlagSaver flagSaver(std::cerr);
+        std::cerr << "Expected Response: " << pidToString(expectedResponse) << " but got: " << pidToString(static_cast<PID_Types>(response[0])) << std::endl;
+        return true;
+    }
+
+    return false;
+}
+
+static void updateSetupTrans(OutTransaction &setupTrans, SetupPacket &packet) {
+    setupTrans.dataPacket.clear();
+    setupTrans.dataPacket.push_back(PID_DATA0);
+    fillVector(setupTrans.dataPacket, packet);
+}
+
+static OutTransaction initDescReadTrans(SetupPacket &packet, DescriptorType descType, uint8_t descIdx, uint8_t addr, uint16_t initialReadSize) {
     OutTransaction setupTrans;
     setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
     setupTrans.outTokenPacket.addr = addr;
     setupTrans.outTokenPacket.endpoint = 0;
     setupTrans.outTokenPacket.crc = 0b11111; // Should be a dont care!
 
-    SetupPacket packet;
     std::memset(&packet, 0, sizeof(packet));
     // Request type
     packet.request = DEVICE_GET_DESCRIPTOR;
@@ -283,17 +299,33 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
     packet.wValueLsB = descIdx;
     // Zero or Language ID
     packet.wIndexLsB = packet.wIndexMsB = 0;
-    // Device Descriptor length unknown, so lets first get only the first 8 bytes
-    packet.wLengthLsB = 8;
-    packet.wLengthMsB = 0;
+    // First Descriptor read length: if unknown just read the first 8 bytes
+    packet.wLengthLsB = initialReadSize & 0x0FF;
+    packet.wLengthMsB = (initialReadSize >> 8) & 0x0FF;
 
-    setupTrans.dataPacket.push_back(PID_DATA0);
-    fillVector(setupTrans.dataPacket, packet);
+    updateSetupTrans(setupTrans, packet);
+
+    return setupTrans;
+}
+
+static uint16_t defaultGetDescriptorSize(const std::vector<uint8_t>& result) {
+    return result[0];
+}
+
+static uint16_t getConfigurationDescriptorSize(const std::vector<uint8_t> &result) {
+    return static_cast<uint16_t>(result[2]) | (static_cast<uint16_t>(result[3]) << 8);
+}
+
+static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, int &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize) {
+    bool failed = false;
+
+    SetupPacket packet;
+    OutTransaction setupTrans = initDescReadTrans(packet, descType, descIdx, addr, initialReadSize);
 
     std::cout << "Send Setup transaction packet" << std::endl;
     failed = setupTrans.send(sim);
     printResponse(sim.rxState.receivedData);
-    //TODO handle handshake!
+    failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
 
     if (failed) {
         return true;
@@ -310,7 +342,7 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
         return true;
     }
 
-    int descriptorSize = result[0];
+    uint16_t descriptorSize = descSizeExtractor(result);
 
     if (descType == DESC_DEVICE) {
         ep0MaxDescriptorSize = result[7];
@@ -320,17 +352,16 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
     if (descriptorSize > 8) {
         std::cout << std::endl << "Descriptor is larger than 8 bytes, requesting entire descriptor!" << std::endl;
         // We need to fetch the remaining data too!
-        packet.wLengthLsB = descriptorSize;
+        packet.wLengthLsB = descriptorSize & 0x0FF;
+        packet.wLengthMsB = (descriptorSize >> 8) & 0x0FF;
 
         // New setup transaction to set the correct size that we want to read!
-        setupTrans.dataPacket.clear();
-        setupTrans.dataPacket.push_back(PID_DATA0);
-        fillVector(setupTrans.dataPacket, packet);
+        updateSetupTrans(setupTrans, packet);
 
         std::cout << "Send Setup transaction packet" << std::endl;
         failed = setupTrans.send(sim);
         printResponse(sim.rxState.receivedData);
-        //TODO handle handshake!
+        failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
 
         if (failed) {
             return true;
@@ -368,7 +399,9 @@ int main(int argc, char **argv) {
     std::vector<uint8_t> result;
     int ep0MaxPacketSize = 0;
     int addr = 0;
-    failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr);
+
+    // Read the device descriptor
+    failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 18);
 
     if (result.size() != 18) {
         std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
@@ -387,7 +420,18 @@ int main(int argc, char **argv) {
         std::cout << "Device Descriptor:" << std::endl;
         prettyPrintDeviceDescriptor(deviceDescriptor);
         //TODO check content
+
+        //TODO test string descriptors!
     }
+
+    std::cout << std::endl
+              << "Lets try reading the configuration descriptor!" << std::endl;
+
+    // Read the default configuration
+    failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
+
+    //TODO set address
+    //TODO set configuration
 
 exitAndCleanup:
 
