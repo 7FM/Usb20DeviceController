@@ -370,7 +370,8 @@ int main(int argc, char **argv) {
     int addr = 0;
     failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr);
 
-    if (result.size() != 12) {
+    if (result.size() != 18) {
+        std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
         failed = true;
         goto exitAndCleanup;
     }
