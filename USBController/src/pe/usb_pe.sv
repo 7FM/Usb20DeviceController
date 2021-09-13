@@ -361,29 +361,26 @@ module usb_pe #(
 
     assign txData_o = sendPID ? {~pidData, pidData} : rData;
     assign txDataValid_o = sendPID || (readDataAvailable && !sentLastByte);
-    assign txIsLastByte_o = sentLastByte || (!sendPID && readIsLastPacketByte) || maxBytesLeft == 0;
+    assign txIsLastByte_o = sentLastByte || (!sendPID && readIsLastPacketByte) || maxBytesLeft == 1;
     assign EP_READ_EN = !sendPID && txAcceptNewData_i && !sentLastByte;
 
     logic txHandshake;
     assign txHandshake = txDataValid_o && txAcceptNewData_i;
 
     initial begin
-        sentLastByte = 1'b1;
+        maxBytesLeft = 10'b0;
         sendPID = 1'b0;
     end
+    assign sentLastByte = maxBytesLeft == 0;
 
     always_ff @(posedge clk48_i) begin
         sendPID <= sendPID ? !txHandshake : nextSendPID;
 
         if (!sendPID && nextSendPID) begin
             sendHandshake <= nextSendHandshake;
-            sentLastByte <= nextIsPidLast;
-            maxBytesLeft <= maxPacketSize;
+            maxBytesLeft <= nextIsPidLast ? 0 : maxPacketSize;
         end else begin
             sendHandshake <= sendHandshake;
-
-            // Update sentLastByte at every handshake -> is set to 1 once the last byte was given to the tx interface
-            sentLastByte <= txHandshake ? txIsLastByte_o : sentLastByte;
 
             // Update maxBytesLeft at every handshake
             maxBytesLeft <= !sendPID && txHandshake ? maxBytesLeft - 1 : maxBytesLeft;
