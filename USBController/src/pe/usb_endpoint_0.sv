@@ -280,9 +280,9 @@ generate
                                     end
                                     usb_desc_pkg::DESC_CONFIGURATION: begin
                                         // Depends on the descriptor index!
-                                        if (setupDataPacket[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
+                                        if (setupDataPacket.wValue[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
                                             // Index is valid
-                                            nextRomReadIdx = descStartIdx[setupDataPacket[7:0] * ROM_IDX_WID +: ROM_IDX_WID];
+                                            nextRomReadIdx = descStartIdx[setupDataPacket.wValue[7:0] * ROM_IDX_WID +: ROM_IDX_WID];
                                         end else begin
                                             // Index is out of bounds!
                                             nextRequestError = 1'b1;
@@ -291,9 +291,9 @@ generate
                                     usb_desc_pkg::DESC_STRING: begin
                                         // Depends on the descriptor index!
                                         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
-                                            if (setupDataPacket[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
+                                            if (setupDataPacket.wValue[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
                                                 // Index is valid
-                                                nextRomReadIdx = descStartIdx[(USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + setupDataPacket[7:0]) * ROM_IDX_WID +: ROM_IDX_WID];
+                                                nextRomReadIdx = descStartIdx[(USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + setupDataPacket.wValue[7:0]) * ROM_IDX_WID +: ROM_IDX_WID];
                                             end else begin
                                                 // Index is out of bounds!
                                                 nextRequestError = 1'b1;
