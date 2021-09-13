@@ -225,7 +225,7 @@ static void printResponse(const std::vector<uint8_t> &response) {
     }
 }
 
-static bool readItAll(std::vector<uint8_t> &result, UsbTopSim &sim, int addr, int readSize, int ep0MaxDescriptorSize) {
+static bool readItAll(std::vector<uint8_t> &result, UsbTopSim &sim, int addr, int readSize, uint8_t ep0MaxDescriptorSize) {
     result.clear();
 
     InTransaction getDesc;
@@ -316,7 +316,7 @@ static uint16_t getConfigurationDescriptorSize(const std::vector<uint8_t> &resul
     return static_cast<uint16_t>(result[2]) | (static_cast<uint16_t>(result[3]) << 8);
 }
 
-static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, int &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize) {
+static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize) {
     bool failed = false;
 
     SetupPacket packet;
@@ -331,10 +331,10 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
         return true;
     }
 
-    failed = readItAll(result, sim, addr, 8, 8);
+    failed = readItAll(result, sim, addr, initialReadSize, ep0MaxDescriptorSize == 0 ? 8 : ep0MaxDescriptorSize);
 
-    if (result.size() != 8) {
-        std::cerr << "Pre read first 8 bytes of descriptor error but got only: " << result.size() << " bytes!" << std::endl;
+    if (result.size() != initialReadSize) {
+        std::cerr << "Error: Desired to read first " << static_cast<int>(initialReadSize) << " bytes of the descriptor but got only: " << result.size() << " bytes!" << std::endl;
         failed = true;
     }
 
@@ -346,11 +346,14 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
 
     if (descType == DESC_DEVICE) {
         ep0MaxDescriptorSize = result[7];
-        std::cout << "INFO: update EP0 Max packet size to: " << ep0MaxDescriptorSize << std::endl;
+        std::cout << "INFO: update EP0 Max packet size to: " << static_cast<int>(ep0MaxDescriptorSize) << std::endl;
     }
 
-    if (descriptorSize > 8) {
-        std::cout << std::endl << "Descriptor is larger than 8 bytes, requesting entire descriptor!" << std::endl;
+    if (descriptorSize < initialReadSize) {
+        std::cerr << "Error extracting the descriptor size: extracted " << static_cast<int>(descriptorSize) << " but expecting a size of at least " << static_cast<int>(initialReadSize) << std::endl;
+        return true;
+    } else if (descriptorSize > initialReadSize) {
+        std::cout << std::endl << "Descriptor is larger than the amount of bytes initially read, requesting entire descriptor!" << std::endl;
         // We need to fetch the remaining data too!
         packet.wLengthLsB = descriptorSize & 0x0FF;
         packet.wLengthMsB = (descriptorSize >> 8) & 0x0FF;
@@ -397,8 +400,8 @@ int main(int argc, char **argv) {
     bool failed = false;
 
     std::vector<uint8_t> result;
-    int ep0MaxPacketSize = 0;
-    int addr = 0;
+    uint8_t ep0MaxPacketSize = 0;
+    uint8_t addr = 0;
 
     // Read the device descriptor
     failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 18);
@@ -429,6 +432,8 @@ int main(int argc, char **argv) {
 
     // Read the default configuration
     failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
+    //TODO pretty print response
+    //TODO check content
 
     //TODO set address
     //TODO set configuration
