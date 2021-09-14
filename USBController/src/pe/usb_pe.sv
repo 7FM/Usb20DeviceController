@@ -606,6 +606,8 @@ Device Transaction State Machine Hierarchy Overview:
                 if (packetWaitTimeout || receiveDone) begin
                     // We are done after receiving the handshake or a timeout!
                     nextTransState = PE_RST_RX_CLK;
+
+                    // Read after read -> TODO reset DPPL?
                 end
             end
         endcase
