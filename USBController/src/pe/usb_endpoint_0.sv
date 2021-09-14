@@ -446,18 +446,21 @@ endgenerate
 
     //===============================================================================================================
     // Initialize the ROM
-    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                      \
-        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin    \
-            initial begin                                                           \
-                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                    \
-            end                                                                     \
+    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                                  \
+        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin                \
+            initial begin                                                                       \
+                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                                \
+`ifdef RUN_SIM                                                                                  \
+                $display("INIT: rom[%d] = 0x%h", romIdx, SRC[(romIdx - (OFFSET)) * 8 +: 8]);    \
+`endif                                                                                          \
+            end                                                                                 \
         end
 
-    `define INIT_ROM_IDX_LUT(OFFSET, IDX, LUT_NAME)                                    \
-        /*initial begin*/                                                              \
-        /*assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = {OFFSET}[ROM_IDX_WID-1:0];*/ \
-        /*as yosys does not seem to parse {x}[y:z] expressions correctly, this macro expects that OFFSET is no expression! */ \
-        assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = OFFSET[ROM_IDX_WID-1:0]; \
+    `define INIT_ROM_IDX_LUT(OFFSET, IDX, LUT_NAME)                                                                             \
+        /*initial begin*/                                                                                                       \
+        /*assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = {OFFSET}[ROM_IDX_WID-1:0];*/                                    \
+        /*as yosys does not seem to parse {x}[y:z] expressions correctly, this macro expects that OFFSET is no expression! */   \
+        assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = OFFSET[ROM_IDX_WID-1:0];                                          \
         /*end*/
 
     `MUTE_LINT(UNUSED)
