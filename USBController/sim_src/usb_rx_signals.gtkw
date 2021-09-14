@@ -21,7 +21,7 @@ TOP.sim_usb_rx.rxCon.uut_input.dataInN
 TOP.sim_usb_rx.rxCon.asyncRxCLK.readCLK12
 TOP.sim_usb_rx.rxCon.uut.eopDetected
 [color] 1
-TOP.sim_usb_rx.rxCon.uut.keepPacket
+TOP.sim_usb_rx.rxCon.uut.keepPacket_o
 TOP.sim_usb_rx.rxCon.uut.dataNotYetRead
 TOP.sim_usb_rx.rxCon.uut.byteGotSignalError
 TOP.sim_usb_rx.rxCon.uut.next_byteGotSignalError

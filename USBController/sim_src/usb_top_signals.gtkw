@@ -1,0 +1,156 @@
+[*]
+[*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
+[*] Tue Sep  7 21:57:17 2021
+[*]
+[timestart] 2458
+[size] 1862 911
+[pos] -1 -1
+*-6.000000 2713 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.sim_top.
+[treeopen] TOP.sim_top.hostRxImitator.
+[treeopen] TOP.sim_top.hostTxImitator.
+[treeopen] TOP.sim_top.hostTxImitator.uut.
+[treeopen] TOP.sim_top.uut.
+[treeopen] TOP.sim_top.uut.usbDeviceController.
+[treeopen] TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.
+[treeopen] TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.
+[treeopen] TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.
+[treeopen] TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.
+[sst_width] 396
+[signals_width] 295
+[sst_expanded] 1
+[sst_vpaned_height] 521
+@28
+TOP.CLK
+TOP.sim_top.dummyPin
+@200
+-USB_PE Response
+@28
+TOP.rxAcceptNewData
+TOP.rxDataValid
+@22
+TOP.rxData[7:0]
+@28
+TOP.rxIsLastByte
+TOP.sim_top.hostRxImitator.USB_DP
+TOP.sim_top.hostRxImitator.USB_DN
+@200
+-Fake USB Host Input
+@28
+TOP.sim_top.resetTimeout
+@22
+TOP.sim_top.hostRxImitator.asyncRxCLK.fsmState[3:0]
+@28
+TOP.sim_top.hostRxImitator.USB_DP
+TOP.sim_top.hostRxImitator.USB_DN
+TOP.sim_top.hostRxImitator.usbRxTimeout.rxGotSignal_i
+TOP.sim_top.gotTimeout
+TOP.txReqSendPacket
+TOP.txAcceptNewData
+TOP.txDataValid
+@22
+TOP.txData[7:0]
+TOP.sim_top.hostTxImitator.uut.txDataBufNewByte[7:0]
+TOP.sim_top.hostTxImitator.uut.outputSerializer.data_i[7:0]
+@28
+TOP.sim_top.hostTxImitator.uut.outputSerializer.bufferEmpty_o
+@29
+TOP.sim_top.hostTxImitator.uut.txFetchedDataIsLast
+@28
+TOP.sim_top.hostTxImitator.uut.txHasDataFetched
+@24
+TOP.sim_top.hostTxImitator.uut.txState[3:0]
+@22
+TOP.sim_top.hostTxImitator.uut.outputSerializer.dataBuf[7:0]
+@28
+TOP.txIsLastByte
+TOP.sending
+TOP.sim_top.hostTxImitator.USB_DP
+TOP.sim_top.hostTxImitator.USB_DN
+@200
+-UUT
+@28
+TOP.sim_top.uut.usbDeviceController.usbResetDetected
+TOP.sim_top.uut.usbDeviceController.ackUsbResetDetect
+TOP.sim_top.uut.usbDeviceController.rxDPPLGotSignal
+TOP.sim_top.uut.usbDeviceController.isSendingPhase
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.gotTransStartPacket
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.isEp0Selected
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.isEpIsochronous
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.rxBufFull
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.receiveSuccess
+@200
+-
+@28
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.keepPacket_i
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.byteWasNotReceived
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.dropPacket
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.inputBufFull
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.pidValid
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.syncDetect
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.eopDetected_i
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxState[1:0]
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transactionStarted
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transactionDone
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.useInternalBuf
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.rxHandshake
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.receiveDone
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.popTransSuccess
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.popTransDone
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.receiveCLK_i
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.inputBuf[7:0]
+@24
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transState[3:0]
+@28
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.signalError
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxBitStuffError_i
+@22
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxData_o[7:0]
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.isDataShiftReg[3:0]
+@28
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxIsLastByte_o
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxHandshake
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxAcceptNewData_i
+TOP.sim_top.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxDataValid_o
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.rxBufFull
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.writeFifoFull
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transStartPacketBufFull
+@22
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transStartBufWrapper.BUF_SIZE[31:0]
+@24
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transStartBufWrapper.bufIdx[1:0]
+@28
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.EP_IN_full[1:0]
+@200
+-EP0
+@28
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_full_o
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.packetBufFull
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.ep0State[1:0]
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.respValid_o
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.respHandshakePID_o
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.respPacketID_o[1:0]
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.requestError
+@22
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.requestedBytesLeft[15:0]
+@200
+-
+@28
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.rxIsLastByte_i
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.rxDataValid_i
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.receiveDone
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.packetWaitTimeout
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.isValidTransStartPacket
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transactionStarted
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transactionDone
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.txDoneSending_i
+@22
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.transState[3:0]
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.deviceAddr[6:0]
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.deviceConf[7:0]
+@28
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.deviceState[1:0]
+TOP.sim_top.uut.usbDeviceController.usbProtocolEngine.ep0.ep0State[1:0]
+[pattern_trace] 1
+[pattern_trace] 0
