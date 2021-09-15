@@ -171,7 +171,7 @@ package usb_ep_pkg;
             DefaultEpConfig, // EP 04
             DefaultEpConfig, // EP 03
             DefaultEpConfig, // EP 02
-            DefaultEpConfig // EP 01
+            DefaultEpConfig  // EP 01
         },
         deviceDesc: DefaultDeviceDesc,
         `MUTE_LINT(WIDTH)

@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include <vector>
+
 #include "common/print_utils.hpp"
 
 enum DescriptorType : uint8_t {
@@ -52,6 +54,7 @@ std::string descTypeToString(DescriptorType descType) {
 struct DeviceDescriptor {
     uint8_t bLength;
     DescriptorType bDescriptorType;
+
     uint16_t bcdUsb;
     uint8_t bDeviceClass;
     uint8_t bDeviceSubClass;
@@ -66,6 +69,59 @@ struct DeviceDescriptor {
     uint8_t iSerialNumber;
 
     uint8_t bNumConfigurations;
+} __attribute__((packed));
+
+struct DeviceQualifierDescriptor {
+    uint8_t bLength;
+    DescriptorType bDescriptorType;
+
+    uint16_t bcdUsb;
+    uint8_t bDeviceClass;
+    uint8_t bDeviceSubClass;
+    uint8_t bDeviceProtocol;
+    uint8_t bMaxPacketSize0;
+
+    uint8_t bNumConfigurations;
+    uint8_t bReserved;
+} __attribute__((packed));
+
+struct ConfigurationDescriptor {
+    uint8_t bLength;
+    DescriptorType bDescriptorType;
+
+    uint16_t wTotalLength;
+    uint8_t bNumInterfaces;
+    uint8_t bConfigurationValue;
+    uint8_t iConfiguration;
+    uint8_t bmAttributes;
+
+    uint8_t bMaxPower;
+} __attribute__((packed));
+
+struct InterfaceDescriptor {
+    uint8_t bLength;
+    DescriptorType bDescriptorType;
+
+    uint8_t bInterfaceNumber;
+    uint8_t bAlternateSetting;
+    uint8_t bNumEndpoints;
+
+    uint8_t bInterfaceClass;
+    uint8_t bInterfaceSubClass;
+    uint8_t bInterfaceProtocol;
+
+    uint8_t iInterface;
+} __attribute__((packed));
+
+struct EndpointDescriptor {
+    uint8_t bLength;
+    DescriptorType bDescriptorType;
+
+    uint8_t bEndpointAddress;
+    uint8_t bmAttributes;
+
+    uint16_t wMaxPacketSize;
+    uint8_t bInterval;
 } __attribute__((packed));
 
 void prettyPrintBcd(uint16_t bcd) {
@@ -85,7 +141,21 @@ void prettyPrintBcd(uint16_t bcd) {
     std::cout << std::endl;
 }
 
-void prettyPrintDeviceDescriptor(const DeviceDescriptor& devDesc) {
+template<class Desc>
+static void fillDesc(Desc& desc, const uint8_t* data) {
+    std::memset(&desc, 0, sizeof(desc));
+    uint8_t *rawDevDesc = reinterpret_cast<uint8_t *>(&desc);
+    for (int i = 0; i < sizeof(desc); ++i) {
+        *rawDevDesc = data[i];
+        ++rawDevDesc;
+    }
+}
+
+static void prettyPrintDeviceDescriptor(const uint8_t* data) {
+
+    DeviceDescriptor devDesc;
+    fillDesc(devDesc, data);
+
     std::cout << "    bLength: " << static_cast<int>(devDesc.bLength) << std::endl;
     std::cout << "    Descriptor Type: " << descTypeToString(devDesc.bDescriptorType) << std::endl;
     std::cout << "    Usb Version: ";
@@ -94,4 +164,115 @@ void prettyPrintDeviceDescriptor(const DeviceDescriptor& devDesc) {
     std::cout << "    BCD Device: ";
     prettyPrintBcd(devDesc.bcdDevice);
     std::cout << "    #Configurations: " << static_cast<int>(devDesc.bNumConfigurations) << std::endl;
+}
+
+static void prettyPrintDeviceQualifierDescriptor(const uint8_t *data) {
+
+    DeviceQualifierDescriptor devDesc;
+    fillDesc(devDesc, data);
+
+    std::cout << "    bLength: " << static_cast<int>(devDesc.bLength) << std::endl;
+    std::cout << "    Descriptor Type: " << descTypeToString(devDesc.bDescriptorType) << std::endl;
+    std::cout << "    Usb Version: ";
+    prettyPrintBcd(devDesc.bcdUsb);
+    std::cout << "    EP0 Max Packet Size: " << static_cast<int>(devDesc.bMaxPacketSize0) << std::endl;
+    std::cout << "    #Configurations: " << static_cast<int>(devDesc.bNumConfigurations) << std::endl;
+}
+
+static void prettyPrintConfigurationDescriptor(const uint8_t *data) {
+
+    ConfigurationDescriptor confDesc;
+    fillDesc(confDesc, data);
+
+    IosFlagSaver flagSaver(std::cout);
+
+    std::cout << "    bLength: " << static_cast<int>(confDesc.bLength) << std::endl;
+    std::cout << "    Descriptor Type: " << descTypeToString(confDesc.bDescriptorType) << std::endl;
+    std::cout << "    Config Value: " << static_cast<int>(confDesc.bConfigurationValue) << std::endl;
+    std::cout << "    Total Length: " << static_cast<int>(confDesc.wTotalLength) << std::endl;
+    std::cout << "    Num Interfaces: " << static_cast<int>(confDesc.bNumInterfaces) << std::endl;
+    std::cout << "    Max Power: " << static_cast<int>(confDesc.bMaxPower) << "mA" << std::endl;
+
+    //TODO pretty print
+    std::cout << "    Attributes: 0x" << std::hex << static_cast<int>(confDesc.bmAttributes) << std::endl;
+}
+
+static void prettyPrintInterfaceDescriptor(const uint8_t *data) {
+
+    InterfaceDescriptor ifaceDesc;
+    fillDesc(ifaceDesc, data);
+
+    std::cout << "    bLength: " << static_cast<int>(ifaceDesc.bLength) << std::endl;
+    std::cout << "    Descriptor Type: " << descTypeToString(ifaceDesc.bDescriptorType) << std::endl;
+    std::cout << "    Iface Number: " << static_cast<int>(ifaceDesc.bInterfaceNumber) << std::endl;
+    std::cout << "    Alternate Setting: " << static_cast<int>(ifaceDesc.bAlternateSetting) << std::endl;
+    std::cout << "    #Endpoints: " << static_cast<int>(ifaceDesc.bNumEndpoints) << std::endl;
+}
+
+static void prettyPrintEndpointDescriptor(const uint8_t *data) {
+
+    EndpointDescriptor epDesc;
+    fillDesc(epDesc, data);
+
+    IosFlagSaver flagSaver(std::cout);
+
+    std::cout << "    bLength: " << static_cast<int>(epDesc.bLength) << std::endl;
+    std::cout << "    Descriptor Type: " << descTypeToString(epDesc.bDescriptorType) << std::endl;
+    //TODO handle IN/OUT flag!
+    std::cout << "    EP Address: " << static_cast<int>(epDesc.bEndpointAddress) << std::endl;
+    std::cout << "    Max Packet Size: " << static_cast<int>(epDesc.wMaxPacketSize) << std::endl;
+
+    //TODO epDesc.bInterval
+    //TODO pretty print
+    std::cout << "    Attributes: 0x" << std::hex << static_cast<int>(epDesc.bmAttributes) << std::endl;
+}
+
+void prettyPrintDescriptors(const std::vector<uint8_t> &data) {
+
+    for (int i = 0; i + 1 < data.size();) {
+        uint8_t descLength = data[i];
+        DescriptorType descType = static_cast<DescriptorType>(data[i + 1]);
+
+        std::cout << "Found Descriptor " << descTypeToString(descType) << " at offset " << i << std::endl;
+        if (i + descLength <= data.size()) {
+            const uint8_t *descData = data.data() + i;
+            switch (descType) {
+                case DESC_DEVICE:
+                    prettyPrintDeviceDescriptor(descData);
+                    break;
+                case DESC_CONFIGURATION:
+                    prettyPrintConfigurationDescriptor(descData);
+                    break;
+                case DESC_STRING:
+                    std::cout << "Not yet implemented" << std::endl;
+                    break;
+                case DESC_INTERFACE:
+                    prettyPrintInterfaceDescriptor(descData);
+                    break;
+                case DESC_ENDPOINT:
+                    prettyPrintEndpointDescriptor(descData);
+                    break;
+                case DESC_DEVICE_QUALIFIER:
+                    prettyPrintDeviceQualifierDescriptor(descData);
+                    break;
+                case DESC_OTHER_SPEED_CONFIGURATION:
+                    prettyPrintConfigurationDescriptor(descData);
+                    break;
+                case DESC_INTERFACE_POWER:
+                    std::cout << "Not yet implemented" << std::endl;
+                    break;
+
+                case IMPL_SPECIFIC_9_255:
+                default:
+                    std::cout << "Warning cannot pretty print implementation specific descriptor: " << static_cast<int>(descType) << std::endl;
+                    break;
+            }
+        } else {
+            std::cerr << "Error, not enough data to print last descriptor: " << descTypeToString(descType) << std::endl;
+        }
+
+        std::cout << std::endl;
+
+        i += descLength;
+    }
 }

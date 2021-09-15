@@ -413,15 +413,8 @@ int main(int argc, char **argv) {
     }
 
     {
-        DeviceDescriptor deviceDescriptor;
-        std::memset(&deviceDescriptor, 0, sizeof(deviceDescriptor));
-        uint8_t *rawDevDesc = reinterpret_cast<uint8_t *>(&deviceDescriptor);
-        for (auto d : result) {
-            *rawDevDesc = d;
-            ++rawDevDesc;
-        }
         std::cout << "Device Descriptor:" << std::endl;
-        prettyPrintDeviceDescriptor(deviceDescriptor);
+        prettyPrintDescriptors(result);
         //TODO check content
 
         //TODO test string descriptors!
@@ -432,7 +425,10 @@ int main(int argc, char **argv) {
 
     // Read the default configuration
     failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
-    //TODO pretty print response
+
+    std::cout << "Result size: " << result.size() << std::endl;
+
+    prettyPrintDescriptors(result);
     //TODO check content
 
     //TODO set address
