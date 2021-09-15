@@ -220,6 +220,7 @@ static void prettyPrintEndpointDescriptor(const uint8_t *data) {
     std::cout << "    Descriptor Type: " << descTypeToString(epDesc.bDescriptorType) << std::endl;
     //TODO handle IN/OUT flag!
     std::cout << "    EP Address: " << static_cast<int>(epDesc.bEndpointAddress) << std::endl;
+    //TODO only lower 11 bits are the max packet size!
     std::cout << "    Max Packet Size: " << static_cast<int>(epDesc.wMaxPacketSize) << std::endl;
 
     //TODO epDesc.bInterval

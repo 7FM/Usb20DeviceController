@@ -71,7 +71,8 @@ module usb_endpoint_0 #(
 
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
 
-    logic [ROM_IDX_WID * (USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + USB_DEV_EP_CONF.stringDescCount + (USB_DEV_EP_CONF.stringDescCount > 0 ? 1 : 0)) - 1:0] descStartIdx;
+    localparam DESC_START_LUT_WID = ROM_IDX_WID * ({24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + USB_DEV_EP_CONF.stringDescCount + (USB_DEV_EP_CONF.stringDescCount > 0 ? 1 : 0));
+    logic [DESC_START_LUT_WID - 1:0] descStartIdx;
 
     usb_dev_req_pkg::SetupDataPacket setupDataPacket;
 

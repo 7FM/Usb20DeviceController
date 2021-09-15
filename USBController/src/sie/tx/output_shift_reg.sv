@@ -37,9 +37,9 @@ module output_shift_reg#(
         always_ff @(posedge clk12_i) begin
             if (dataValid_i) begin
                 dataBuf <= data_i;
-                bitsLeft <= crc5Patch_i ? bitsLeft-en_i : LENGTH-en_i;
+                bitsLeft <= (crc5Patch_i ? bitsLeft : LENGTH[CNT_WID:0]) - {{CNT_WID-1{1'b0}}, en_i};
             end else begin
-                bitsLeft <= bitsLeft - (!bufferEmpty_o && en_i);
+                bitsLeft <= bitsLeft - {{CNT_WID-1{1'b0}}, (!bufferEmpty_o && en_i)};
 
                 if (en_i) begin
                     if (LSB_FIRST) begin

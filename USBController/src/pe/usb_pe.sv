@@ -368,7 +368,7 @@ module usb_pe #(
     assign txHandshake = txDataValid_o && txAcceptNewData_i;
 
     initial begin
-        maxBytesLeft = 10'b0;
+        maxBytesLeft = 11'b0;
         sendPID = 1'b0;
     end
     assign sentLastByte = maxBytesLeft == 0;
