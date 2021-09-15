@@ -231,8 +231,8 @@ package usb_desc_pkg;
         //     01 = Feedback endpoint
         //     10 = implicit feedback Data endpoint
         //     11 = Reserved
-        // bmAttributes[15:6] are reserved and must be 0!
-        logic [15:0] bmAttributes;
+        // bmAttributes[7:6] are reserved and must be 0!
+        logic [7:0] bmAttributes;
 
         // bEndpointAddress[7] Direction (0 = Host Out, 1 = Host In), ignored for control endpoints
         // bEndpointAddress[6:4] Reserved, reset to zero
