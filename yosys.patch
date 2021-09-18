@@ -1,0 +1,53 @@
+diff --git a/kernel/driver.cc b/kernel/driver.cc
+index b55f0283..05987113 100644
+--- a/kernel/driver.cc
++++ b/kernel/driver.cc
+@@ -198,6 +198,7 @@ int main(int argc, char **argv)
+ 	std::string backend_command = "auto";
+ 	std::vector<std::string> vlog_defines;
+ 	std::vector<std::string> passes_commands;
++	std::vector<std::string> passes_commands_before;
+ 	std::vector<std::string> plugin_filenames;
+ 	std::string output_filename = "";
+ 	std::string scriptfile = "";
+@@ -274,7 +275,10 @@ int main(int argc, char **argv)
+ #endif
+ 		printf("\n");
+ 		printf("    -p command\n");
+-		printf("        execute the commands\n");
++		printf("        execute the commands after input file processing\n");
++		printf("\n");
++		printf("    -r command\n");
++		printf("        execute the commands before input file processing\n");
+ 		printf("\n");
+ 		printf("    -m module_file\n");
+ 		printf("        load the specified module (aka plugin)\n");
+@@ -342,7 +346,7 @@ int main(int argc, char **argv)
+ 	}
+ 
+ 	int opt;
+-	while ((opt = getopt(argc, argv, "MXAQTVSgm:f:Hh:b:o:p:l:L:qv:tds:c:W:w:e:D:P:E:x:")) != -1)
++	while ((opt = getopt(argc, argv, "MXAQTVSgm:f:Hh:b:o:p:r:l:L:qv:tds:c:W:w:e:D:P:E:x:")) != -1)
+ 	{
+ 		switch (opt)
+ 		{
+@@ -388,6 +392,9 @@ int main(int argc, char **argv)
+ 		case 'p':
+ 			passes_commands.push_back(optarg);
+ 			break;
++		case 'r':
++			passes_commands_before.push_back(optarg);
++			break;
+ 		case 'o':
+ 			output_filename = optarg;
+ 			got_output_filename = true;
+@@ -519,6 +526,9 @@ int main(int argc, char **argv)
+ 		run_pass(vdef_cmd);
+ 	}
+ 
++	for (auto&& cmd : passes_commands_before)
++		run_pass(cmd);
++
+ 	while (optind < argc)
+ 		run_frontend(argv[optind++], frontend_command, output_filename == "-" ? &backend_command : NULL);
+ 

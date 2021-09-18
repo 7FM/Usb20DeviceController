@@ -13,6 +13,8 @@ LOG ?= $(BUILDDIR)/build.log
 TARGET ?= ice40
 #TARGET_FREQ ?= 48
 
+USE_SV2V ?= 1
+
 ifeq ($(TARGET),ecp5)
     PNR_ARGS ?= --25k --package CABGA256
     CONSTRAINT_ARG ?= --lpf
@@ -110,12 +112,16 @@ genBitstream: $(pnr_target)
 	@echo "============================================================================================"
 
 # Synthesis
-#$(syn_target): $(srcs)
-# Uses patched yosys version to allow specifying include dirs before all files are read
-#	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+ifeq ($(USE_SV2V),1)
 $(syn_target): $(sv2v_target)
 	@mkdir -p $(BUILDDIR)
 	$(SYN) -T -Q -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+else
+$(syn_target): $(srcs)
+	@mkdir -p $(BUILDDIR)
+# Uses patched yosys version to allow specifying include dirs before all files are read
+	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+endif
 	@echo "============================================================================================"
 
 # Compile SV files to a single verilog file that yosys can handle, then rename it to an system verilog file
