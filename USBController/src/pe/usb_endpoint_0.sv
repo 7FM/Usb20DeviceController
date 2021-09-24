@@ -265,6 +265,17 @@ generate
                     unique case (setupDataPacket.bRequest)
                         usb_dev_req_pkg::SET_ADDRESS: begin
                             if (`SET_ADDRESS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
+                                /*
+                                TODO the spec says:
+                                "
+                                    Stages after the initial Setup packet assume the same device address as the Setup packet.
+                                    The USB device does not change its device address until after the Status stage of this request is completed successfully.
+                                    Note that this is a difference between this request and all other requests.
+                                    For all other requests, the operation indicated must be completed before the Status stage.
+                                "
+                                TODO The status stage is a different transaction -> we need to delay the address change!
+                                TODO test that for device requests with No Data Stage an empty Data Packet is returned upon request!
+                                */
                                 gotAddrAssigned = 1'b1;
                             end else begin
                                 nextRequestError = 1'b1;
