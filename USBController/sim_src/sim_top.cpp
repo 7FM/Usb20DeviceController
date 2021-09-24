@@ -282,7 +282,7 @@ static void updateSetupTrans(OutTransaction &setupTrans, SetupPacket &packet) {
     fillVector(setupTrans.dataPacket, packet);
 }
 
-static OutTransaction initDescReadTrans(SetupPacket &packet, DescriptorType descType, uint8_t descIdx, uint8_t addr, uint16_t initialReadSize) {
+static OutTransaction initDescReadTrans(SetupPacket &packet, DescriptorType descType, uint8_t descIdx, uint8_t addr, uint16_t initialReadSize, StandardDeviceRequest request) {
     OutTransaction setupTrans;
     setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
     setupTrans.outTokenPacket.addr = addr;
@@ -291,11 +291,11 @@ static OutTransaction initDescReadTrans(SetupPacket &packet, DescriptorType desc
 
     std::memset(&packet, 0, sizeof(packet));
     // Request type
-    packet.request = DEVICE_GET_DESCRIPTOR;
+    packet.request = request;
 
     // Descriptor type
     packet.wValueMsB = descType;
-    // Descriptor index;
+    // Descriptor index
     packet.wValueLsB = descIdx;
     // Zero or Language ID
     packet.wIndexLsB = packet.wIndexMsB = 0;
@@ -308,7 +308,7 @@ static OutTransaction initDescReadTrans(SetupPacket &packet, DescriptorType desc
     return setupTrans;
 }
 
-static uint16_t defaultGetDescriptorSize(const std::vector<uint8_t>& result) {
+static uint16_t defaultGetDescriptorSize(const std::vector<uint8_t> &result) {
     return result[0];
 }
 
@@ -316,11 +316,11 @@ static uint16_t getConfigurationDescriptorSize(const std::vector<uint8_t> &resul
     return static_cast<uint16_t>(result[2]) | (static_cast<uint16_t>(result[3]) << 8);
 }
 
-static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize) {
+static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR) {
     bool failed = false;
 
     SetupPacket packet;
-    OutTransaction setupTrans = initDescReadTrans(packet, descType, descIdx, addr, initialReadSize);
+    OutTransaction setupTrans = initDescReadTrans(packet, descType, descIdx, addr, initialReadSize, request);
 
     std::cout << "Send Setup transaction packet" << std::endl;
     failed = setupTrans.send(sim);
@@ -340,6 +340,12 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
 
     if (failed) {
         return true;
+    }
+
+    if (result.size() == 0 && initialReadSize == 0) {
+        // Zero length data phase -> ACK
+        std::cout << "Received a zero length data phase and is interpret as an ACK!" << std::endl;
+        return false;
     }
 
     uint16_t descriptorSize = descSizeExtractor(result);
@@ -387,6 +393,11 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
     return false;
 }
 
+static bool sendValueSetRequest(UsbTopSim &sim, StandardDeviceRequest request, uint16_t wValue, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize) {
+    std::vector<uint8_t> dummyRes;
+    return readDescriptor(dummyRes, sim, static_cast<DescriptorType>((wValue >> 8) & 0x0FF), static_cast<uint8_t>((wValue >> 0) & 0x0FF), ep0MaxDescriptorSize, addr, initialReadSize, defaultGetDescriptorSize, request);
+}
+
 /******************************************************************************/
 int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
@@ -420,6 +431,10 @@ int main(int argc, char **argv) {
         //TODO test string descriptors!
     }
 
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
     std::cout << std::endl
               << "Lets try reading the configuration descriptor!" << std::endl;
 
@@ -431,8 +446,21 @@ int main(int argc, char **argv) {
     prettyPrintDescriptors(result);
     //TODO check content
 
-    //TODO set address
-    //TODO set configuration
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
+    // set address to 42
+    std::cout << "Setting device address to 42!" << std::endl;
+    failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, 42, ep0MaxPacketSize, 0, 0);
+
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
+    // set configuration value to 1
+    std::cout << "Setting device address to 1!" << std::endl;
+    failed |= sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, 0, 0);
 
 exitAndCleanup:
 
