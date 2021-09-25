@@ -129,8 +129,8 @@ module usb_endpoint_0 #(
         deviceConf_o <= nextDeviceConf;
     end
 
-// RX Logic
-
+    //===============================================================================================================
+    // Device Request Handling
 
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
@@ -149,7 +149,7 @@ module usb_endpoint_0 #(
     );
 
     logic packetBufRst;
-    assign packetBufRst = gotTransStartPacket_i;
+    assign packetBufRst = gotTransStartPacket_i; //TODO this is not always correct, see page 226
     logic packetBufFull;
 
     // Maximum packet size for EP0: only 8, 16, 32 or 64 bytes are valid!
@@ -201,9 +201,6 @@ module usb_endpoint_0 #(
         ep0State = NO_OUTPUT_EXPECTED;
     end
 
-    assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
-    // Only show data is available, when we are in a sending state!
-    assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && (ep0State == SEND_DESC || ep0State == SEND_VAL);
     // Currently we only expect input for a new device request!
     assign EP_IN_full_o = packetBufFull || ep0State != NEW_DEV_REQUEST;
 
@@ -214,6 +211,13 @@ module usb_endpoint_0 #(
 
     // GET_STATUS & GET_INTERFACE are not supported -> return zero bytes
     assign EP_OUT_data_o = ep0State == SEND_DESC ? romData : (setupDataPacket.bRequest == usb_dev_req_pkg::GET_CONFIGURATION ? deviceConf_o : 8'b0);
+    assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
+    // Only show data is available, when we are in a sending state!
+    assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && (ep0State == SEND_DESC || ep0State == SEND_VAL);
+
+    //TODO If there is no Data stage, the Status stage is from the device to the host.
+    //TODO we need to keep track of the global control transfer state (a control transaction contains multiple normal setup, IN / OUT transactions)
+    //TODO A Status stage is delineated by a change in direction of data flow from the previous stage and always uses a DATA1 PID. 
 
     // 1'b1 signals that the PID is a handshake (host sent data or we have an request error)
     assign respHandshakePID_o = !setupDataPacket.bmRequestType.dataTransDevToHost || requestError;
@@ -248,6 +252,18 @@ generate
                 nextEp0State = NEW_DEV_REQUEST;
             end else begin
                 //TODO check if token PID is valid, I guess we only allow Host IN tokens, otherwise it should be a setup TOKEN!
+
+                //TODO test that for device requests with No Data Stage an empty Data Packet is returned upon request!
+
+                //TODO check page 226
+
+                // Handle SET_ADDRESS edge case: update is only done after the status stage: aka zero length data packet
+                // Check if the previous setup transaction was set address & if the host wants to check the status & we had no error before
+                if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS && transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2]) begin
+                    // Now we are allowed to update our address!
+                    gotAddrAssigned = 1'b1;
+                end
+
                 // Lets just ignore it
             end
         end else if (ep0State == NEW_DEV_REQUEST) begin
@@ -280,17 +296,16 @@ generate
                         usb_dev_req_pkg::SET_ADDRESS: begin
                             if (`SET_ADDRESS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 /*
-                                TODO the spec says:
+                                The spec says:
                                 "
                                     Stages after the initial Setup packet assume the same device address as the Setup packet.
                                     The USB device does not change its device address until after the Status stage of this request is completed successfully.
                                     Note that this is a difference between this request and all other requests.
                                     For all other requests, the operation indicated must be completed before the Status stage.
                                 "
-                                TODO The status stage is a different transaction -> we need to delay the address change!
-                                TODO test that for device requests with No Data Stage an empty Data Packet is returned upon request!
+                                The status stage is a different transaction -> we need to delay the address change!
                                 */
-                                gotAddrAssigned = 1'b1;
+                                //gotAddrAssigned = 1'b1;
                             end else begin
                                 nextRequestError = 1'b1;
                             end

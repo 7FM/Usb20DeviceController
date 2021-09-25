@@ -435,8 +435,7 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
-    std::cout << std::endl
-              << "Lets try reading the configuration descriptor!" << std::endl;
+    std::cout << std::endl << "Lets try reading the configuration descriptor!" << std::endl;
 
     // Read the default configuration
     failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
@@ -459,7 +458,7 @@ int main(int argc, char **argv) {
     }
 
     // set configuration value to 1
-    std::cout << "Setting device address to 1!" << std::endl;
+    std::cout << std::endl << "Selecting device configuration 1!" << std::endl;
     failed |= sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, 0, 0);
 
 exitAndCleanup:
