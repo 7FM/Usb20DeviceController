@@ -8,10 +8,7 @@ module usb_endpoint_0 #(
     parameter USB_DEV_ADDR_WID = 7,
     parameter USB_DEV_CONF_WID = 8,
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
-    localparam usb_ep_pkg::ControlEndpointConfig EP_CONF = USB_DEV_EP_CONF.ep0Conf,
-    // Maximum packet size for EP0: only 8, 16, 32 or 64 bytes are valid!
-    // MUST be 64 for high speed (EP0 only)!
-    localparam BUF_BYTE_COUNT = USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0
+    localparam usb_ep_pkg::ControlEndpointConfig EP_CONF = USB_DEV_EP_CONF.ep0Conf
 )(
     input logic clk48_i,
 
@@ -143,6 +140,12 @@ module usb_endpoint_0 #(
     logic packetBufRst;
     assign packetBufRst = gotTransStartPacket_i;
     logic packetBufFull;
+
+    // Maximum packet size for EP0: only 8, 16, 32 or 64 bytes are valid!
+    // MUST be 64 for high speed (EP0 only)!
+    //localparam BUF_BYTE_COUNT = USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0;
+    // BUT: with out simple implementation we only need to be able to store Setup Packets!
+    localparam BUF_BYTE_COUNT = usb_dev_req_pkg::SETUP_DATA_PACKET_BYTE_COUNT;
     localparam BUF_WID = BUF_BYTE_COUNT * 8;
     logic [BUF_WID-1:0] packetBuf;
 
