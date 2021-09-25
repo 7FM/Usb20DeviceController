@@ -211,6 +211,17 @@ package usb_ep_pkg;
         return byteCount;
     endfunction
 
+    function automatic int requiredDescStartLUTSize(UsbDeviceEpConfig usbDevConfig);
+        automatic int romIdxWid;
+        automatic int lutWid;
+
+        romIdxWid = $clog2(requiredROMSize(usbDevConfig));
+
+        lutWid = romIdxWid * ({24'b0, usbDevConfig.deviceDesc.bNumConfigurations} + usbDevConfig.stringDescCount + (usbDevConfig.stringDescCount > 0 ? 1 : 0));
+
+        return lutWid;
+    endfunction
+
 endpackage
 
 `endif
