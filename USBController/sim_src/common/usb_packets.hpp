@@ -23,7 +23,7 @@ typedef enum : uint8_t {
     PID_MDATA = createPID(0b1111), // unused: High-speed only
     // HANDSHAKE: last lsb bits are 10
     PID_HANDSHAKE_ACK = createPID(0b0010),
-    PID_HANDSHAKE_NACK = createPID(0b1010),
+    PID_HANDSHAKE_NAK = createPID(0b1010),
     PID_HANDSHAKE_STALL = createPID(0b1110),
     PID_HANDSHAKE_NYET = createPID(0b0110),
     // SPECIAL: last lsb bits are 00
@@ -48,7 +48,7 @@ std::string pidToString(PID_Types pid) {
         STRINGIFY_CASE(PID_DATA2);
         STRINGIFY_CASE(PID_MDATA);
         STRINGIFY_CASE(PID_HANDSHAKE_ACK);
-        STRINGIFY_CASE(PID_HANDSHAKE_NACK);
+        STRINGIFY_CASE(PID_HANDSHAKE_NAK);
         STRINGIFY_CASE(PID_HANDSHAKE_STALL);
         STRINGIFY_CASE(PID_HANDSHAKE_NYET);
         STRINGIFY_CASE(PID_SPECIAL_PRE__ERR);

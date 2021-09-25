@@ -158,9 +158,9 @@ int main(int argc, char **argv) {
             }
 
             case 6: {
-                sim.txState.dataToSend.push_back(PID_HANDSHAKE_NACK);
+                sim.txState.dataToSend.push_back(PID_HANDSHAKE_NAK);
 
-                std::cout << "Test handshake packet NACK" << std::endl;
+                std::cout << "Test handshake packet NAK" << std::endl;
                 break;
             }
 

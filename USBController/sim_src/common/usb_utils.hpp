@@ -38,7 +38,7 @@ constexpr CRC_Type getCRCTypeFromPID(PID_Types pid, bool allowInvalid = false) {
         case PID_MDATA:
             return CRC16;
         case PID_HANDSHAKE_ACK:
-        case PID_HANDSHAKE_NACK:
+        case PID_HANDSHAKE_NAK:
         case PID_HANDSHAKE_STALL:
         case PID_HANDSHAKE_NYET:
             return NO_CRC;
