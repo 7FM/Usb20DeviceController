@@ -178,6 +178,12 @@ module usb_endpoint_0 #(
 
     assign setupDataPacket = usb_dev_req_pkg::SetupDataPacket'(packetBuf[usb_dev_req_pkg::SETUP_DATA_PACKET_BYTE_COUNT * 8 - 1 : 0]);
 
+    logic isSetupTransStart;
+    assign isSetupTransStart = transStartTokenID_i == usb_packet_pkg::PID_SETUP_TOKEN[3:2];
+
+    logic isInTransStart;
+    assign isInTransStart = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2];
+
     typedef enum logic[1:0] {
         NEW_DEV_REQUEST,
         SEND_DESC,
@@ -225,7 +231,7 @@ module usb_endpoint_0 #(
     // Also it is expected that if the device is supposed to send something and respValid_o == 1'b1 and EP_OUT_dataAvailable_o == 1'b0, then a zero length data packet should be send!
     // If a packet was incorrectly received then it is also expected that the usb_pe automatically issues a response timeout and ignores these signals!
     assign respValid_o = 1'b1;
-    assign respPacketID_o = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2] ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
+    assign respPacketID_o = isInTransStart ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
 
 generate
     always_comb begin
@@ -247,7 +253,7 @@ generate
             // Ignore the first byte which is the PID / ignore all data if it is not a device request, we do not expect any input!
             nextByteIsData = 1'b0;
             nextRequestError = 1'b0;
-            if (transStartTokenID_i == usb_packet_pkg::PID_SETUP_TOKEN[3:2]) begin
+            if (isSetupTransStart) begin
                 // it is an setup token -> go to new_dev_req state
                 nextEp0State = NEW_DEV_REQUEST;
             end else begin
@@ -259,7 +265,7 @@ generate
 
                 // Handle SET_ADDRESS edge case: update is only done after the status stage: aka zero length data packet
                 // Check if the previous setup transaction was set address & if the host wants to check the status & we had no error before
-                if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS && transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2]) begin
+                if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS && isInTransStart) begin
                     // Now we are allowed to update our address!
                     gotAddrAssigned = 1'b1;
                 end

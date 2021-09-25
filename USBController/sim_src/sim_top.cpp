@@ -388,6 +388,8 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
         }
     }
 
+    //TODO status stage is missing: if we read we have to send as status stage an out transaction with an empty data packet
+
     std::cout << "Successfully received a " << descTypeToString(descType) << " Descriptor!" << std::endl;
 
     return false;
