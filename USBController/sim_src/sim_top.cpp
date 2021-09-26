@@ -316,22 +316,35 @@ static uint16_t getConfigurationDescriptorSize(const std::vector<uint8_t> &resul
     return static_cast<uint16_t>(result[2]) | (static_cast<uint16_t>(result[3]) << 8);
 }
 
-static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR) {
-    bool failed = false;
+static bool sendOutputStage(UsbTopSim &sim, OutTransaction& outTrans) {
+    bool failed = outTrans.send(sim);
+    printResponse(sim.rxState.receivedData);
+    failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
+    return failed;
+}
 
+static bool statusStage(UsbTopSim &sim, OutTransaction& outTrans) {
+    // Status stage
+    outTrans.outTokenPacket.token = PID_OUT_TOKEN;
+    outTrans.dataPacket.clear();
+    // For the status stage always DATA1 is used
+    outTrans.dataPacket.push_back(PID_DATA1);
+    // An empty data packet signals that everything was successful
+    std::cout << "Status stage" << std::endl;
+    return sendOutputStage(sim, outTrans);
+}
+
+static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR, bool recurse = true) {
     SetupPacket packet;
     OutTransaction setupTrans = initDescReadTrans(packet, descType, descIdx, addr, initialReadSize, request);
 
-    std::cout << "Send Setup transaction packet" << std::endl;
-    failed = setupTrans.send(sim);
-    printResponse(sim.rxState.receivedData);
-    failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
-
-    if (failed) {
+    std::cout << "Setup Stage" << std::endl;
+    if (sendOutputStage(sim, setupTrans)) {
         return true;
     }
 
-    failed = readItAll(result, sim, addr, initialReadSize, ep0MaxDescriptorSize == 0 ? 8 : ep0MaxDescriptorSize);
+    std::cout << "Data Stage" << std::endl;
+    bool failed = readItAll(result, sim, addr, initialReadSize, ep0MaxDescriptorSize == 0 ? 8 : ep0MaxDescriptorSize);
 
     if (result.size() != initialReadSize) {
         std::cerr << "Error: Desired to read first " << static_cast<int>(initialReadSize) << " bytes of the descriptor but got only: " << result.size() << " bytes!" << std::endl;
@@ -355,40 +368,24 @@ static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, Descrip
         std::cout << "INFO: update EP0 Max packet size to: " << static_cast<int>(ep0MaxDescriptorSize) << std::endl;
     }
 
+    // Status stage
+    if (statusStage(sim, setupTrans)) {
+        return true;
+    }
+
     if (descriptorSize < initialReadSize) {
         std::cerr << "Error extracting the descriptor size: extracted " << static_cast<int>(descriptorSize) << " but expecting a size of at least " << static_cast<int>(initialReadSize) << std::endl;
         return true;
     } else if (descriptorSize > initialReadSize) {
-        std::cout << std::endl << "Descriptor is larger than the amount of bytes initially read, requesting entire descriptor!" << std::endl;
-        // We need to fetch the remaining data too!
-        packet.wLengthLsB = descriptorSize & 0x0FF;
-        packet.wLengthMsB = (descriptorSize >> 8) & 0x0FF;
-
-        // New setup transaction to set the correct size that we want to read!
-        updateSetupTrans(setupTrans, packet);
-
-        std::cout << "Send Setup transaction packet" << std::endl;
-        failed = setupTrans.send(sim);
-        printResponse(sim.rxState.receivedData);
-        failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
-
-        if (failed) {
+        if (!recurse) {
+            std::cerr << "No further read attempts are permitted, reading entire descriptor failed!" << std::endl;
             return true;
         }
 
-        failed = readItAll(result, sim, addr, descriptorSize, ep0MaxDescriptorSize);
-
-        if (result.size() != descriptorSize) {
-            std::cerr << "Error expected descriptor result size: " << descriptorSize << " but got: " << result.size() << std::endl;
-            failed = true;
-        }
-
-        if (failed) {
-            return true;
-        }
+        // Recursion to issue a new request! BUT this time with the correct initalReadSize set!
+        // ALSO: further recursions will be disabled to ensure termination!
+        return readDescriptor(result, sim, descType, descIdx, ep0MaxDescriptorSize, addr, descriptorSize, descSizeExtractor, request, false);
     }
-
-    //TODO status stage is missing: if we read we have to send as status stage an out transaction with an empty data packet
 
     std::cout << "Successfully received a " << descTypeToString(descType) << " Descriptor!" << std::endl;
 
