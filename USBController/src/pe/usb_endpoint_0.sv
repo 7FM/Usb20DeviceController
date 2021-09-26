@@ -132,6 +132,43 @@ module usb_endpoint_0 #(
     //===============================================================================================================
     // Device Request Handling
 
+    logic epInHandshake;
+    assign epInHandshake = EP_IN_dataValid_i && !EP_IN_full_o;
+    logic epOutHandshake;
+    assign epOutHandshake = EP_OUT_popData_i && EP_OUT_dataAvailable_o;
+
+    logic byteIsData, nextByteIsData;
+
+    always_comb begin
+        // Set this byte as soon as we have a handshake -> we skipped PID
+        nextByteIsData = byteIsData;
+
+        // A new transaction started
+        if (gotTransStartPacket_i) begin
+            // Ignore the first byte which is the PID / ignore all data if it is not a device request, we do not expect any input!
+            nextByteIsData = 1'b0;
+        end else if (!byteIsData && epInHandshake) begin
+            /*
+            // make PID checks (i.e. correct DATA toggle value)!
+            if (EP_IN_data_i[0] != pidData1Expected) begin
+                // ignore this packet as we already received it
+                nextEp0State = NO_OUTPUT_EXPECTED;
+            end else begin
+                // The pid has the correct toggle bit -> lets continue
+                // Once we have skipped the PID we have data bytes!
+                nextByteIsData = 1'b1;
+            end
+            */
+            // For simplicity and as it should not matter for EP0, lets make no data toggle checks!
+            // Once we have skipped the PID we have data bytes!
+            nextByteIsData = 1'b1;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        byteIsData <= nextByteIsData;
+    end
+
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
     localparam DESC_START_LUT_WID = usb_ep_pkg::requiredDescStartLUTSize(USB_DEV_EP_CONF);
@@ -159,8 +196,6 @@ module usb_endpoint_0 #(
     localparam BUF_BYTE_COUNT = usb_dev_req_pkg::SETUP_DATA_PACKET_BYTE_COUNT;
     localparam BUF_WID = BUF_BYTE_COUNT * 8;
     logic [BUF_WID-1:0] packetBuf;
-
-    logic byteIsData, nextByteIsData;
 
     vector_buf #(
         .DATA_WID(8),
@@ -210,11 +245,6 @@ module usb_endpoint_0 #(
     // Currently we only expect input for a new device request!
     assign EP_IN_full_o = packetBufFull || ep0State != NEW_DEV_REQUEST;
 
-    logic epInHandshake;
-    assign epInHandshake = EP_IN_dataValid_i && !EP_IN_full_o;
-    logic epOutHandshake;
-    assign epOutHandshake = EP_OUT_popData_i && EP_OUT_dataAvailable_o;
-
     // GET_STATUS & GET_INTERFACE are not supported -> return zero bytes
     assign EP_OUT_data_o = ep0State == SEND_DESC ? romData : (setupDataPacket.bRequest == usb_dev_req_pkg::GET_CONFIGURATION ? deviceConf_o : 8'b0);
     assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
@@ -244,14 +274,10 @@ generate
         nextRomTransReadIdx = romTransReadIdx;
         nextRequestedBytesLeft = requestedBytesLeft;
         nextRequestError = requestError;
-        // Set this byte as soon as we have a handshake -> we skipped PID
-        nextByteIsData = byteIsData;
         //nextPidData1Expected = pidData1Expected;
 
         // A new transaction started
         if (gotTransStartPacket_i) begin
-            // Ignore the first byte which is the PID / ignore all data if it is not a device request, we do not expect any input!
-            nextByteIsData = 1'b0;
             nextRequestError = 1'b0;
             if (isSetupTransStart) begin
                 // it is an setup token -> go to new_dev_req state
@@ -273,22 +299,7 @@ generate
                 // Lets just ignore it
             end
         end else if (ep0State == NEW_DEV_REQUEST) begin
-            if (!byteIsData && epInHandshake) begin
-                /*
-                // make PID checks (i.e. correct DATA toggle value)!
-                if (EP_IN_data_i[0] != pidData1Expected) begin
-                    // ignore this packet as we already received it
-                    nextEp0State = NO_OUTPUT_EXPECTED;
-                end else begin
-                    // The pid has the correct toggle bit -> lets continue
-                    // Once we have skipped the PID we have data bytes!
-                    nextByteIsData = 1'b1;
-                end
-                */
-                // For simplicity and as it should not matter for EP0, lets make no data toggle checks!
-                // Once we have skipped the PID we have data bytes!
-                nextByteIsData = 1'b1;
-            end else if (EP_IN_fillTransDone_i) begin
+            if (EP_IN_fillTransDone_i) begin
                 nextEp0State = NO_OUTPUT_EXPECTED;
 
                 if (EP_IN_fillTransSuccess_i) begin
@@ -484,7 +495,6 @@ endgenerate
         epOutDataToggleState <= nextEpOutDataToggleState;
         //TODO this needs to be reset to 0 on transition to certain device states too
         //pidData1Expected <= nextPidData1Expected;
-        byteIsData <= nextByteIsData;
 
         requestedBytesLeft <= nextRequestedBytesLeft;
         romReadIdx <= nextRomReadIdx;
