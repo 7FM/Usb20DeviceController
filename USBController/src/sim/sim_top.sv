@@ -1,4 +1,5 @@
 `include "config_pkg.sv"
+`include "util_macros.sv"
 
 `ifdef RUN_SIM
 module sim_top (
@@ -32,7 +33,6 @@ module sim_top (
     logic USB_DP_OUT;
     logic USB_DN;
     logic USB_DN_OUT;
-    logic USB_PULLUP;
 
     top uut(
         .CLK(CLK),
@@ -40,7 +40,7 @@ module sim_top (
         .USB_DP_OUT(USB_DP_OUT),
         .USB_DN(USB_DN),
         .USB_DN_OUT(USB_DN_OUT),
-        .USB_PULLUP(USB_PULLUP)
+        `MUTE_PIN_CONNECT_EMPTY(USB_PULLUP)
     );
 
     sim_usb_tx_connection hostTxImitator(

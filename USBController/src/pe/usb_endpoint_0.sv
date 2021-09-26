@@ -165,7 +165,7 @@ module usb_endpoint_0 #(
         end
     end
 
-    always_ff @(posedge clk) begin
+    always_ff @(posedge clk48_i) begin
         byteIsData <= nextByteIsData;
     end
 
