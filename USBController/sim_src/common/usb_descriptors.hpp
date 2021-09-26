@@ -129,7 +129,7 @@ void prettyPrintBcd(uint16_t bcd) {
 
     IosFlagSaver flagSaver(std::cout);
 
-    for (int shift = sizeof(bcd) * 8 - 4; shift > 0; shift -= 4, --fractionPos) {
+    for (int shift = sizeof(bcd) * 8 - 4; shift >= 0; shift -= 4, --fractionPos) {
         int literal = (bcd >> shift) & 0x0F;
         std::cout << std::hex << literal;
 
