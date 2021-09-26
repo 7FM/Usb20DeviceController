@@ -186,7 +186,6 @@ module usb_endpoint_0 #(
     );
 
     logic packetBufRst;
-    assign packetBufRst = gotTransStartPacket_i; //TODO this is not always correct, see page 226
     logic packetBufFull;
 
     // Maximum packet size for EP0: only 8, 16, 32 or 64 bytes are valid!
@@ -220,14 +219,36 @@ module usb_endpoint_0 #(
     assign isInTransStart = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2];
 
     typedef enum logic[1:0] {
-        NEW_DEV_REQUEST,
-        SEND_DESC,
-        SEND_VAL,
-        NO_OUTPUT_EXPECTED
-    } EP0_State;
+        IDLE,
+        SETUP_STAGE,
+        DATA_STAGE,
+        STATUS_STAGE
+    } ControlTransferState;
 
-    EP0_State ep0State, nextEp0State;
-    usb_dev_req_pkg::RequestCode deviceRequest;
+    ControlTransferState ctrlTransState, nextCtrlTransState;
+    logic prevDataDir, patchPrevDataDir;
+    logic dataDirChanged;
+    assign dataDirChanged = prevDataDir ^ isInTransStart;
+
+    always_ff @(posedge clk48_i) begin
+        prevDataDir <= patchPrevDataDir ? setupDataPacket.bmRequestType.dataTransDevToHost: (gotTransStartPacket_i ? isInTransStart : prevDataDir);
+    end
+
+    logic hasNoDataStage;
+    assign hasNoDataStage = setupDataPacket.wLength == 0;
+
+    logic dataStageDevToHost;
+    logic statusStageDevToHost;
+    assign dataStageDevToHost = setupDataPacket.bmRequestType.dataTransDevToHost;
+    assign statusStageDevToHost = hasNoDataStage ? 1'b1 : !dataStageDevToHost;
+
+    assign packetBufRst = ctrlTransState == IDLE;
+
+    initial begin
+        ctrlTransState = IDLE;
+    end
+
+    logic isRomDataOutSrc, nextIsRomDataOutSrc;
     logic requestError, nextRequestError;
     //logic pidData1Expected, nextPidData1Expected;
 
@@ -239,70 +260,39 @@ module usb_endpoint_0 #(
     initial begin
         //pidData1Expected = 1'b0;
         epOutDataToggleState = 1'b0;
-        ep0State = NO_OUTPUT_EXPECTED;
     end
 
-    // Currently we only expect input for a new device request!
-    assign EP_IN_full_o = packetBufFull || ep0State != NEW_DEV_REQUEST;
-
-    // GET_STATUS & GET_INTERFACE are not supported -> return zero bytes
-    assign EP_OUT_data_o = ep0State == SEND_DESC ? romData : (setupDataPacket.bRequest == usb_dev_req_pkg::GET_CONFIGURATION ? deviceConf_o : 8'b0);
-    assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
-    // Only show data is available, when we are in a sending state!
-    assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && (ep0State == SEND_DESC || ep0State == SEND_VAL);
-
-    //TODO If there is no Data stage, the Status stage is from the device to the host.
-    //TODO we need to keep track of the global control transfer state (a control transaction contains multiple normal setup, IN / OUT transactions)
-    //TODO A Status stage is delineated by a change in direction of data flow from the previous stage and always uses a DATA1 PID. 
-
-    // 1'b1 signals that the PID is a handshake (host sent data or we have an request error)
-    assign respHandshakePID_o = !setupDataPacket.bmRequestType.dataTransDevToHost || requestError;
-    // This expects the usb_pe to check this flag only after the end of a corresponding phase
-    // Also it is expected that if the device is supposed to send something and respValid_o == 1'b1 and EP_OUT_dataAvailable_o == 1'b0, then a zero length data packet should be send!
-    // If a packet was incorrectly received then it is also expected that the usb_pe automatically issues a response timeout and ignores these signals!
-    assign respValid_o = 1'b1;
-    assign respPacketID_o = isInTransStart ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
+    logic isInStatusStage;
+    assign isInStatusStage = ctrlTransState == STATUS_STAGE;
 
 generate
     always_comb begin
-        nextEp0State = ep0State;
+        nextCtrlTransState = ctrlTransState;
+
         gotAddrAssigned = 1'b0;
         gotDevConfig = 1'b0;
-        nextEpOutDataToggleState = epOutDataToggleState;
+        patchPrevDataDir = 1'b0;
 
+        nextRequestedBytesLeft = requestedBytesLeft;
         nextRomReadIdx = romReadIdx;
         nextRomTransReadIdx = romTransReadIdx;
-        nextRequestedBytesLeft = requestedBytesLeft;
         nextRequestError = requestError;
-        //nextPidData1Expected = pidData1Expected;
+        nextIsRomDataOutSrc = isRomDataOutSrc;
 
-        // A new transaction started
-        if (gotTransStartPacket_i) begin
-            nextRequestError = 1'b0;
-            if (isSetupTransStart) begin
-                // it is an setup token -> go to new_dev_req state
-                nextEp0State = NEW_DEV_REQUEST;
-            end else begin
-                //TODO check if token PID is valid, I guess we only allow Host IN tokens, otherwise it should be a setup TOKEN!
+        unique case (ctrlTransState)
+            IDLE: begin
+                nextRequestError = 1'b0;
 
-                //TODO test that for device requests with No Data Stage an empty Data Packet is returned upon request!
-
-                //TODO check page 226
-
-                // Handle SET_ADDRESS edge case: update is only done after the status stage: aka zero length data packet
-                // Check if the previous setup transaction was set address & if the host wants to check the status & we had no error before
-                if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS && isInTransStart) begin
-                    // Now we are allowed to update our address!
-                    gotAddrAssigned = 1'b1;
+                if (gotTransStartPacket_i && isSetupTransStart) begin
+                    nextCtrlTransState = SETUP_STAGE;
                 end
-
-                // Lets just ignore it
             end
-        end else if (ep0State == NEW_DEV_REQUEST) begin
-            if (EP_IN_fillTransDone_i) begin
-                nextEp0State = NO_OUTPUT_EXPECTED;
+            SETUP_STAGE: begin
+                //TODO how to handle failed transactions: for now lets stay in the state!
+                if (EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) begin
+                    nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : DATA_STAGE;
+                    patchPrevDataDir = 1'b1;
 
-                if (EP_IN_fillTransSuccess_i) begin
                     // The transaction was successful, lets toggle our expected data pid bit!
                     //nextPidData1Expected = !pidData1Expected;
 
@@ -328,7 +318,8 @@ generate
                             end
                         end
                         usb_dev_req_pkg::GET_DESCRIPTOR: begin
-                            nextEp0State = SEND_DESC;
+                            nextIsRomDataOutSrc = 1'b1;
+
                             if (`GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState)) begin
 
                                 case (setupDataPacket.wValue[15:8])
@@ -372,7 +363,7 @@ generate
                         end
                         usb_dev_req_pkg::GET_CONFIGURATION: begin
                             if (`GET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                nextEp0State = SEND_VAL;
+                                nextIsRomDataOutSrc = 1'b0;
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -397,7 +388,7 @@ generate
                             if (`GET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 //TODO This request returns the selected alternate setting for the specified interface
                                 //TODO as we currently do not allow setting an alternate interface we can simply return 1 byte set to 0 which is the default interface!
-                                nextEp0State = SEND_VAL;
+                                nextIsRomDataOutSrc = 1'b0;
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -406,7 +397,7 @@ generate
                             if (`GET_STATUS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 //TODO This requests returns the status for the specified recipient
                                 //TODO as we currently do not support features as remote wakeup or endpoint halting, we can always return 2 bytes set to 0
-                                nextEp0State = SEND_VAL;
+                                nextIsRomDataOutSrc = 1'b0;
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -416,7 +407,9 @@ generate
                                 // Is only used for isochronous data transfers using implicit pattern synchronization.
                                 //TODO apply
                                 //TODO this is required for isochronous endpoints
-                                nextEp0State = SEND_VAL;
+
+                                //TODO this is data in isn't it? -> remove the following line
+                                nextIsRomDataOutSrc = 1'b0;
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -465,13 +458,40 @@ generate
                             nextRequestError = 1'b1;
                         end
                     endcase
+
+                    // reset transaction counter
+                    nextRomTransReadIdx = nextRomReadIdx;
                 end
             end
-        end else begin
-            if (epOutHandshake) begin
-                if (ep0State == SEND_DESC) begin
-                    nextRomTransReadIdx = romTransReadIdx + 1;
+            DATA_STAGE: begin
+                //TODO on the state transition from SETUP_STAGE to DATA_STAGE we need to patch prevDataDir such that the DATA_STAGE wont be skipped immediately!
+                if (gotTransStartPacket_i && dataDirChanged) begin
+                    nextCtrlTransState = STATUS_STAGE;
                 end
+            end
+            STATUS_STAGE: begin
+                //TODO use requestError to signal status as specified in page 227
+
+                //TODO how to handle failed transactions: for now lets stay in the state!
+                if ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) || (EP_OUT_popTransDone_i && EP_OUT_popTransSuccess_i)) begin
+                    nextCtrlTransState = IDLE;
+
+                    // Handle SET_ADDRESS edge case: update is only done after the status stage: aka zero length data packet
+                    // Check if the previous setup transaction was set address & if the host wants to check the status & we had no error before
+                    if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS && isInTransStart) begin
+                        // Now we are allowed to update our address!
+                        gotAddrAssigned = 1'b1;
+                    end
+                end
+            end
+        endcase
+
+        nextEpOutDataToggleState = epOutDataToggleState;
+        //nextPidData1Expected = pidData1Expected;
+
+        if (ctrlTransState == DATA_STAGE || isInStatusStage) begin
+            if (epOutHandshake) begin
+                nextRomTransReadIdx = romTransReadIdx + 1;
                 nextRequestedBytesLeft = requestedBytesLeft - 1;
             end else if (EP_OUT_popTransDone_i) begin
                 if (EP_OUT_popTransSuccess_i) begin
@@ -489,16 +509,47 @@ generate
 endgenerate
 
     always_ff @(posedge clk48_i) begin
-        ep0State <= nextEp0State;
+        ctrlTransState <= nextCtrlTransState;
 
         requestError <= nextRequestError;
+        requestedBytesLeft <= nextRequestedBytesLeft;
+
         epOutDataToggleState <= nextEpOutDataToggleState;
         //TODO this needs to be reset to 0 on transition to certain device states too
         //pidData1Expected <= nextPidData1Expected;
 
-        requestedBytesLeft <= nextRequestedBytesLeft;
+        isRomDataOutSrc <= nextIsRomDataOutSrc;
         romReadIdx <= nextRomReadIdx;
         romTransReadIdx <= nextRomTransReadIdx;
     end
+
+    logic sendDataToHost; //TODO this is not yet correct!
+    //assign sendDataToHost = setupDataPacket.bmRequestType.dataTransDevToHost;
+    assign sendDataToHost = 1'b1;
+
+    logic expectDataIn; //TODO this is not yet correct!
+    // assign expectDataIn = ctrlTransState == SETUP_STAGE || !sendDataToHost;
+    assign expectDataIn = 1'b1;
+
+    // Currently we only expect input for a new device request!
+    // Overrule this flag if we are in the status stage -> no input is expected!
+    assign EP_IN_full_o = !isInStatusStage && (packetBufFull || !expectDataIn);
+
+    // GET_STATUS & GET_INTERFACE are not supported -> return zero bytes
+    assign EP_OUT_data_o = isRomDataOutSrc ? romData : (setupDataPacket.bRequest == usb_dev_req_pkg::GET_CONFIGURATION ? deviceConf_o : 8'b0);
+    assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
+    // Only show data is available, when we are in a sending state!
+    assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && sendDataToHost;
+
+    //TODO If there is no Data stage, the Status stage is from the device to the host.
+    //TODO A Status stage is delineated by a change in direction of data flow from the previous stage and always uses a DATA1 PID. 
+
+    // 1'b1 signals that the PID is a handshake (host sent data or we have an request error)
+    assign respHandshakePID_o = !setupDataPacket.bmRequestType.dataTransDevToHost || requestError;
+    // This expects the usb_pe to check this flag only after the end of a corresponding phase
+    // Also it is expected that if the device is supposed to send something and respValid_o == 1'b1 and EP_OUT_dataAvailable_o == 1'b0, then a zero length data packet should be send!
+    // If a packet was incorrectly received then it is also expected that the usb_pe automatically issues a response timeout and ignores these signals!
+    assign respValid_o = 1'b1;
+    assign respPacketID_o = isInTransStart ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
 
 endmodule
