@@ -368,7 +368,7 @@ void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState) {
     ptop->resetTimeout = !usbRxState.enableTimeout || !usbRxState.timerReset;
     usbRxState.timerReset = true;
 
-    usbRxState.timedOut = ptop->gotTimeout;
+    usbRxState.timedOut = usbRxState.enableTimeout && ptop->gotTimeout;
 }
 
 struct UsbTransmitState {
