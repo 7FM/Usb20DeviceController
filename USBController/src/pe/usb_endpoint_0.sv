@@ -541,15 +541,14 @@ endgenerate
     // Only show data is available, when we are in a sending state!
     assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && sendDataToHost;
 
-    //TODO If there is no Data stage, the Status stage is from the device to the host.
-    //TODO A Status stage is delineated by a change in direction of data flow from the previous stage and always uses a DATA1 PID. 
-
     // 1'b1 signals that the PID is a handshake (host sent data or we have an request error)
-    assign respHandshakePID_o = !setupDataPacket.bmRequestType.dataTransDevToHost || requestError;
+    // Ignore the direction bit if there is no data stage
+    assign respHandshakePID_o = (!(hasNoDataStage && isInStatusStage) && !setupDataPacket.bmRequestType.dataTransDevToHost) || requestError;
     // This expects the usb_pe to check this flag only after the end of a corresponding phase
     // Also it is expected that if the device is supposed to send something and respValid_o == 1'b1 and EP_OUT_dataAvailable_o == 1'b0, then a zero length data packet should be send!
     // If a packet was incorrectly received then it is also expected that the usb_pe automatically issues a response timeout and ignores these signals!
     assign respValid_o = 1'b1;
-    assign respPacketID_o = isInTransStart ? {epOutDataToggleState, 1'b0} : (requestError ? usb_packet_pkg::RES_STALL : usb_packet_pkg::RES_ACK);
+    // Ensure DATA1 PID is used for the status stage!
+    assign respPacketID_o = requestError ? usb_packet_pkg::RES_STALL : (isInTransStart ? {isInStatusStage || epOutDataToggleState, 1'b0} : usb_packet_pkg::RES_ACK);
 
 endmodule
