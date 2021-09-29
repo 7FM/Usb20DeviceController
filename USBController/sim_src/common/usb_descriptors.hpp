@@ -218,10 +218,11 @@ static void prettyPrintEndpointDescriptor(const uint8_t *data) {
 
     std::cout << "    bLength: " << static_cast<int>(epDesc.bLength) << std::endl;
     std::cout << "    Descriptor Type: " << descTypeToString(epDesc.bDescriptorType) << std::endl;
-    //TODO handle IN/OUT flag!
-    std::cout << "    EP Address: " << static_cast<int>(epDesc.bEndpointAddress) << std::endl;
-    //TODO only lower 11 bits are the max packet size!
-    std::cout << "    Max Packet Size: " << static_cast<int>(epDesc.wMaxPacketSize) << std::endl;
+    bool input = ((epDesc.bEndpointAddress >> 7) & 1) == 1;
+    std::cout << "    EP Type: " << (input ? "INPUT" : "OUTPUT") << std::endl;
+    std::cout << "    EP Address: " << static_cast<int>(epDesc.bEndpointAddress & 0x0F) << std::endl;
+    std::cout << "    Max Packet Size: " << static_cast<int>(epDesc.wMaxPacketSize & 0x7FF) << std::endl;
+    std::cout << "    Additional transactions per microframe: " << static_cast<int>((epDesc.wMaxPacketSize >> 11) & 0x3) << std::endl;
 
     //TODO epDesc.bInterval
     //TODO pretty print
