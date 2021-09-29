@@ -477,8 +477,8 @@ generate
                     nextCtrlTransState = IDLE;
 
                     // Handle SET_ADDRESS edge case: update is only done after the status stage: aka zero length data packet
-                    // Check if the previous setup transaction was set address & if the host wants to check the status & we had no error before
-                    if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS && isInTransStart) begin
+                    // Check if the previous setup transaction was set address & we had no error before
+                    if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS) begin
                         // Now we are allowed to update our address!
                         gotAddrAssigned = 1'b1;
                     end
