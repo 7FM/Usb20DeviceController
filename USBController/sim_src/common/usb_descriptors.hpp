@@ -141,8 +141,8 @@ void prettyPrintBcd(uint16_t bcd) {
     std::cout << std::endl;
 }
 
-template<class Desc>
-static void fillDesc(Desc& desc, const uint8_t* data) {
+template <class Desc>
+static void fillDesc(Desc &desc, const uint8_t *data) {
     std::memset(&desc, 0, sizeof(desc));
     uint8_t *rawDevDesc = reinterpret_cast<uint8_t *>(&desc);
     for (int i = 0; i < sizeof(desc); ++i) {
@@ -151,7 +151,7 @@ static void fillDesc(Desc& desc, const uint8_t* data) {
     }
 }
 
-static void prettyPrintDeviceDescriptor(const uint8_t* data) {
+static void prettyPrintDeviceDescriptor(const uint8_t *data) {
 
     DeviceDescriptor devDesc;
     fillDesc(devDesc, data);
@@ -229,6 +229,17 @@ static void prettyPrintEndpointDescriptor(const uint8_t *data) {
     std::cout << "    Attributes: 0x" << std::hex << static_cast<int>(epDesc.bmAttributes) << std::endl;
 }
 
+static void prettyPrintStringDescriptor(uint8_t descLength, const uint8_t *data) {
+    descLength -= 2;
+
+    std::cout << "    Content: ";
+    for (int i = 0; i < descLength; ++i) {
+        std::cout << *reinterpret_cast<const char *>(data);
+        ++data;
+    }
+    std::cout << std::endl;
+}
+
 void prettyPrintDescriptors(const std::vector<uint8_t> &data) {
 
     for (int i = 0; i + 1 < data.size();) {
@@ -246,7 +257,7 @@ void prettyPrintDescriptors(const std::vector<uint8_t> &data) {
                     prettyPrintConfigurationDescriptor(descData);
                     break;
                 case DESC_STRING:
-                    std::cout << "Not yet implemented" << std::endl;
+                    prettyPrintStringDescriptor(descLength, descData);
                     break;
                 case DESC_INTERFACE:
                     prettyPrintInterfaceDescriptor(descData);
