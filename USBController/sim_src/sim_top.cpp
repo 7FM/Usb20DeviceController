@@ -429,7 +429,19 @@ int main(int argc, char **argv) {
         prettyPrintDescriptors(result);
         //TODO check content
 
-        //TODO test string descriptors!
+        const char * stringDescName[] = {
+            "Manufacturer Name:",
+            "Product Name:",
+            "Serial Number:",
+            "Configuration Description:",
+            "Interface Description:"
+        };
+        for (int i = 0; !failed && i < sizeof(stringDescName)/sizeof(stringDescName[0]); ++i) {
+            failed |= readDescriptor(result, sim, DESC_STRING, i + 1, ep0MaxPacketSize, addr, 2);
+            std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
+            prettyPrintDescriptors(result);
+            //TODO check content
+        }
     }
 
     if (failed) {
