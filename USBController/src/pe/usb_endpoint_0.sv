@@ -340,7 +340,7 @@ generate
                                     usb_desc_pkg::DESC_STRING: begin
                                         // Depends on the descriptor index!
                                         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
-                                            if (setupDataPacket.wValue[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
+                                            if (setupDataPacket.wValue[7:0] <= USB_DEV_EP_CONF.stringDescCount) begin
                                                 // Index is valid
                                                 nextRomReadIdx = descStartIdx[(USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + setupDataPacket.wValue[7:0]) * ROM_IDX_WID +: ROM_IDX_WID];
                                             end else begin

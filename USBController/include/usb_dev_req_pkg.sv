@@ -159,7 +159,7 @@ package usb_dev_req_pkg;
     - DEVICE_ADDR_ASSIGNED: valid
     - DEVICE_CONFIGURED: valid
     */
-    `define GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wIndex[15:8] == usb_desc_pkg::DESC_STRING || setupDataPacket.wIndex == 0)
+    `define GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState) (setupDataPacket.wValue[15:8] == usb_desc_pkg::DESC_STRING || setupDataPacket.wIndex == 0)
 
 
     /* SET_DESCRIPTOR: OPTIONAL
