@@ -1,6 +1,7 @@
 `include "config_pkg.sv"
 `include "usb_packet_pkg.sv"
 `include "usb_ep_pkg.sv"
+`include "util_macros.sv"
 
 // USB Protocol Engine (PE)
 module usb_pe #(
@@ -54,7 +55,7 @@ module usb_pe #(
 
     localparam EP_SELECT_WID = $clog2(ENDPOINTS);
     logic [EP_SELECT_WID-1:0] epSelect;
-    usb_packet_pkg::PID_Types transStartPID;
+    logic [1:0] upperTransStartPID;
     logic gotTransStartPacket;
 
     // Used for received data
@@ -125,8 +126,9 @@ module usb_pe #(
     `define CREATE_EP_CASE(x)                                                   \
         x: `EP_``x``_MODULE(epConfig) epX (                                     \
             .clk48_i(clk48_i),                                                  \
-            .transStartTokenID_i(transStartPID[3:2]),                           \
+            .transStartTokenID_i(upperTransStartPID),                           \
             .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),        \
+            .deviceConf_i(deviceConf),                                          \
                                                                                 \
             /* Device IN interface */                                           \
             .EP_IN_fillTransDone_i(fillTransDone),                              \
@@ -162,8 +164,8 @@ module usb_pe #(
 
 
     localparam USB_DEV_ADDR_WID = 7;
-    localparam USB_DEV_CONF_WID = 8;
     logic [USB_DEV_ADDR_WID-1:0] deviceAddr;
+    localparam USB_DEV_CONF_WID = 8;
     logic [USB_DEV_CONF_WID-1:0] deviceConf;
     generate
 
@@ -179,7 +181,7 @@ module usb_pe #(
             .deviceAddr_o(deviceAddr),
             .deviceConf_o(deviceConf),
 
-            .transStartTokenID_i(transStartPID[3:2]),
+            .transStartTokenID_i(upperTransStartPID),
             .gotTransStartPacket_i(gotTransStartPacket && isEp0Selected),
 
             // Device IN interface
@@ -263,7 +265,9 @@ module usb_pe #(
 
     // This buffer is used to receive the first packet that might initiate a transaction
     localparam TRANS_START_BUF_MAX_BIT_IDX = usb_packet_pkg::INIT_TRANS_PACKET_BUF_LEN-1;
+    `MUTE_LINT(UNUSED)
     logic [TRANS_START_BUF_MAX_BIT_IDX:0] transStartPacketBuf;
+    `UNMUTE_LINT(UNUSED)
     logic transStartPacketBufFull;
 
     logic transBufRst;
@@ -306,15 +310,15 @@ module usb_pe #(
     logic rxHandshake;
     assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
 
-    usb_packet_pkg::PacketHeader packetHeader;
-    assign packetHeader = usb_packet_pkg::PacketHeader'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS]);
     usb_packet_pkg::TokenPacket tokenPacketPart;
     assign tokenPacketPart = usb_packet_pkg::TokenPacket'(transStartPacketBuf[usb_packet_pkg::TOKEN_PACKET_OFFSET +: usb_packet_pkg::TOKEN_PACKET_BITS]);
 
-    assign transStartPID = packetHeader.pid;
+    usb_packet_pkg::PID_Types packetPID;
+    assign packetPID = usb_packet_pkg::PID_Types'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS / 2]);
+    assign upperTransStartPID = packetPID[3:2];
 
     logic isTokenPID;
-    assign isTokenPID = packetHeader.pid[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
+    assign isTokenPID = packetPID[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
 
     logic isValidTransStartPacket;
     assign isValidTransStartPacket = receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
@@ -396,7 +400,7 @@ genvar epIdx;
 generate
     logic [11*ENDPOINTS - 1:0] maxPacketSizeOutLut;
 
-    assign maxPacketSizeOutLut[0 * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.ep0Conf.maxPacketSize};
+    assign maxPacketSizeOutLut[0 * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0};
 
     for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
         if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
@@ -465,7 +469,7 @@ Device Transaction State Machine Hierarchy Overview:
     end
 
     logic isDevIn;
-    assign isDevIn = packetHeader.pid[3:2] == usb_packet_pkg::PID_IN_TOKEN[3:2];
+    assign isDevIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
     logic isEpIsochronous;
 
     logic packetWaitTimeout;
@@ -599,7 +603,7 @@ Device Transaction State Machine Hierarchy Overview:
                 // We expect to receive the response in our internal transaction buffer and not to pass it to the EPs!
                 forceInternalBuf = 1'b1;
                 // Success only when we received an ACK!
-                popTransSuccess = receiveSuccess && packetHeader.pid == usb_packet_pkg::PID_HANDSHAKE_ACK;
+                popTransSuccess = receiveSuccess && packetPID == usb_packet_pkg::PID_HANDSHAKE_ACK;
                 popTransDone = receiveDone;
 
                 if (packetWaitTimeout || receiveDone) begin

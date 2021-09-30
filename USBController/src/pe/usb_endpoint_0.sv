@@ -7,8 +7,7 @@
 module usb_endpoint_0 #(
     parameter USB_DEV_ADDR_WID = 7,
     parameter USB_DEV_CONF_WID = 8,
-    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
-    localparam usb_ep_pkg::ControlEndpointConfig EP_CONF = USB_DEV_EP_CONF.ep0Conf
+    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF
 )(
     input logic clk48_i,
 
@@ -172,6 +171,9 @@ module usb_endpoint_0 #(
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
     localparam DESC_START_LUT_WID = usb_ep_pkg::requiredDescStartLUTSize(USB_DEV_EP_CONF);
+    localparam DESC_LUT_IDX_WID = $clog2(DESC_START_LUT_WID);
+    localparam DESC_LUT_IDX_ZERO_EXTEND = DESC_LUT_IDX_WID > 8 ? DESC_LUT_IDX_WID - 8 : 0;
+    localparam DESC_LUT_IDX_8_BIT_SEL = DESC_LUT_IDX_WID > 8 ? 8 - 1 : DESC_LUT_IDX_WID - 1;
 
     logic [DESC_START_LUT_WID - 1:0] descStartIdx;
     logic [7:0] romData;
@@ -236,11 +238,6 @@ module usb_endpoint_0 #(
 
     logic hasNoDataStage;
     assign hasNoDataStage = setupDataPacket.wLength == 0;
-
-    logic dataStageDevToHost;
-    logic statusStageDevToHost;
-    assign dataStageDevToHost = setupDataPacket.bmRequestType.dataTransDevToHost;
-    assign statusStageDevToHost = hasNoDataStage ? 1'b1 : !dataStageDevToHost;
 
     assign packetBufRst = ctrlTransState == IDLE;
 
@@ -331,7 +328,7 @@ generate
                                         // Depends on the descriptor index!
                                         if (setupDataPacket.wValue[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
                                             // Index is valid
-                                            nextRomReadIdx = descStartIdx[setupDataPacket.wValue[7:0] * ROM_IDX_WID +: ROM_IDX_WID];
+                                            nextRomReadIdx = descStartIdx[{{DESC_LUT_IDX_ZERO_EXTEND{1'b0}}, setupDataPacket.wValue[DESC_LUT_IDX_8_BIT_SEL:0]} * ROM_IDX_WID[DESC_LUT_IDX_WID-1:0] +: ROM_IDX_WID[DESC_LUT_IDX_WID-1:0]];
                                         end else begin
                                             // Index is out of bounds!
                                             nextRequestError = 1'b1;
@@ -340,9 +337,9 @@ generate
                                     usb_desc_pkg::DESC_STRING: begin
                                         // Depends on the descriptor index!
                                         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
-                                            if (setupDataPacket.wValue[7:0] <= USB_DEV_EP_CONF.stringDescCount) begin
+                                            if (setupDataPacket.wValue[7:0] <= USB_DEV_EP_CONF.stringDescCount[7:0]) begin
                                                 // Index is valid
-                                                nextRomReadIdx = descStartIdx[(USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + setupDataPacket.wValue[7:0]) * ROM_IDX_WID +: ROM_IDX_WID];
+                                                nextRomReadIdx = descStartIdx[{{DESC_LUT_IDX_ZERO_EXTEND{1'b0}}, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations[DESC_LUT_IDX_8_BIT_SEL:0] + setupDataPacket.wValue[DESC_LUT_IDX_8_BIT_SEL:0]} * ROM_IDX_WID[DESC_LUT_IDX_WID-1:0] +: ROM_IDX_WID[DESC_LUT_IDX_WID-1:0]];
                                             end else begin
                                                 // Index is out of bounds!
                                                 nextRequestError = 1'b1;

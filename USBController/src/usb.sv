@@ -1,6 +1,9 @@
 `include "config_pkg.sv"
 `include "usb_ep_pkg.sv"
 
+//TODO remove
+`include "util_macros.sv"
+
 module usb#(
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     parameter EP_DATA_WID = 8,
@@ -81,17 +84,28 @@ module usb#(
 
     //TODO export
     // Endpoint interfaces
+
+    `MUTE_LINT(UNDRIVEN) //TODO remove
     logic [ENDPOINTS-2:0] EP_IN_popData;
     logic [ENDPOINTS-2:0] EP_IN_popTransDone;
     logic [ENDPOINTS-2:0] EP_IN_popTransSuccess;
+    `UNMUTE_LINT(UNDRIVEN) //TODO remove
+    `MUTE_LINT(UNUSED) //TODO remove
     logic [ENDPOINTS-2:0] EP_IN_dataAvailable;
     logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_IN_dataOut;
+    `UNMUTE_LINT(UNUSED) //TODO remove
 
+    `MUTE_LINT(UNDRIVEN) //TODO remove
     logic [ENDPOINTS-2:0] EP_OUT_dataValid;
     logic [ENDPOINTS-2:0] EP_OUT_fillTransDone;
     logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess;
+    `UNMUTE_LINT(UNDRIVEN) //TODO remove
+    `MUTE_LINT(UNUSED) //TODO remove
     logic [ENDPOINTS-2:0] EP_OUT_full;
+    `UNMUTE_LINT(UNUSED) //TODO remove
+    `MUTE_LINT(UNDRIVEN) //TODO remove
     logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_OUT_dataIn;
+    `UNMUTE_LINT(UNDRIVEN) //TODO remove
 
     usb_pe #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF),

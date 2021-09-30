@@ -20,6 +20,7 @@ module ep0_rom #(
     // Initialize the ROM
 
     `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                      \
+        `MUTE_LINT(WIDTH)                                                           \
         for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin    \
             initial begin                                                           \
                 rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                    \
@@ -27,9 +28,11 @@ module ep0_rom #(
                 $display("INIT: rom[%d] = 0x%h", romIdx, rom[romIdx]);              \
 `endif                                                                              \
             end                                                                     \
-        end
+        end                                                                         \
+        `UNMUTE_LINT(WIDTH)
 
     `define INIT_ROM_STR(OFFSET, UPPER_BOUND, SRC, SRC_OFFSET)                                          \
+        `MUTE_LINT(WIDTH)                                                                               \
         for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin                        \
             initial begin                                                                               \
                 rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) - 1 - (romIdx - (OFFSET))) * 8 +: 8];   \
@@ -37,7 +40,8 @@ module ep0_rom #(
                 $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                \
 `endif                                                                                                  \
             end                                                                                         \
-        end
+        end                                                                                             \
+        `UNMUTE_LINT(WIDTH)
 
     `define INIT_ROM_IDX_LUT(OFFSET, IDX, LUT_NAME)                                                                             \
         /*initial begin*/                                                                                                       \
@@ -165,13 +169,13 @@ module ep0_rom #(
 
             localparam FIXED_ROM_STR_OFFSET = ROM_STR_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES + usb_desc_pkg::StringDescriptorZeroBodyBytes;
 
-            `INIT_ROM_IDX_LUT(FIXED_ROM_STR_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + 1, descStartIdx_o)
+            `INIT_ROM_IDX_LUT(FIXED_ROM_STR_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1, descStartIdx_o)
 
             // Now traverse all given string descriptors
             for (strDescIdx = 0; strDescIdx < USB_DEV_EP_CONF.stringDescCount; strDescIdx++) begin
                 localparam ROM_STR_DESC_OFFSET = FIXED_ROM_STR_OFFSET + calcRelativeStrDescOffset(USB_DEV_EP_CONF, strDescIdx);
 
-                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + 1 + strDescIdx, descStartIdx_o)
+                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1 + strDescIdx, descStartIdx_o)
 
                 `INIT_ROM(ROM_STR_DESC_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx])
                 `INIT_ROM_STR(ROM_STR_DESC_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx].bLength - usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx], usb_desc_pkg::DESCRIPTOR_HEADER_BYTES)

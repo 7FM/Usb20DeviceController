@@ -2,6 +2,7 @@
 `define USB_EP_PKG_SV
 
 `include "usb_desc_pkg.sv"
+`include "util_macros.sv"
 
 package usb_ep_pkg;
 
@@ -49,7 +50,6 @@ package usb_ep_pkg;
     } ConfigurationDescCollection;
 
     typedef struct packed {
-        ControlEndpointConfig ep0Conf;
         int unsigned endpointCount; // Exclusive EP0
         EndpointConfig [14:0] epConfs; // There can be at most 16 endpoints and one is already reserved for control!
         //TODO
@@ -119,14 +119,14 @@ package usb_ep_pkg;
 
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointINDescriptor = '{
         bEndpointAddress: {1'b0, 3'b0 , 4'd1}, // Address Zero is reserved
-        bmAttributes: {10'b0, 2'b0, 2'b0, BULK[1:0]},
+        bmAttributes: {2'b0, 2'b0, 2'b0, BULK[1:0]},
         wMaxPacketSize: {3'b0, 2'b0, 11'd512}, // At max 512 bytes per transaction
         bInterval: 1
     };
 
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointOUTDescriptor = '{
         bEndpointAddress: {1'b1, 3'b0 , 4'd1}, // Address Zero is reserved
-        bmAttributes: {10'b0, 2'b0, 2'b0, BULK[1:0]},
+        bmAttributes: {2'b0, 2'b0, 2'b0, BULK[1:0]},
         wMaxPacketSize: {3'b0, 2'b0, 11'd512}, // At max 512 bytes per transaction
         bInterval: 1
     };
@@ -182,7 +182,6 @@ package usb_ep_pkg;
     };
 
     localparam UsbDeviceEpConfig DefaultUsbDeviceEpConfig = '{
-        ep0Conf: DefaultControlEpConfig,
         endpointCount: 1,
         epConfs: {
             DefaultEpConfig, // EP 15
@@ -220,7 +219,9 @@ package usb_ep_pkg;
         `UNMUTE_LINT(WIDTH)
     };
 
+    `MUTE_LINT(UNUSED)
     function automatic int requiredROMSize(UsbDeviceEpConfig usbDevConfig);
+    `UNMUTE_LINT(UNUSED)
         automatic int byteCount;
         byteCount = 0;
 

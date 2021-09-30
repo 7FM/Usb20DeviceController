@@ -1,13 +1,22 @@
 `include "usb_ep_pkg.sv"
 
+//TODO remove
+`include "util_macros.sv"
+
 module usb_endpoint#(
-    parameter usb_ep_pkg::EndpointConfig EP_CONF
+`MUTE_LINT(UNUSED) //TODO remove
+    parameter usb_ep_pkg::EndpointConfig EP_CONF,
+`UNMUTE_LINT(UNUSED) //TODO remove
     //TODO more setting possibilities!
+    localparam USB_DEV_CONF_WID = 8
 )(
     input logic clk48_i,
 
+`MUTE_LINT(UNUSED) //TODO remove
     input logic gotTransStartPacket_i, //TODO
     input logic [1:0] transStartTokenID_i, //TODO
+    input logic [USB_DEV_CONF_WID-1:0] deviceConf_i, //TODO ?
+`UNMUTE_LINT(UNUSED) //TODO remove
 
     // Device IN interface
     input logic EP_IN_fillTransDone_i,
@@ -33,12 +42,16 @@ module usb_endpoint#(
     input logic EP_OUT_popTransSuccess_i,
     input logic EP_OUT_popData_i,
     output logic EP_OUT_dataAvailable_o,
+    `MUTE_LINT(UNDRIVEN) //TODO remove
     output logic EP_OUT_isLastPacketByte_o, //TODO
+    `UNMUTE_LINT(UNDRIVEN) //TODO remove
     output logic [7:0] EP_OUT_data_o,
 
+    `MUTE_LINT(UNDRIVEN) //TODO remove
     output logic respValid_o, //TODO
     output logic respHandshakePID_o, //TODO
     output logic [1:0] respPacketID_o //TODO
+    `UNMUTE_LINT(UNDRIVEN) //TODO remove
 );
 
     localparam EP_ADDR_WID = 9;
