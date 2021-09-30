@@ -334,7 +334,7 @@ static bool statusStage(UsbTopSim &sim, OutTransaction& outTrans) {
     return sendOutputStage(sim, outTrans);
 }
 
-static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, uint16_t (*descSizeExtractor)(const std::vector<uint8_t> &) = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR, bool recurse = true) {
+static bool readDescriptor(std::vector<uint8_t> &result, UsbTopSim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, std::function<uint16_t (const std::vector<uint8_t> &)> descSizeExtractor = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR, bool recurse = true) {
     SetupPacket packet;
     OutTransaction setupTrans = initDescReadTrans(packet, descType, descIdx, addr, initialReadSize, request);
 
@@ -414,7 +414,9 @@ int main(int argc, char **argv) {
     uint8_t addr = 0;
 
     // Read the device descriptor
-    failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 18);
+    // First, only read 8 bytes to determine the ep0MaxPacketSize
+    // Afterwards read it all!
+    failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
 
     if (result.size() != 18) {
         std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
