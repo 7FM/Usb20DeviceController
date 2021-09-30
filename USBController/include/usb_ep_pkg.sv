@@ -90,9 +90,9 @@ package usb_ep_pkg;
         idVendor: 0, //TODO
         idProduct: 0, //TODO
         bcdDevice: 16'h0010, //TODO
-        iManufact: 0, //TODO
-        iProduct: 0, //TODO
-        iSerialNumber: 0, //TODO
+        iManufact: 1, // string descriptor idx 1
+        iProduct: 2, //string descriptor idx 2
+        iSerialNumber: 3, //string descriptor idx 3
         bNumConfigurations: 1
     };
 
@@ -100,11 +100,22 @@ package usb_ep_pkg;
         // Default: only English (GB)
         wLANGID: {16'h0809}
     };
-    localparam usb_desc_pkg::StringDescriptor DefaultStringDescriptor = '{
-        bLength: 2 + 5,// String length + 2
+    localparam usb_desc_pkg::StringDescriptor DefaultManufacturerStringDescriptor = '{
+        bLength: 2 + 3,// String length + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
-        bString: "DUMMY"
+        bString: "7FM"
     };
+    localparam usb_desc_pkg::StringDescriptor DefaultProductStringDescriptor = '{
+        bLength: 2 + 16,// String length + 2
+        bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        bString: "dummy USB device"
+    };
+    localparam usb_desc_pkg::StringDescriptor DefaultSerialNumberStringDescriptor = '{
+        bLength: 2 + 16,// String length + 2
+        bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        bString: "DEADBEEFF457F00D"
+    };
+
 
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointINDescriptor = '{
         bEndpointAddress: {1'b0, 3'b0 , 4'd1}, // Address Zero is reserved
@@ -127,7 +138,14 @@ package usb_ep_pkg;
         bInterfaceClass: 0, //TODO
         bInterfaceSubClass: 0, //TODO
         bInterfaceProtocol: 0, //TODO
-        iInterface: 0 // No string descriptor
+        // iInterface: 0 // No string descriptor
+        iInterface: 5 // string descriptor idx 5
+    };
+
+    localparam usb_desc_pkg::StringDescriptor DefaultInterfaceStringDescriptor = '{
+        bLength: 2 + 15,// String length + 2
+        bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        bString: "dummy interface"
     };
 
     localparam InterfaceDescCollection DefaultInterfaceDescCollection = '{
@@ -142,10 +160,17 @@ package usb_ep_pkg;
         wTotalLength: {8'b0, usb_desc_pkg::ConfigurationDescriptorHeader.bLength} + {8'b0, usb_desc_pkg::InterfaceDescriptorHeader.bLength} + 2 * {8'b0, usb_desc_pkg::EndpointDescriptorHeader.bLength},
         bNumInterfaces: 1, // Lets keep it simple and use a single interface!
         bConfigurationValue: 1, // This is the only configuration
-        iConfiguration: 0, // No string descriptor
+        // iConfiguration: 0, // No string descriptor
+        iConfiguration: 4, // string descriptor idx 4
         bmAttributes: 0, //TODO
         // 500mA
         bMaxPower: 250
+    };
+
+    localparam usb_desc_pkg::StringDescriptor DefaultConfigurationStringDescriptor = '{
+        bLength: 2 + 19,// String length + 2
+        bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        bString: "dummy configuration"
     };
 
     localparam ConfigurationDescCollection DefaultConfigurationDescCollection = '{
@@ -182,10 +207,16 @@ package usb_ep_pkg;
         `UNMUTE_LINT(WIDTH)
 
         // Optional String descriptors -> omit
-        stringDescCount: 0,
+        stringDescCount: 5,
         supportedLanguages: DefaultStringDescriptorZero,
         `MUTE_LINT(WIDTH)
-        stringDescs: {DefaultStringDescriptor}
+        stringDescs: {
+            DefaultInterfaceStringDescriptor, // Idx 5
+            DefaultConfigurationStringDescriptor, // Idx 4
+            DefaultSerialNumberStringDescriptor, // Idx 3
+            DefaultProductStringDescriptor, // Idx 2
+            DefaultManufacturerStringDescriptor // Idx 1
+        }
         `UNMUTE_LINT(WIDTH)
     };
 
