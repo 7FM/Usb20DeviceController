@@ -456,9 +456,19 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
+    addr = 42;
+
     // set configuration value to 1
-    std::cout << std::endl << "Selecting device configuration 1!" << std::endl;
-    failed |= sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, 0, 0);
+    std::cout << std::endl << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
+    // This is expected to fail!
+    failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr + 1, 0);
+
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
+    std::cout << std::endl << "Selecting device configuration 1 (correct addr)!" << std::endl;
+    failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
 
 exitAndCleanup:
 
