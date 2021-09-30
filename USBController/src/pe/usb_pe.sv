@@ -266,8 +266,8 @@ module usb_pe #(
     logic [TRANS_START_BUF_MAX_BIT_IDX:0] transStartPacketBuf;
     logic transStartPacketBufFull;
 
-    logic transBufRst, forceTransBufRst;
-    assign transBufRst = transactionDone || forceTransBufRst;
+    logic transBufRst;
+    assign transBufRst = receiveDone;
     vector_buf #(
         .DATA_WID(8),
         .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_BYTE_COUNT),
@@ -489,7 +489,6 @@ Device Transaction State Machine Hierarchy Overview:
         popTransSuccess = 1'b0;
 
         forceInternalBuf = 1'b0;
-        forceTransBufRst = 1'b0;
 
         unique case (transState)
             PE_RST_RX_CLK: begin
@@ -593,14 +592,10 @@ Device Transaction State Machine Hierarchy Overview:
                     // We are done here
                     nextTransState = BCINTI_AWAIT_RESPONSE;
                     nextIsSendingPhase = 1'b0;
-
-                    // We need to reset the trans buffer to be able to receive a response!
-                    forceTransBufRst = 1'b1;
                 end
             end
             BCINTI_AWAIT_RESPONSE: begin
                 // We expect to receive the response in our internal transaction buffer and not to pass it to the EPs!
-                // DO NOT forget to issue forceTransBufRst for 1 cycle!
                 forceInternalBuf = 1'b1;
                 // Success only when we received an ACK!
                 popTransSuccess = receiveSuccess && packetHeader.pid == usb_packet_pkg::PID_HANDSHAKE_ACK;
