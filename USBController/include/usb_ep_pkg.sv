@@ -64,7 +64,10 @@ package usb_ep_pkg;
     } UsbDeviceEpConfig;
 
     localparam ControlEndpointConfig DefaultControlEpConfig = '{
-        maxPacketSize: usb_desc_pkg::EP0_MAX_8_BYTES
+        //maxPacketSize: usb_desc_pkg::EP0_MAX_8_BYTES
+        // maxPacketSize: usb_desc_pkg::EP0_MAX_16_BYTES
+        // maxPacketSize: usb_desc_pkg::EP0_MAX_32_BYTES
+        maxPacketSize: usb_desc_pkg::EP0_MAX_64_BYTES
     };
 
     localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
@@ -83,7 +86,7 @@ package usb_ep_pkg;
         bDeviceClass: 42, //TODO
         bDeviceSubClass: 42, //TODO
         bDeviceProtocol: 42, //TODO
-        bMaxPacketSize0: usb_desc_pkg::EP0_MAX_8_BYTES,
+        bMaxPacketSize0: DefaultControlEpConfig.maxPacketSize,
         idVendor: 0, //TODO
         idProduct: 0, //TODO
         bcdDevice: 16'h0010, //TODO
