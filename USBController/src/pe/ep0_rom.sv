@@ -19,14 +19,24 @@ module ep0_rom #(
     //===============================================================================================================
     // Initialize the ROM
 
-    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                                  \
-        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin                \
-            initial begin                                                                       \
-                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                                \
-`ifdef RUN_SIM                                                                                  \
-                $display("INIT: rom[%d] = 0x%h", romIdx, SRC[(romIdx - (OFFSET)) * 8 +: 8]);    \
-`endif                                                                                          \
-            end                                                                                 \
+    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                      \
+        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin    \
+            initial begin                                                           \
+                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                    \
+`ifdef RUN_SIM                                                                      \
+                $display("INIT: rom[%d] = 0x%h", romIdx, rom[romIdx]);              \
+`endif                                                                              \
+            end                                                                     \
+        end
+
+    `define INIT_ROM_STR(OFFSET, UPPER_BOUND, SRC, SRC_OFFSET)                                          \
+        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin                        \
+            initial begin                                                                               \
+                rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) - 1 - (romIdx - (OFFSET))) * 8 +: 8];   \
+`ifdef RUN_SIM                                                                                          \
+                $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                \
+`endif                                                                                                  \
+            end                                                                                         \
         end
 
     `define INIT_ROM_IDX_LUT(OFFSET, IDX, LUT_NAME)                                                                             \
@@ -163,7 +173,8 @@ module ep0_rom #(
 
                 `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations + 1 + strDescIdx, descStartIdx_o)
 
-                `INIT_ROM(ROM_STR_DESC_OFFSET, USB_DEV_EP_CONF.stringDescs[strDescIdx].bLength, USB_DEV_EP_CONF.stringDescs[strDescIdx])
+                `INIT_ROM(ROM_STR_DESC_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx])
+                `INIT_ROM_STR(ROM_STR_DESC_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx].bLength - usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx], usb_desc_pkg::DESCRIPTOR_HEADER_BYTES)
             end
         end
     endgenerate
