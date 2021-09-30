@@ -229,8 +229,11 @@ static void prettyPrintEndpointDescriptor(const uint8_t *data) {
     std::cout << "    Attributes: 0x" << std::hex << static_cast<int>(epDesc.bmAttributes) << std::endl;
 }
 
-static void prettyPrintStringDescriptor(uint8_t descLength, const uint8_t *data) {
+static void prettyPrintStringDescriptor(const uint8_t *data) {
+    uint8_t descLength = *data;
+
     descLength -= 2;
+    data += 2;
 
     std::cout << "    Content: ";
     for (int i = 0; i < descLength; ++i) {
@@ -257,7 +260,7 @@ void prettyPrintDescriptors(const std::vector<uint8_t> &data) {
                     prettyPrintConfigurationDescriptor(descData);
                     break;
                 case DESC_STRING:
-                    prettyPrintStringDescriptor(descLength, descData);
+                    prettyPrintStringDescriptor(descData);
                     break;
                 case DESC_INTERFACE:
                     prettyPrintInterfaceDescriptor(descData);
