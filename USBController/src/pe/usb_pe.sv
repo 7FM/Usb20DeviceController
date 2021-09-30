@@ -298,7 +298,8 @@ module usb_pe #(
     assign wData = rxData_i;
 
     logic rxBufFull;
-    assign rxBufFull = useInternalBuf ? transStartPacketBufFull : writeFifoFull;
+    // Ignore that the buffer is full if we are not yet in an transaction -> fast ignore transactions for other USB devices on the same bus!
+    assign rxBufFull = useInternalBuf ? transStartPacketBufFull && transactionStarted : writeFifoFull;
     // If this is the last byte, always accept
     assign rxAcceptNewData_o = (!receiveDone && !rxBufFull) || rxIsLastByte_i;
 
