@@ -64,9 +64,17 @@ module sim_usb_rx_connection (
         .DPPLGotSignal_o(DPPLGotSignal)
     );
 
+    logic timeoutClk12;
+    clock_gen #(
+        .DIVIDE_LOG_2(2)
+    ) clk12Generator (
+        .clk_i(CLK),
+        .clk_o(timeoutClk12)
+    );
+
     usb_timeout usbRxTimeout(
         .clk48_i(CLK),
-        .clk12_i(rxClk12),
+        .clk12_i(timeoutClk12),
         .rst_i(resetTimeout),
         .rxGotSignal_i(DPPLGotSignal),
         .rxTimeout_o(gotTimeout)
