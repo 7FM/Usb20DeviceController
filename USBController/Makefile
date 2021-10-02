@@ -106,8 +106,8 @@ sanityChecks: $(LOG)
 # Place and Route
 $(pnr_target): $(syn_target) $(constraints)
 	@mkdir -p $(BUILDDIR)
-#	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) --freq $(TARGET_FREQ) >> $(LOG) 2>&1
-	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) >> $(LOG) 2>&1
+#	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) --freq $(TARGET_FREQ) >> $(LOG) 2>&1; true
+	$(PNR) --json $< $(CONSTRAINT_ARG) $(constraints) $(PNR_OUTPUT_ARG) $@ $(PNR_ARGS) >> $(LOG) 2>&1; true
 	@echo "============================================================================================"
 
 genBitstream: $(pnr_target)
