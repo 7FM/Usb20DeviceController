@@ -640,7 +640,8 @@ generate
             end
         end
 
-        assign isEpIsochronous = {(isDevIn ? isEpOutIsochronousLUT : isEpInIsochronousLUT), 1'b0}[epSelect];
+        // assign isEpIsochronous = {(isDevIn ? isEpOutIsochronousLUT : isEpInIsochronousLUT), 1'b0}[epSelect];
+        assign isEpIsochronous = (|epSelect) && (isDevIn ? isEpOutIsochronousLUT[epSelect-1] : isEpInIsochronousLUT[epSelect-1]);
     end else begin
         assign isEpIsochronous = 1'b0;
     end
