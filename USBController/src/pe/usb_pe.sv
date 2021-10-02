@@ -50,7 +50,7 @@ module usb_pe #(
 );
 
 //====================================================================================
-//==============================Endpoint logic========================================
+//===================================Endpoint logic===================================
 //====================================================================================
 
     localparam EP_SELECT_WID = $clog2(ENDPOINTS);
@@ -254,7 +254,7 @@ module usb_pe #(
     endgenerate
 
 //====================================================================================
-//===============================RX Interface=========================================
+//====================================RX Interface====================================
 //====================================================================================
 
     logic transactionStarted, transactionDone;
@@ -353,7 +353,7 @@ module usb_pe #(
     end
 
 //====================================================================================
-//===============================TX Interface=========================================
+//====================================TX Interface====================================
 //====================================================================================
 
     logic [10:0] maxPacketSize;
@@ -396,25 +396,8 @@ module usb_pe #(
 
     end
 
-genvar epIdx;
-generate
-    logic [11*ENDPOINTS - 1:0] maxPacketSizeOutLut;
-
-    assign maxPacketSizeOutLut[0 * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0};
-
-    for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
-        if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
-            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.epConfs[epIdx].conf.controlEpConf.maxPacketSize};
-        end else begin
-            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.maxPacketSize;
-        end
-    end
-
-    assign maxPacketSize = maxPacketSizeOutLut[epSelect * 11 +: 11];
-endgenerate
-
 //====================================================================================
-//===========================Transaction Handling=====================================
+//================================Transaction Handling================================
 //====================================================================================
 
 /*
@@ -621,6 +604,27 @@ Device Transaction State Machine Hierarchy Overview:
         isSendingPhase_o <= nextIsSendingPhase;
     end
 
+//====================================================================================
+//===================================LUT Generation===================================
+//====================================================================================
+
+genvar epIdx;
+generate
+    logic [11*ENDPOINTS - 1:0] maxPacketSizeOutLut;
+
+    assign maxPacketSizeOutLut[0 * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0};
+
+    for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
+        if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
+            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.epConfs[epIdx].conf.controlEpConf.maxPacketSize};
+        end else begin
+            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.maxPacketSize;
+        end
+    end
+
+    assign maxPacketSize = maxPacketSizeOutLut[epSelect * 11 +: 11];
+endgenerate
+
 generate
     if (USB_DEV_EP_CONF.endpointCount > 0) begin
         logic [USB_DEV_EP_CONF.endpointCount-1:0] isEpInIsochronousLUT;
@@ -642,6 +646,8 @@ generate
     end
 endgenerate
 
+//====================================================================================
+//===============================USB timeout submodules===============================
 //====================================================================================
 
     logic clk12;
