@@ -126,7 +126,7 @@ endif
 
 # Compile SV files to a single verilog file that yosys can handle, then rename it to an system verilog file
 $(sv2v_target): $(sv2v_target_imm)
-	mv $^ $@
+	cp $^ $@
 $(sv2v_target_imm): $(srcs)
 	@mkdir -p $(BUILDDIR)
 	$(SV2V) -I $(INCLUDE_DIR) --exclude=logic --exclude=always -w $@ $^
