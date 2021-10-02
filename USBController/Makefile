@@ -3,6 +3,7 @@ INCLUDE_DIR ?= include
 SIM_SRC ?= sim_src
 OUT ?= bin
 BUILDDIR ?= build
+PATCH_DIR ?= patches
 V_DIR ?= sim_build
 SIM_DEFS ?= -DRUN_SIM
 
@@ -72,6 +73,9 @@ deps := $(call rwildcard,$(V_DIR),*.d)
 
 sv2v_target_imm := $(BUILDDIR)/$(TOP_MODULE).v
 sv2v_target := $(BUILDDIR)/$(TOP_MODULE).sv
+sv2v_syn_patches := $(call rwildcard,$(PATCH_DIR),*.patch)
+sv2v_merged_patch := $(BUILDDIR)/$(TOP_MODULE).patch
+
 syn_target := $(BUILDDIR)/$(TOP_MODULE).json
 
 PWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
@@ -124,9 +128,14 @@ $(syn_target): $(srcs)
 endif
 	@echo "============================================================================================"
 
+# Merge all patches into a single file
+$(sv2v_merged_patch): $(sv2v_syn_patches)
+	cat $^ > $@
+
 # Compile SV files to a single verilog file that yosys can handle, then rename it to an system verilog file
-$(sv2v_target): $(sv2v_target_imm)
-	cp $^ $@
+$(sv2v_target): $(sv2v_target_imm) $(sv2v_merged_patch)
+	patch -p 1 -i $(sv2v_merged_patch) -o $@
+
 $(sv2v_target_imm): $(srcs)
 	@mkdir -p $(BUILDDIR)
 	$(SV2V) -I $(INCLUDE_DIR) --exclude=logic --exclude=always -w $@ $^

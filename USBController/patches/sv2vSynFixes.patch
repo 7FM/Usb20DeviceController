@@ -1,0 +1,36 @@
+diff --git a/build/top.v b/build/top.v
+index d1ffd46..b51fe8c 100644
+--- a/build/top.v
++++ b/build/top.v
+@@ -359,9 +359,9 @@ module usb_endpoint_0 (
+ 		input logic [3:0] inp;
+ 		sv2v_cast_4 = inp;
+ 	endfunction
+-	assign isSetupTransStart = transStartTokenID_i == sv2v_cast_4({2'b11, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
++	assign isSetupTransStart = transStartTokenID_i == 2'b11;
+ 	logic isInTransStart;
+-	assign isInTransStart = transStartTokenID_i == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
++	assign isInTransStart = transStartTokenID_i == 2'b10;
+ 	logic [1:0] ctrlTransState;
+ 	logic [1:0] nextCtrlTransState;
+ 	logic prevDataDir;
+@@ -1407,7 +1407,7 @@ module usb_pe (
+ 		isSendingPhase_o = 1'b0;
+ 	end
+ 	logic isDevIn;
+-	assign isDevIn = upperTransStartPID == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
++	assign isDevIn = upperTransStartPID == 2'b10;
+ 	logic isEpIsochronous;
+ 	logic packetWaitTimeout;
+ 	logic readTimerRst;
+@@ -2579,8 +2579,8 @@ module top (
+ 		input logic [7:0] inp;
+ 		sv2v_cast_8 = inp;
+ 	endfunction
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {24'b000000010000001000000000, sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b00000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {24'b000000010000001000000000, sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b10000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {24'b000000010000001000000000, sv2v_cast_8({6'b000000, 2'd2}), 8'b00000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {24'b000000010000001000000000, sv2v_cast_8({6'b000000, 2'd2}), 8'b10000001};
+ 	localparam logic [55:0] usb_ep_pkg_DefaultInterfaceDescriptor = 56'h05000000020000;
+ 	function automatic logic [599:0] sv2v_cast_600;
+ 		input logic [599:0] inp;
