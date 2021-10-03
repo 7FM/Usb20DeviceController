@@ -69,7 +69,7 @@ module usb_endpoint_0 #(
 
     //logic suspended; // Currently not supported / considered
     typedef enum logic[1:0] {
-        DEVICE_NOT_RESET = 0, // Ignore all transactions except reset signal
+        DEVICE_NOT_RESET = 0, // Ignore all transactions except reset signal //TODO?
         DEVICE_RESET, // Responds to device and configuration descriptor requests & return information, uses default address
         DEVICE_ADDR_ASSIGNED, // responds to requests to default control pipe with default address as long as no address was assigned
         DEVICE_CONFIGURED // processed a SetConfiguration() request with non zero configuration value & endpoints data toggles are set to DATA0. Now the device functions may be used
@@ -233,7 +233,7 @@ module usb_endpoint_0 #(
     assign dataDirChanged = prevDataDir ^ isInTransStart;
 
     always_ff @(posedge clk48_i) begin
-        prevDataDir <= patchPrevDataDir ? setupDataPacket.bmRequestType.dataTransDevToHost: (gotTransStartPacket_i ? isInTransStart : prevDataDir);
+        prevDataDir <= patchPrevDataDir ? setupDataPacket.bmRequestType.dataTransDevToHost : (gotTransStartPacket_i ? isInTransStart : prevDataDir);
     end
 
     logic hasNoDataStage;
@@ -288,6 +288,7 @@ generate
                 //TODO how to handle failed transactions: for now lets stay in the state!
                 if (EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) begin
                     nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : DATA_STAGE;
+                    // on the state transition from SETUP_STAGE to DATA_STAGE we need to patch prevDataDir such that the DATA_STAGE wont be skipped immediately!
                     patchPrevDataDir = 1'b1;
 
                     // The transaction was successful, lets toggle our expected data pid bit!
@@ -319,7 +320,7 @@ generate
 
                             if (`GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState)) begin
 
-                                case (setupDataPacket.wValue[15:8])
+                                unique case (setupDataPacket.wValue[15:8])
                                     usb_desc_pkg::DESC_DEVICE: begin
                                         // We only have a single device descriptor!
                                         nextRomReadIdx = {ROM_IDX_WID{1'b0}};
@@ -461,7 +462,6 @@ generate
                 end
             end
             DATA_STAGE: begin
-                //TODO on the state transition from SETUP_STAGE to DATA_STAGE we need to patch prevDataDir such that the DATA_STAGE wont be skipped immediately!
                 if (gotTransStartPacket_i && dataDirChanged) begin
                     nextCtrlTransState = STATUS_STAGE;
                 end
