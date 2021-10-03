@@ -171,13 +171,6 @@ module usb_endpoint_0 #(
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
 
-    //TODO rework / remove & read from ROM instead!
-    localparam DESC_START_LUT_WID = usb_ep_pkg::requiredLUTROMSize(USB_DEV_EP_CONF) * 8;
-    localparam DESC_LUT_IDX_WID = $clog2(DESC_START_LUT_WID);
-    localparam DESC_LUT_IDX_ZERO_EXTEND = DESC_LUT_IDX_WID > 8 ? DESC_LUT_IDX_WID - 8 : 0;
-    localparam DESC_LUT_IDX_8_BIT_SEL = DESC_LUT_IDX_WID > 8 ? 8 - 1 : DESC_LUT_IDX_WID - 1;
-
-    logic [DESC_START_LUT_WID - 1:0] descStartIdx;
     logic [7:0] romData;
     logic [ROM_IDX_WID-1:0] romTransReadIdx;
 
@@ -221,9 +214,10 @@ module usb_endpoint_0 #(
     logic isInTransStart;
     assign isInTransStart = transStartTokenID_i == usb_packet_pkg::PID_IN_TOKEN[3:2];
 
-    typedef enum logic[1:0] {
+    typedef enum logic[2:0] {
         IDLE,
         SETUP_STAGE,
+        SETUP_STAGE_RESOLVE_ROM_ADDR,
         DATA_STAGE,
         STATUS_STAGE
     } ControlTransferState;
@@ -288,7 +282,7 @@ generate
             SETUP_STAGE: begin
                 //TODO how to handle failed transactions: for now lets stay in the state!
                 if (EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) begin
-                    nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : DATA_STAGE;
+                    nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : SETUP_STAGE_RESOLVE_ROM_ADDR;
                     // on the state transition from SETUP_STAGE to DATA_STAGE we need to patch prevDataDir such that the DATA_STAGE wont be skipped immediately!
                     patchPrevDataDir = 1'b1;
 
@@ -296,6 +290,7 @@ generate
                     //nextPidData1Expected = !pidData1Expected;
 
                     nextRequestedBytesLeft = setupDataPacket.wLength;
+                    nextIsRomDataOutSrc = 1'b0;
 
                     // Only handle successful transfers
                     unique case (setupDataPacket.bRequest)
@@ -317,6 +312,7 @@ generate
                             end
                         end
                         usb_dev_req_pkg::GET_DESCRIPTOR: begin
+                            // Our descriptors are read from the ROM
                             nextIsRomDataOutSrc = 1'b1;
 
                             if (`GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState)) begin
@@ -324,13 +320,15 @@ generate
                                 unique case (setupDataPacket.wValue[15:8])
                                     usb_desc_pkg::DESC_DEVICE: begin
                                         // We only have a single device descriptor!
+                                        // Even though we know that the start address is at LUT_ROM_SIZE
+                                        // we have an additional LUT entry for a more homogenous execution flow
                                         nextRomReadIdx = {ROM_IDX_WID{1'b0}};
                                     end
                                     usb_desc_pkg::DESC_CONFIGURATION: begin
                                         // Depends on the descriptor index!
                                         if (setupDataPacket.wValue[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
                                             // Index is valid
-                                            nextRomReadIdx = descStartIdx[{{DESC_LUT_IDX_ZERO_EXTEND{1'b0}}, setupDataPacket.wValue[DESC_LUT_IDX_8_BIT_SEL:0]} * ROM_IDX_WID[DESC_LUT_IDX_WID-1:0] +: ROM_IDX_WID[DESC_LUT_IDX_WID-1:0]];
+                                            nextRomReadIdx = setupDataPacket.wValue[7:0] + 8'b1;
                                         end else begin
                                             // Index is out of bounds!
                                             nextRequestError = 1'b1;
@@ -341,7 +339,8 @@ generate
                                         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
                                             if (setupDataPacket.wValue[7:0] <= USB_DEV_EP_CONF.stringDescCount[7:0]) begin
                                                 // Index is valid
-                                                nextRomReadIdx = descStartIdx[{{DESC_LUT_IDX_ZERO_EXTEND{1'b0}}, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations[DESC_LUT_IDX_8_BIT_SEL:0] + setupDataPacket.wValue[DESC_LUT_IDX_8_BIT_SEL:0]} * ROM_IDX_WID[DESC_LUT_IDX_WID-1:0] +: ROM_IDX_WID[DESC_LUT_IDX_WID-1:0]];
+                                                localparam logic[7:0] stringDescReadOffset = USB_DEV_EP_CONF.deviceDesc.bNumConfigurations[7:0] + 8'd1;
+                                                nextRomReadIdx = stringDescReadOffset + setupDataPacket.wValue[7:0];
                                             end else begin
                                                 // Index is out of bounds!
                                                 nextRequestError = 1'b1;
@@ -362,7 +361,7 @@ generate
                         end
                         usb_dev_req_pkg::GET_CONFIGURATION: begin
                             if (`GET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                nextIsRomDataOutSrc = 1'b0;
+                                // Nothing to do here
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -387,7 +386,7 @@ generate
                             if (`GET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 //TODO This request returns the selected alternate setting for the specified interface
                                 //TODO as we currently do not allow setting an alternate interface we can simply return 1 byte set to 0 which is the default interface!
-                                nextIsRomDataOutSrc = 1'b0;
+                                // Nothing to do here
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -396,7 +395,7 @@ generate
                             if (`GET_STATUS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 //TODO This requests returns the status for the specified recipient
                                 //TODO as we currently do not support features as remote wakeup or endpoint halting, we can always return 2 bytes set to 0
-                                nextIsRomDataOutSrc = 1'b0;
+                                // Nothing to do here
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -406,9 +405,7 @@ generate
                                 // Is only used for isochronous data transfers using implicit pattern synchronization.
                                 //TODO apply
                                 //TODO this is required for isochronous endpoints
-
-                                //TODO this is data in isn't it? -> remove the following line
-                                nextIsRomDataOutSrc = 1'b0;
+                                // Nothing to do here
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -461,6 +458,15 @@ generate
                     // reset transaction counter
                     nextRomTransReadIdx = nextRomReadIdx;
                 end
+            end
+            SETUP_STAGE_RESOLVE_ROM_ADDR: begin
+                //TODO
+                nextCtrlTransState = DATA_STAGE;
+
+                //TODO this does currently only support a single address byte!
+                nextRomReadIdx = romData;
+                // reset transaction counter
+                nextRomTransReadIdx = nextRomReadIdx;
             end
             DATA_STAGE: begin
                 if (gotTransStartPacket_i && dataDirChanged) begin

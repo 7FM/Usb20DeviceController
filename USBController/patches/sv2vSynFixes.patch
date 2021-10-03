@@ -11,8 +11,8 @@ index d1ffd46..b51fe8c 100644
  	logic isInTransStart;
 -	assign isInTransStart = transStartTokenID_i == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
 +	assign isInTransStart = transStartTokenID_i == 2'b10;
- 	logic [1:0] ctrlTransState;
- 	logic [1:0] nextCtrlTransState;
+ 	logic [2:0] ctrlTransState;
+ 	logic [2:0] nextCtrlTransState;
  	logic prevDataDir;
 @@ -1407,7 +1407,7 @@ module usb_pe (
  		isSendingPhase_o = 1'b0;
