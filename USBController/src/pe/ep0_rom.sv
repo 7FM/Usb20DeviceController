@@ -169,8 +169,6 @@ module ep0_rom #(
 
             localparam FIXED_ROM_STR_OFFSET = ROM_STR_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES + usb_desc_pkg::StringDescriptorZeroBodyBytes;
 
-            `INIT_ROM_IDX_LUT(FIXED_ROM_STR_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1, descStartIdx_o)
-
             // Now traverse all given string descriptors
             for (strDescIdx = 0; strDescIdx < USB_DEV_EP_CONF.stringDescCount; strDescIdx++) begin
                 localparam ROM_STR_DESC_OFFSET = FIXED_ROM_STR_OFFSET + calcRelativeStrDescOffset(USB_DEV_EP_CONF, strDescIdx);
