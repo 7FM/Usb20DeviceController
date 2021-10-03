@@ -295,25 +295,24 @@ generate
                     // Only handle successful transfers
                     unique case (setupDataPacket.bRequest)
                         usb_dev_req_pkg::SET_ADDRESS: begin
-                            if (`SET_ADDRESS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                /*
-                                The spec says:
-                                "
-                                    Stages after the initial Setup packet assume the same device address as the Setup packet.
-                                    The USB device does not change its device address until after the Status stage of this request is completed successfully.
-                                    Note that this is a difference between this request and all other requests.
-                                    For all other requests, the operation indicated must be completed before the Status stage.
-                                "
-                                The status stage is a different transaction -> we need to delay the address change!
-                                */
-                                //gotAddrAssigned = 1'b1;
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            /*
+                            The spec says:
+                            "
+                                Stages after the initial Setup packet assume the same device address as the Setup packet.
+                                The USB device does not change its device address until after the Status stage of this request is completed successfully.
+                                Note that this is a difference between this request and all other requests.
+                                For all other requests, the operation indicated must be completed before the Status stage.
+                            "
+                            The status stage is a different transaction -> we need to delay the address change!
+                            */
+                            nextRequestError = !`SET_ADDRESS_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         usb_dev_req_pkg::GET_DESCRIPTOR: begin
                             // Our descriptors are read from the ROM
                             nextIsRomDataOutSrc = 1'b1;
+
+                            // By default: error out!
+                            nextRequestError = 1'b1;
 
                             if (`GET_DESCRIPTOR_SANITY_CHECKS(setupDataPacket, deviceState)) begin
 
@@ -323,15 +322,14 @@ generate
                                         // Even though we know that the start address is at LUT_ROM_SIZE
                                         // we have an additional LUT entry for a more homogenous execution flow
                                         nextRomReadIdx = {ROM_IDX_WID{1'b0}};
+                                        nextRequestError = 1'b0;
                                     end
                                     usb_desc_pkg::DESC_CONFIGURATION: begin
                                         // Depends on the descriptor index!
                                         if (setupDataPacket.wValue[7:0] < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations) begin
                                             // Index is valid
+                                            nextRequestError = 1'b0;
                                             nextRomReadIdx = setupDataPacket.wValue[7:0] + 8'b1;
-                                        end else begin
-                                            // Index is out of bounds!
-                                            nextRequestError = 1'b1;
                                         end
                                     end
                                     usb_desc_pkg::DESC_STRING: begin
@@ -340,35 +338,26 @@ generate
                                             if (setupDataPacket.wValue[7:0] <= USB_DEV_EP_CONF.stringDescCount[7:0]) begin
                                                 // Index is valid
                                                 localparam logic[7:0] stringDescReadOffset = USB_DEV_EP_CONF.deviceDesc.bNumConfigurations[7:0] + 8'd1;
+                                                nextRequestError = 1'b0;
                                                 nextRomReadIdx = stringDescReadOffset + setupDataPacket.wValue[7:0];
-                                            end else begin
-                                                // Index is out of bounds!
-                                                nextRequestError = 1'b1;
                                             end
-                                        end else begin
-                                            // Index is out of bounds!
-                                            nextRequestError = 1'b1;
                                         end
                                     end
                                     default: begin
-                                        nextRequestError = 1'b1;
+                                        // By default errors out
                                     end
                                 endcase
 
-                            end else begin
-                                nextRequestError = 1'b1;
                             end
                         end
                         usb_dev_req_pkg::GET_CONFIGURATION: begin
-                            if (`GET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                // Nothing to do here
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            // Nothing to do here
+                            nextRequestError = !`GET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         usb_dev_req_pkg::SET_CONFIGURATION: begin
                             if (`SET_CONFIGURATION_SANITY_CHECKS(setupDataPacket, deviceState)) begin
                                 gotDevConfig = 1'b1;
+                                nextRequestError = 1'b0;
                             end else begin
                                 nextRequestError = 1'b1;
                             end
@@ -383,41 +372,31 @@ generate
                         //     GET_STATUS: device, interface or endpoint
 
                         usb_dev_req_pkg::GET_INTERFACE: begin
-                            if (`GET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO This request returns the selected alternate setting for the specified interface
-                                //TODO as we currently do not allow setting an alternate interface we can simply return 1 byte set to 0 which is the default interface!
-                                // Nothing to do here
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            //TODO This request returns the selected alternate setting for the specified interface
+                            //TODO as we currently do not allow setting an alternate interface we can simply return 1 byte set to 0 which is the default interface!
+
+                            // Nothing to do here
+                            nextRequestError = !`GET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         usb_dev_req_pkg::GET_STATUS: begin
-                            if (`GET_STATUS_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO This requests returns the status for the specified recipient
-                                //TODO as we currently do not support features as remote wakeup or endpoint halting, we can always return 2 bytes set to 0
-                                // Nothing to do here
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            //TODO This requests returns the status for the specified recipient
+                            //TODO as we currently do not support features as remote wakeup or endpoint halting, we can always return 2 bytes set to 0
+
+                            // Nothing to do here
+                            nextRequestError = !`GET_STATUS_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         usb_dev_req_pkg::SYNCH_FRAME: begin
-                            if (`SYNCH_FRAME_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                // Is only used for isochronous data transfers using implicit pattern synchronization.
-                                //TODO apply
-                                //TODO this is required for isochronous endpoints
-                                // Nothing to do here
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            // Is only used for isochronous data transfers using implicit pattern synchronization.
+                            //TODO apply
+                            //TODO this is required for isochronous endpoints
+                            // Nothing to do here
+                            nextRequestError = !`SYNCH_FRAME_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         /*
                         usb_dev_req_pkg::SET_INTERFACE: begin
-                            if (`SET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO select an alternate setting for the specified interface
-                                //TODO do we want to support alternate interfaces???
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            //TODO select an alternate setting for the specified interface
+                            //TODO do we want to support alternate interfaces???
+                            nextRequestError = !`SET_INTERFACE_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         */
                         /*
@@ -428,18 +407,12 @@ generate
                         */
                         /*
                         usb_dev_req_pkg::CLEAR_FEATURE: begin
-                            if (`CLEAR_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO do we want to support this?
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            //TODO do we want to support this?
+                            nextRequestError = !`CLEAR_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         usb_dev_req_pkg::SET_FEATURE: begin
-                            if (`SET_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState)) begin
-                                //TODO do we want to support this?
-                            end else begin
-                                nextRequestError = 1'b1;
-                            end
+                            //TODO do we want to support this?
+                            nextRequestError = !`SET_FEATURE_SANITY_CHECKS(setupDataPacket, deviceState);
                         end
                         */
                         /*
