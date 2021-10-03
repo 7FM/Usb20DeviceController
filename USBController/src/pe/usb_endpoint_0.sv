@@ -170,7 +170,9 @@ module usb_endpoint_0 #(
 
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
-    localparam DESC_START_LUT_WID = usb_ep_pkg::requiredDescStartLUTSize(USB_DEV_EP_CONF);
+
+    //TODO rework / remove & read from ROM instead!
+    localparam DESC_START_LUT_WID = usb_ep_pkg::requiredLUTROMSize(USB_DEV_EP_CONF) * 8;
     localparam DESC_LUT_IDX_WID = $clog2(DESC_START_LUT_WID);
     localparam DESC_LUT_IDX_ZERO_EXTEND = DESC_LUT_IDX_WID > 8 ? DESC_LUT_IDX_WID - 8 : 0;
     localparam DESC_LUT_IDX_8_BIT_SEL = DESC_LUT_IDX_WID > 8 ? 8 - 1 : DESC_LUT_IDX_WID - 1;
@@ -183,8 +185,7 @@ module usb_endpoint_0 #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) ep0rom (
         .readAddr_i(romTransReadIdx),
-        .romData_o(romData),
-        .descStartIdx_o(descStartIdx)
+        .romData_o(romData)
     );
 
     logic packetBufRst;

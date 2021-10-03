@@ -220,7 +220,7 @@ package usb_ep_pkg;
     };
 
     `MUTE_LINT(UNUSED)
-    function automatic int requiredROMSize(UsbDeviceEpConfig usbDevConfig);
+    function automatic int requiredDescROMSize(UsbDeviceEpConfig usbDevConfig);
     `UNMUTE_LINT(UNUSED)
         automatic int byteCount;
         byteCount = 0;
@@ -246,15 +246,56 @@ package usb_ep_pkg;
         return byteCount;
     endfunction
 
-    function automatic int requiredDescStartLUTSize(UsbDeviceEpConfig usbDevConfig);
+    `MUTE_LINT(UNUSED)
+    function automatic int requiredLUTEntries(UsbDeviceEpConfig usbDevConfig);
+    `UNMUTE_LINT(UNUSED)
+        automatic int lutEntries;
+        lutEntries = {24'b0, usbDevConfig.deviceDesc.bNumConfigurations} + usbDevConfig.stringDescCount + (usbDevConfig.stringDescCount > 0 ? 1 : 0);
+
+        return lutEntries;
+    endfunction
+
+    function automatic int requiredROMSize(UsbDeviceEpConfig usbDevConfig);
+        automatic int byteCount;
         automatic int romIdxWid;
-        automatic int lutWid;
+        automatic int romIdxBytes;
+        automatic int lutEntries;
+        automatic int newRomIdxWid;
+        automatic int newRomIdxBytes;
 
-        romIdxWid = $clog2(requiredROMSize(usbDevConfig));
+        byteCount = requiredDescROMSize(usbDevConfig);
+        romIdxWid = $clog2(byteCount);
+        romIdxBytes = (romIdxWid + 8-1) / 8;
+        lutEntries = requiredLUTEntries(usbDevConfig);
 
-        lutWid = romIdxWid * ({24'b0, usbDevConfig.deviceDesc.bNumConfigurations} + usbDevConfig.stringDescCount + (usbDevConfig.stringDescCount > 0 ? 1 : 0));
+        // update the byteCount to reflect the new byte count needed to store the LUT too
+        byteCount += lutEntries * romIdxBytes;
 
-        return lutWid;
+        // By adding the LUT we might need an larger address width
+        newRomIdxWid = $clog2(byteCount);
+        // If the wid increased, then we might also need more bytes to store the address!
+        newRomIdxBytes = (newRomIdxWid + 8-1) / 8;
+
+        // Update the byte count accordingly, if we need more address bytes
+        byteCount += (newRomIdxBytes - romIdxBytes) * lutEntries;
+        // Lets hope that we do not have to loop this bit extension and a single time checking is enough!
+
+        return byteCount;
+    endfunction
+
+    function automatic int requiredLUTROMSize(UsbDeviceEpConfig usbDevConfig);
+        automatic int lutEntries;
+        automatic int romSize;
+        automatic int romIdxWid;
+        automatic int romIdxBytes;
+
+        lutEntries = requiredLUTEntries(usbDevConfig);
+        romSize = requiredROMSize(usbDevConfig);
+
+        romIdxWid = $clog2(romSize);
+        romIdxBytes = (romIdxWid + 8-1) / 8;
+
+        return lutEntries * romIdxBytes;
     endfunction
 
 endpackage

@@ -4,13 +4,11 @@ module ep0_rom #(
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF),
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE),
-    localparam DESC_START_LUT_WID = usb_ep_pkg::requiredDescStartLUTSize(USB_DEV_EP_CONF)
+    localparam LUT_ENTRIES = usb_ep_pkg::requiredLUTEntries(USB_DEV_EP_CONF),
+    localparam LUT_ROM_SIZE = usb_ep_pkg::requiredLUTROMSize(USB_DEV_EP_CONF)
 )(
     input logic [ROM_IDX_WID-1:0] readAddr_i,
-    output logic [7:0] romData_o,
-
-    //TODO we might want to add an read port here too?
-    output logic [DESC_START_LUT_WID - 1:0] descStartIdx_o
+    output logic [7:0] romData_o
 );
 
     logic [7:0] rom [0:EP0_ROM_SIZE-1];
@@ -19,36 +17,42 @@ module ep0_rom #(
     //===============================================================================================================
     // Initialize the ROM
 
-    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                      \
-        `MUTE_LINT(WIDTH)                                                           \
-        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin    \
-            initial begin                                                           \
-                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                    \
-`ifdef RUN_SIM                                                                      \
-                $display("INIT: rom[%d] = 0x%h", romIdx, rom[romIdx]);              \
-`endif                                                                              \
-            end                                                                     \
-        end                                                                         \
+    `define INIT_ROM(OFFSET, UPPER_BOUND, SRC)                                                                  \
+        `MUTE_LINT(WIDTH)                                                                                       \
+        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin  \
+            initial begin                                                                                       \
+                rom[romIdx] = SRC[(romIdx - (OFFSET)) * 8 +: 8];                               \
+`ifdef RUN_SIM                                                                                                  \
+                $display("INIT: rom[%d] = 0x%h", romIdx, rom[romIdx]);                                          \
+`endif                                                                                                          \
+            end                                                                                                 \
+        end                                                                                                     \
         `UNMUTE_LINT(WIDTH)
 
-    `define INIT_ROM_STR(OFFSET, UPPER_BOUND, SRC, SRC_OFFSET)                                          \
-        `MUTE_LINT(WIDTH)                                                                               \
-        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin                        \
-            initial begin                                                                               \
-                rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) - 1 - (romIdx - (OFFSET))) * 8 +: 8];   \
-`ifdef RUN_SIM                                                                                          \
-                $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                \
-`endif                                                                                                  \
-            end                                                                                         \
-        end                                                                                             \
+    `define INIT_ROM_STR(OFFSET, UPPER_BOUND, SRC, SRC_OFFSET)                                                          \
+        `MUTE_LINT(WIDTH)                                                                                               \
+        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin          \
+            initial begin                                                                                               \
+                rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) - 1 - (romIdx - (OFFSET))) * 8 +: 8];  \
+`ifdef RUN_SIM                                                                                                          \
+                $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                                \
+`endif                                                                                                                  \
+            end                                                                                                         \
+        end                                                                                                             \
         `UNMUTE_LINT(WIDTH)
 
-    `define INIT_ROM_IDX_LUT(OFFSET, IDX, LUT_NAME)                                                                             \
-        /*initial begin*/                                                                                                       \
-        /*assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = {OFFSET}[ROM_IDX_WID-1:0];*/                                    \
-        /*as yosys does not seem to parse {x}[y:z] expressions correctly, this macro expects that OFFSET is no expression! */   \
-        assign LUT_NAME[ROM_IDX_WID * (IDX) +: ROM_IDX_WID] = OFFSET[ROM_IDX_WID-1:0];                                          \
-        /*end*/
+    `define INIT_ROM_IDX_LUT(OFFSET, IDX)                                                   \
+        /* If more than one byte is needed for the address then all first bytes for */      \
+        /* the entries are stored before the second, third & so on */                       \
+        /* -> offset of LUT_ENTRIES between address bytes of the same LUT entry */          \
+        for (romIdx = (IDX); romIdx < LUT_ROM_SIZE; romIdx = romIdx + LUT_ENTRIES) begin    \
+            initial begin                                                                   \
+                rom[romIdx] = OFFSET[(romIdx / LUT_ENTRIES) * 8 +: 8];                      \
+`ifdef RUN_SIM                                                                              \
+                $display("INIT: LUT idx %d: rom[%d] = %d", (IDX), romIdx, rom[romIdx]);     \
+`endif                                                                                      \
+            end                                                                             \
+        end
 
     `MUTE_LINT(UNUSED)
     function automatic int calcROMOffset(usb_ep_pkg::UsbDeviceEpConfig usbDevConfig, int maxConfIdx, int maxIfaceIdx, int maxEpIdx);
@@ -126,9 +130,9 @@ module ep0_rom #(
         genvar romIdx;
 
         // First start with the device descriptor header
-        `INIT_ROM(0, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::DeviceDescriptorHeader)
+        `INIT_ROM(LUT_ROM_SIZE, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::DeviceDescriptorHeader)
         // Then the device descriptor body
-        `INIT_ROM(usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::DeviceDescriptorBodyBytes, USB_DEV_EP_CONF.deviceDesc)
+        `INIT_ROM(LUT_ROM_SIZE + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::DeviceDescriptorBodyBytes, USB_DEV_EP_CONF.deviceDesc)
 
 
         localparam FIXED_ROM_IFACE_OFFSET = usb_desc_pkg::DESCRIPTOR_HEADER_BYTES + usb_desc_pkg::ConfigurationDescriptorBodyBytes;
@@ -136,22 +140,22 @@ module ep0_rom #(
 
         // Iterate over all available configurations
         for (confIdx = 0; confIdx < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations; confIdx++) begin
-            localparam ROM_CONF_OFFSET = calcROMOffset(USB_DEV_EP_CONF, confIdx, 0, 0);
-            `INIT_ROM_IDX_LUT(ROM_CONF_OFFSET, confIdx, descStartIdx_o)
+            localparam ROM_CONF_OFFSET = LUT_ROM_SIZE + calcROMOffset(USB_DEV_EP_CONF, confIdx, 0, 0);
+            `INIT_ROM_IDX_LUT(ROM_CONF_OFFSET, confIdx)
             // Starting with the configuration descriptor!
             `INIT_ROM(ROM_CONF_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::ConfigurationDescriptorHeader)
             `INIT_ROM(ROM_CONF_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::ConfigurationDescriptorBodyBytes, USB_DEV_EP_CONF.devConfigs[confIdx].confDesc)
 
             // Now traverse all associated interfaces!
             for (ifaceIdx = 0; ifaceIdx < USB_DEV_EP_CONF.devConfigs[confIdx].confDesc.bNumInterfaces; ifaceIdx++) begin
-                localparam ROM_IFACE_OFFSET = calcROMOffset(USB_DEV_EP_CONF, confIdx, ifaceIdx, 0) + FIXED_ROM_IFACE_OFFSET;
+                localparam ROM_IFACE_OFFSET = LUT_ROM_SIZE + calcROMOffset(USB_DEV_EP_CONF, confIdx, ifaceIdx, 0) + FIXED_ROM_IFACE_OFFSET;
                 // Again starting with the interface descriptor
                 `INIT_ROM(ROM_IFACE_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::InterfaceDescriptorHeader)
                 `INIT_ROM(ROM_IFACE_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::InterfaceDescriptorBodyBytes, USB_DEV_EP_CONF.devConfigs[confIdx].ifaces[ifaceIdx].ifaceDesc)
 
                 // Finally traverse all endpoints associated with this interface!
                 for (epIdx = 0; epIdx < USB_DEV_EP_CONF.devConfigs[confIdx].ifaces[ifaceIdx].ifaceDesc.bNumEndpoints; epIdx++) begin
-                    localparam ROM_EP_OFFSET = calcROMOffset(USB_DEV_EP_CONF, confIdx, ifaceIdx, epIdx) + FIXED_ROM_EP_OFFSET;
+                    localparam ROM_EP_OFFSET = LUT_ROM_SIZE + calcROMOffset(USB_DEV_EP_CONF, confIdx, ifaceIdx, epIdx) + FIXED_ROM_EP_OFFSET;
                     `INIT_ROM(ROM_EP_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::EndpointDescriptorHeader)
                     `INIT_ROM(ROM_EP_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::EndpointDescriptorBodyBytes, USB_DEV_EP_CONF.devConfigs[confIdx].ifaces[ifaceIdx].endpointDescs[epIdx])
                 end
@@ -160,8 +164,8 @@ module ep0_rom #(
 
         // Optional string descriptors:
         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
-            localparam ROM_STR_OFFSET = calcROMOffset(USB_DEV_EP_CONF, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations}, 0, 0);
-            `INIT_ROM_IDX_LUT(ROM_STR_OFFSET, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations, descStartIdx_o)
+            localparam ROM_STR_OFFSET = LUT_ROM_SIZE + calcROMOffset(USB_DEV_EP_CONF, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations}, 0, 0);
+            `INIT_ROM_IDX_LUT(ROM_STR_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations})
 
             // String Descriptor Zero provides a list of supported languages!
             `INIT_ROM(ROM_STR_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::StringDescriptorZeroHeader)
@@ -173,7 +177,7 @@ module ep0_rom #(
             for (strDescIdx = 0; strDescIdx < USB_DEV_EP_CONF.stringDescCount; strDescIdx++) begin
                 localparam ROM_STR_DESC_OFFSET = FIXED_ROM_STR_OFFSET + calcRelativeStrDescOffset(USB_DEV_EP_CONF, strDescIdx);
 
-                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1 + strDescIdx, descStartIdx_o)
+                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1 + strDescIdx)
 
                 `INIT_ROM(ROM_STR_DESC_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx])
                 `INIT_ROM_STR(ROM_STR_DESC_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx].bLength - usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx], usb_desc_pkg::DESCRIPTOR_HEADER_BYTES)
