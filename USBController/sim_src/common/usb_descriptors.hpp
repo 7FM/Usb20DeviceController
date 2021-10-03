@@ -289,6 +289,11 @@ void prettyPrintDescriptors(const std::vector<uint8_t> &data) {
 
         std::cout << std::endl;
 
+        if (descLength == 0) {
+            std::cerr << "ERROR: invalid descriptor length of 0!" << std::endl;
+            return;
+        }
+
         i += descLength;
     }
 }
