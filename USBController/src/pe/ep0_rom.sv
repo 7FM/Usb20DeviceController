@@ -129,11 +129,12 @@ module ep0_rom #(
 
         genvar romIdx;
 
+        `INIT_ROM_IDX_LUT(LUT_ROM_SIZE, 0)
+
         // First start with the device descriptor header
         `INIT_ROM(LUT_ROM_SIZE, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::DeviceDescriptorHeader)
         // Then the device descriptor body
         `INIT_ROM(LUT_ROM_SIZE + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::DeviceDescriptorBodyBytes, USB_DEV_EP_CONF.deviceDesc)
-
 
         localparam FIXED_ROM_IFACE_OFFSET = usb_desc_pkg::DESCRIPTOR_HEADER_BYTES + usb_desc_pkg::ConfigurationDescriptorBodyBytes;
         localparam FIXED_ROM_EP_OFFSET = FIXED_ROM_IFACE_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES + usb_desc_pkg::InterfaceDescriptorBodyBytes;
@@ -141,7 +142,7 @@ module ep0_rom #(
         // Iterate over all available configurations
         for (confIdx = 0; confIdx < USB_DEV_EP_CONF.deviceDesc.bNumConfigurations; confIdx++) begin
             localparam ROM_CONF_OFFSET = LUT_ROM_SIZE + calcROMOffset(USB_DEV_EP_CONF, confIdx, 0, 0);
-            `INIT_ROM_IDX_LUT(ROM_CONF_OFFSET, confIdx)
+            `INIT_ROM_IDX_LUT(ROM_CONF_OFFSET, 1 + confIdx)
             // Starting with the configuration descriptor!
             `INIT_ROM(ROM_CONF_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::ConfigurationDescriptorHeader)
             `INIT_ROM(ROM_CONF_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::ConfigurationDescriptorBodyBytes, USB_DEV_EP_CONF.devConfigs[confIdx].confDesc)
@@ -165,7 +166,7 @@ module ep0_rom #(
         // Optional string descriptors:
         if (USB_DEV_EP_CONF.stringDescCount > 0) begin
             localparam ROM_STR_OFFSET = LUT_ROM_SIZE + calcROMOffset(USB_DEV_EP_CONF, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations}, 0, 0);
-            `INIT_ROM_IDX_LUT(ROM_STR_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations})
+            `INIT_ROM_IDX_LUT(ROM_STR_OFFSET, 1 + {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations})
 
             // String Descriptor Zero provides a list of supported languages!
             `INIT_ROM(ROM_STR_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, usb_desc_pkg::StringDescriptorZeroHeader)
@@ -177,7 +178,7 @@ module ep0_rom #(
             for (strDescIdx = 0; strDescIdx < USB_DEV_EP_CONF.stringDescCount; strDescIdx++) begin
                 localparam ROM_STR_DESC_OFFSET = FIXED_ROM_STR_OFFSET + calcRelativeStrDescOffset(USB_DEV_EP_CONF, strDescIdx);
 
-                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1 + strDescIdx)
+                `INIT_ROM_IDX_LUT(ROM_STR_DESC_OFFSET, 1 + {24'b0, USB_DEV_EP_CONF.deviceDesc.bNumConfigurations} + 1 + strDescIdx)
 
                 `INIT_ROM(ROM_STR_DESC_OFFSET, usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx])
                 `INIT_ROM_STR(ROM_STR_DESC_OFFSET + usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx].bLength - usb_desc_pkg::DESCRIPTOR_HEADER_BYTES, USB_DEV_EP_CONF.stringDescs[strDescIdx], usb_desc_pkg::DESCRIPTOR_HEADER_BYTES)

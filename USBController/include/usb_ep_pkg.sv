@@ -250,7 +250,7 @@ package usb_ep_pkg;
     function automatic int requiredLUTEntries(UsbDeviceEpConfig usbDevConfig);
     `UNMUTE_LINT(UNUSED)
         automatic int lutEntries;
-        lutEntries = {24'b0, usbDevConfig.deviceDesc.bNumConfigurations} + usbDevConfig.stringDescCount + (usbDevConfig.stringDescCount > 0 ? 1 : 0);
+        lutEntries = 1 + {24'b0, usbDevConfig.deviceDesc.bNumConfigurations} + usbDevConfig.stringDescCount + (usbDevConfig.stringDescCount > 0 ? 1 : 0);
 
         return lutEntries;
     endfunction
