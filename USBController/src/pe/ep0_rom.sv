@@ -67,12 +67,12 @@ module ep0_rom #(
             romOffset += {24'b0, usb_desc_pkg::ConfigurationDescriptorHeader.bLength};
 
             // Now traverse all associated interfaces!
-            for (ifaceIdx = 0; ifaceIdx < USB_DEV_EP_CONF.devConfigs[confIdx].confDesc.bNumInterfaces; ifaceIdx++) begin
+            for (ifaceIdx = 0; ifaceIdx < usbDevConfig.devConfigs[confIdx].confDesc.bNumInterfaces; ifaceIdx++) begin
                 // Again starting with the interface descriptor
                 romOffset += {24'b0, usb_desc_pkg::InterfaceDescriptorHeader.bLength};
 
                 // Finally traverse all endpoints associated with this interface!
-                for (epIdx = 0; epIdx < USB_DEV_EP_CONF.devConfigs[confIdx].ifaces[ifaceIdx].ifaceDesc.bNumEndpoints; epIdx++) begin
+                for (epIdx = 0; epIdx < usbDevConfig.devConfigs[confIdx].ifaces[ifaceIdx].ifaceDesc.bNumEndpoints; epIdx++) begin
                     romOffset += {24'b0, usb_desc_pkg::EndpointDescriptorHeader.bLength};
                 end
             end
@@ -86,13 +86,13 @@ module ep0_rom #(
                 romOffset += {24'b0, usb_desc_pkg::InterfaceDescriptorHeader.bLength};
 
                 // Finally traverse all endpoints associated with this interface!
-                for (epIdx = 0; epIdx < USB_DEV_EP_CONF.devConfigs[maxConfIdx].ifaces[ifaceIdx].ifaceDesc.bNumEndpoints; epIdx++) begin
+                for (epIdx = 0; epIdx < usbDevConfig.devConfigs[maxConfIdx].ifaces[ifaceIdx].ifaceDesc.bNumEndpoints; epIdx++) begin
                     romOffset += {24'b0, usb_desc_pkg::EndpointDescriptorHeader.bLength};
                 end
             end
 
             // Check if there are interfaces for this config left else maxIfaceIdx already includes all valid ones!
-            if (maxIfaceIdx < USB_DEV_EP_CONF.devConfigs[maxConfIdx].confDesc.bNumInterfaces) begin
+            if (maxIfaceIdx < usbDevConfig.devConfigs[maxConfIdx].confDesc.bNumInterfaces) begin
                 // Traverse all previous endpoints of the current interface of the current configuration
                 for (epIdx = 0; epIdx < maxEpIdx; epIdx++) begin
                     romOffset += {24'b0, usb_desc_pkg::EndpointDescriptorHeader.bLength};
