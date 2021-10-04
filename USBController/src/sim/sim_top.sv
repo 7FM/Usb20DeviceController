@@ -4,12 +4,13 @@
 `ifdef RUN_SIM
 module sim_top (
     input logic CLK,
+    input logic CLK12,
     `MUTE_LINT(UNUSED)
     input logic dummyPin,
     `UNMUTE_LINT(UNUSED)
     input logic rxRST,
 
-    // Data send interface: synced with clk48!
+    // Data send interface: synced with clk12!
     input logic txReqSendPacket,
     output logic txAcceptNewData,
     input logic txIsLastByte,
@@ -46,7 +47,7 @@ module sim_top (
     );
 
     sim_usb_tx_connection hostTxImitator(
-        .CLK(CLK),
+        .txClk12(CLK12),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
 

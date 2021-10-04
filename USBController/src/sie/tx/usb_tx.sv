@@ -3,8 +3,7 @@
 `include "usb_packet_pkg.sv"
 
 module usb_tx#()(
-    input logic clk48_i,
-    input logic transmitCLK_i,
+    input logic clk12_i,
 
     // CRC interface
     output logic txCRCReset_o,
@@ -20,7 +19,7 @@ module usb_tx#()(
     input logic txNoBitStuffingNeeded_i,
 
     // interface inputs
-    // Data input interface: synced with clk48_i!
+    // Data input interface: synced with clk12_i!
     input logic txReqSendPacket_i, // Trigger sending a new packet
 
     output logic txAcceptNewData_o, // indicates that the send buffer can be filled
@@ -69,32 +68,18 @@ module usb_tx#()(
     logic [7:0] txDataBufNewByte, next_txDataBufNewByte;
     logic txHasDataFetched, next_txHasDataFetched;
     logic txFetchedDataIsLast, next_txFetchedDataIsLast;
-    logic reqSendPacket;
-    logic prev_txReqNewData;
 
-    logic waitingForNewSendReq, prev_waitingForNewSendReq;
+    logic waitingForNewSendReq;
 
     initial begin
         //txPID and txDataBufNewByte are dont cares with the other states
         txHasDataFetched = 1'b1;
         txFetchedDataIsLast = 1'b0;
-        prev_txReqNewData = 1'b0;
-        reqSendPacket = 1'b0;
-        prev_waitingForNewSendReq = 1'b0;
     end
 
     assign txAcceptNewData_o = ~txHasDataFetched;
 
     assign waitingForNewSendReq = txState == TX_WAIT_SEND_REQ;
-
-    always_ff @(posedge clk48_i) begin
-        prev_waitingForNewSendReq <= waitingForNewSendReq;
-        prev_txReqNewData <= txReqNewData;
-        // If reqSendPacket was set, wait until the state machine in the slower domain has received the signal
-        // and changed the state -> we can clear the flag
-        // else if reqSendPacket is not set, check the interface request line
-        reqSendPacket <= reqSendPacket ? waitingForNewSendReq : txReqSendPacket_i;
-    end
 
     logic isResetRegState;
     assign isResetRegState = txState == TX_RST_REGS;
@@ -113,9 +98,11 @@ module usb_tx#()(
         //next_txHasDataFetched = txHasDataFetched ? txFetchedDataIsLast || ~(!waitingForNewSendReq && prev_txReqNewData && ~txReqNewData) : txDataValid_i;
         next_txHasDataFetched = txHasDataFetched ?
             // Negated clear condition of txHasDataFetched
-            waitingForNewSendReq || (!prev_waitingForNewSendReq && (txFetchedDataIsLast || !prev_txReqNewData || txReqNewData)) :
+            // waitingForNewSendReq || (!prev_waitingForNewSendReq && (txFetchedDataIsLast || !prev_txReqNewData || txReqNewData)) :
+            // (waitingForNewSendReq && !txReqSendPacket_i) || (!(waitingForNewSendReq && txReqSendPacket_i) && (txFetchedDataIsLast || !txReqNewData))
+            (waitingForNewSendReq ? !txReqSendPacket_i : (txFetchedDataIsLast || !txReqNewData))
             // Set condition of txHasDataFetched
-            txDataValid_i;
+            : txDataValid_i;
 
         // Data handshake condition
         if (txAcceptNewData_o && txDataValid_i) begin
@@ -132,7 +119,7 @@ module usb_tx#()(
         end
     end
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         // Data interface
         txHasDataFetched <= next_txHasDataFetched;
         txFetchedDataIsLast <= next_txFetchedDataIsLast;
@@ -210,9 +197,9 @@ module usb_tx#()(
             TX_WAIT_SEND_REQ: begin
                 // force load SYNC_VALUE to start sending a packet!
                 txDataSerializerIn = sie_defs_pkg::SYNC_VALUE;
-                txGotNewData = reqSendPacket;
+                txGotNewData = txReqSendPacket_i;
 
-                if (reqSendPacket) begin
+                if (txReqSendPacket_i) begin
                     next_txState = txStateAdd1;
                 end
             end
@@ -289,7 +276,7 @@ module usb_tx#()(
     end
 
     // Register updates
-    always_ff @(posedge transmitCLK_i) begin
+    always_ff @(posedge clk12_i) begin
         // State
         txState <= next_txState;
         txPID <= next_txPID;
@@ -309,7 +296,7 @@ module usb_tx#()(
 
     logic txSerializerOut;
     output_shift_reg #() outputSerializer(
-        .clk12_i(transmitCLK_i),
+        .clk12_i(clk12_i),
         .en_i(txNoBitStuffingNeeded_i),
         .dataValid_i(txGotNewData),
         .crc5Patch_i(crc5Patch),
@@ -334,7 +321,7 @@ module usb_tx#()(
     //=======================================================
 
     nrzi_encoder nrziEncoder(
-        .clk12_i(transmitCLK_i),
+        .clk12_i(clk12_i),
         .rst_i(txRstModules),
         .data_i(txBitStuffDataOut_i),
         .data_o(txNRZiEncodedData)

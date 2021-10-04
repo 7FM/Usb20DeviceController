@@ -3,11 +3,11 @@
 
 `ifdef RUN_SIM
 module sim_usb_tx_connection (
-    input logic CLK,
+    input logic txClk12,
     output logic USB_DP,
     output logic USB_DN,
 
-    // Data send interface: synced with clk48!
+    // Data send interface: synced with txClk12!
     input logic txReqSendPacket,
     output logic txAcceptNewData,
     input logic txIsLastByte,
@@ -18,15 +18,6 @@ module sim_usb_tx_connection (
 );
     logic dataOutN_reg;
     logic dataOutP_reg;
-
-    logic txClk12;
-
-    clock_gen #(
-        .DIVIDE_LOG_2($clog2(4))
-    ) clkDiv4 (
-        .clk_i(CLK),
-        .clk_o(txClk12)
-    );
 
     logic txCRCReset;
     logic txUseCRC16;
@@ -61,8 +52,7 @@ module sim_usb_tx_connection (
 
 
     usb_tx uut(
-        .clk48_i(CLK),
-        .transmitCLK_i(txClk12),
+        .clk12_i(txClk12),
 
         // CRC interface
         .txCRCReset_o(txCRCReset),

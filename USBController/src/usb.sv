@@ -74,7 +74,7 @@ module usb#(
         .rxDataValid_o(rxDataValid), // rxData contains valid & new data
         .keepPacket_o(keepPacket), // should be tested when rxIsLastByte set to check whether an retrival error occurred
 
-        // Data Transmit Interface: synced with clk48_i!
+        // Data Transmit Interface: synced with clk12_i!
         .txReqSendPacket_i(txReqSendPacket), // Caller requests sending a new packet
         .txDataValid_i(txDataValid), // Indicates that txData contains valid & new data
         .txIsLastByte_i(txIsLastByte), // Indicates that the applied txData is the last byte to send (is read during handshake: txDataValid && txAcceptNewData)
