@@ -100,25 +100,31 @@ module usb_endpoint_0 #(
             nextDeviceAddr = {USB_DEV_ADDR_WID{1'b0}};
             nextDeviceConf = {USB_DEV_CONF_WID{1'b0}};
         end else begin
-            if (gotDevConfig) begin
-                nextDeviceConf = setupDataPacket.wValue[USB_DEV_CONF_WID-1:0];
+            unique case (1'b1)
+                gotDevConfig: begin
+                    nextDeviceConf = setupDataPacket.wValue[USB_DEV_CONF_WID-1:0];
 
-                // Update device state dependent on the configuration value!
-                if (nextDeviceConf == 0) begin
-                    nextDeviceState = DEVICE_ADDR_ASSIGNED;
-                end else begin
-                    nextDeviceState = DEVICE_CONFIGURED;
+                    // Update device state dependent on the configuration value!
+                    if (nextDeviceConf == 0) begin
+                        nextDeviceState = DEVICE_ADDR_ASSIGNED;
+                    end else begin
+                        nextDeviceState = DEVICE_CONFIGURED;
+                    end
                 end
-            end else if (gotAddrAssigned) begin
+                gotAddrAssigned: begin
 
-                // Update device state dependent on the assigned address!
-                nextDeviceAddr = setupDataPacket.wValue[USB_DEV_ADDR_WID-1:0];
-                if (nextDeviceAddr == 0) begin
-                    nextDeviceState = DEVICE_RESET;
-                end else begin
-                    nextDeviceState = DEVICE_ADDR_ASSIGNED;
+                    // Update device state dependent on the assigned address!
+                    nextDeviceAddr = setupDataPacket.wValue[USB_DEV_ADDR_WID-1:0];
+                    if (nextDeviceAddr == 0) begin
+                        nextDeviceState = DEVICE_RESET;
+                    end else begin
+                        nextDeviceState = DEVICE_ADDR_ASSIGNED;
+                    end
                 end
-            end
+                default: begin
+                    
+                end
+            endcase
         end
     end
 
