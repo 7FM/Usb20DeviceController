@@ -3,11 +3,12 @@
 `ifdef RUN_SIM
 module sim_usb_rx (
     input logic CLK,
+    input logic CLK12,
     input logic USB_DP,
     input logic USB_DN,
     input logic rxRST,
 
-    // Data output interface: synced with clk48!
+    // Data output interface: synced with clk12!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
     output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
     output logic rxDataValid, // rxData contains valid & new data
@@ -22,6 +23,7 @@ module sim_usb_rx (
 
     sim_usb_rx_connection rxCon (
         .CLK(CLK),
+        .CLK12(CLK12),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
         .rxRST(rxRST),

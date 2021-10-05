@@ -63,6 +63,7 @@ module sim_top (
 
     sim_usb_rx_connection hostRxImitator(
         .CLK(CLK),
+        .CLK12(CLK12),
         .USB_DP(USB_DP_OUT),
         .USB_DN(USB_DN_OUT),
         .rxRST(rxRST),

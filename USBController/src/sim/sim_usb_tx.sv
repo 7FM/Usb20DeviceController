@@ -49,6 +49,7 @@ module sim_usb_tx (
 
     sim_usb_rx_connection usbDeserializer(
         .CLK(CLK),
+        .CLK12(CLK12),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
         .rxRST(rxRST),

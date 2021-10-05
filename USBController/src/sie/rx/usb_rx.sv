@@ -3,8 +3,7 @@
 `include "usb_packet_pkg.sv"
 
 module usb_rx#()(
-    input logic clk48_i,
-    input logic receiveCLK_i,
+    input logic clk12_i,
 
     // CRC interface
     output logic rxCRCReset_o,
@@ -25,7 +24,7 @@ module usb_rx#()(
     input logic eopDetected_i,
     output logic ackEOP_o,
 
-    // Data output interface: synced with clk48_i!
+    // Data output interface: synced with clk12_i!
     input logic rxAcceptNewData_i, // Backend indicates that it is able to retrieve the next data byte
     output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
@@ -83,11 +82,6 @@ module usb_rx#()(
 
     assign rxDataValid_o = isDataShiftReg[3];
 
-    logic prev_receiveCLK_i;
-    always_ff @(posedge clk48_i) begin
-        prev_receiveCLK_i <= receiveCLK_i;
-    end
-
     logic byteWasNotReceived, next_byteWasNotReceived;
     assign keepPacket_o = ~(dropPacket || byteWasNotReceived);
 
@@ -102,7 +96,7 @@ module usb_rx#()(
     // Propagate the pipeline when inputBufFull is set and we see the negedge of receiveCLK
     // -> triggers only once!
     // propagate faster (independent from inputBufFull) after we received the EOP signal
-    assign rxPropagatePipeline = (rxState != RX_WAIT_FOR_SYNC && prev_receiveCLK_i && ~receiveCLK_i && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
+    assign rxPropagatePipeline = (rxState != RX_WAIT_FOR_SYNC && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
 
     always_comb begin
         // If there is no more data left then we can clear the flag!
@@ -153,13 +147,12 @@ module usb_rx#()(
     //===================================================
     initial begin
         byteWasNotReceived = 1'b0;
-        prev_receiveCLK_i = 1'b0;
         flushBuffersFast = 1'b0;
         isDataShiftReg = 4'b0;
     end
 
     // Use faster clock domain for the handshaking logic
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         inputBufRescue <= next_inputBufRescue;
         inputBufDelay1 <= next_inputBufDelay1;
         inputBufDelay2 <= next_inputBufDelay2;
@@ -280,7 +273,7 @@ module usb_rx#()(
     end
 
     // State updates
-    always_ff @(posedge receiveCLK_i) begin
+    always_ff @(posedge clk12_i) begin
         rxState <= next_rxState;
         needCRC16Handling <= nextNeedCRC16Handling;
         dropPacket <= next_dropPacket;
@@ -293,7 +286,7 @@ module usb_rx#()(
 
     // Stage 0
     nrzi_decoder nrziDecoder(
-        .clk12_i(receiveCLK_i),
+        .clk12_i(clk12_i),
         .rst_i(rxNRZiDecodeReset),
         .data_i(dataInP_i),
         .data_o(nrziDecodedInput)
@@ -310,7 +303,7 @@ module usb_rx#()(
     assign syncDetect = _syncDetect /*&& rxState == RX_WAIT_FOR_SYNC*/;
 
     input_shift_reg #() inputDeserializer(
-        .clk12_i(receiveCLK_i),
+        .clk12_i(clk12_i),
         .rst_i(rxInputShiftRegReset),
         .en_i(expectNonBitStuffedInput_i),
         .dataBit_i(nrziDecodedInput),

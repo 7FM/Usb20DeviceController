@@ -183,9 +183,14 @@ module usb_sie (
     // RECEIVE Modules
     // =====================================================================================================
 
+    logic rxAcceptNewData_o;
+    logic rxIsLastByte_i;
+    logic rxDataValid_i;
+    logic [7:0] rxData_i;
+    logic keepPacket_i;
+
     usb_rx#() usbRxModules(
-        .clk48_i(clk48_i),
-        .receiveCLK_i(rxClk12),
+        .clk12_i(rxClk12),
 
         // CRC interface
         .rxCRCReset_o(rxCRCReset),
@@ -207,11 +212,28 @@ module usb_sie (
         .ackEOP_o(ackEOP),
 
         // Data output interface: synced with clk48_i!
-        .rxAcceptNewData_i(rxAcceptNewData_i), // Backend indicates that it is able to retrieve the next data byte
-        .rxIsLastByte_o(rxIsLastByte_o), // indicates that the current byte at rxData_o is the last one
-        .rxDataValid_o(rxDataValid_o), // rxData_o contains valid & new data
-        .rxData_o(rxData_o), // data to be retrieved
-        .keepPacket_o(keepPacket_o) // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+        .rxAcceptNewData_i(rxAcceptNewData_o), // Backend indicates that it is able to retrieve the next data byte
+        .rxIsLastByte_o(rxIsLastByte_i), // indicates that the current byte at rxData_o is the last one
+        .rxDataValid_o(rxDataValid_i), // rxData_o contains valid & new data
+        .rxData_o(rxData_i), // data to be retrieved
+        .keepPacket_o(keepPacket_i) // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+    );
+
+    //TODO the interface with the synchronization works, but it is to slow and triggers the timeout!
+    cdc_rx rxInterfaceClockDomainCrosser(
+        .clk1(rxClk12), // Sync in
+        .rxAcceptNewData_o(rxAcceptNewData_o),
+        .rxIsLastByte_i(rxIsLastByte_i),
+        .rxDataValid_i(rxDataValid_i),
+        .rxData_i(rxData_i),
+        .keepPacket_i(keepPacket_i),
+
+        .clk2(clk48_i), // Sync out
+        .rxAcceptNewData_i(rxAcceptNewData_i),
+        .rxIsLastByte_o(rxIsLastByte_o),
+        .rxDataValid_o(rxDataValid_o),
+        .rxData_o(rxData_o),
+        .keepPacket_o(keepPacket_o)
     );
 
     // =====================================================================================================
