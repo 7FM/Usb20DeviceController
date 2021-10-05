@@ -337,8 +337,8 @@ struct UsbReceiveState {
 };
 
 template <typename T>
-void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState) {
-    if (ptop->rxAcceptNewData && ptop->rxDataValid) {
+void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
+    if (posedge && ptop->rxAcceptNewData && ptop->rxDataValid) {
         usbRxState.receivedData.push_back(ptop->rxData);
 
         if (ptop->rxIsLastByte) {
@@ -352,10 +352,11 @@ void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState) {
             usbRxState.receivedLastByte = true;
         }
 
-        ptop->rxAcceptNewData = 0;
         usbRxState.delayedDataAccept = 0;
-    } else {
-        if (ptop->rxDataValid) {
+    } else if (negedge) {
+        if (ptop->rxAcceptNewData) {
+            ptop->rxAcceptNewData = 0;
+        } else if (ptop->rxDataValid) {
             // New data is available but wait for x cycles before accepting!
             if (usbRxState.acceptAfterXAvailableCycles == usbRxState.delayedDataAccept) {
                 ptop->rxAcceptNewData = 1;
@@ -407,50 +408,39 @@ struct UsbTransmitState {
 
 template <typename T>
 void feedTransmitSerializer(T *ptop, UsbTransmitState &usbTxState) {
+    if (usbTxState.requestedSendPacket) {
+        ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
+        if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
+            ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
+        }
 
-    usbTxState.clk12_counter = (usbTxState.clk12_counter + 1) % 2;
-    bool posedge = false;
-    bool negedge = false;
-    if (usbTxState.clk12_counter == 0) {
-        ptop->CLK12 = !ptop->CLK12;
-        negedge = !(posedge = ptop->CLK12);
-    }
+        if (ptop->txAcceptNewData) {
+            if (ptop->txDataValid) {
+                // clear send packet request, once send data is requested
+                // else we might trigger several packet sends which is illegal
+                ptop->txReqSendPacket = 0;
 
-    if (posedge) {
-        if (usbTxState.requestedSendPacket) {
-            ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
-            if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
-                ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
-            }
-
-            if (ptop->txAcceptNewData) {
-                if (ptop->txDataValid) {
-                    // clear send packet request, once send data is requested
-                    // else we might trigger several packet sends which is illegal
-                    ptop->txReqSendPacket = 0;
-
-                    // Triggered Handshake!
-                    ptop->txDataValid = 0;
-                    // Update index of data that should be send!
-                    ++usbTxState.transmitIdx;
-                } else {
-                    // Only signal data is valid if there is still data left to send!
-                    if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
-                        // Data was requested but not yet signaled that txData is valid, lets change the later
-                        ptop->txDataValid = 1;
-                    }
+                // Triggered Handshake!
+                ptop->txDataValid = 0;
+                // Update index of data that should be send!
+                ++usbTxState.transmitIdx;
+            } else {
+                // Only signal data is valid if there is still data left to send!
+                if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
+                    // Data was requested but not yet signaled that txData is valid, lets change the later
+                    ptop->txDataValid = 1;
                 }
             }
-        } else {
-            // Start send packet request
-            usbTxState.requestedSendPacket = true;
-            ptop->txReqSendPacket = 1;
         }
-
-        if (!usbTxState.doneSending && usbTxState.prevSending && !ptop->sending) {
-            usbTxState.doneSending = true;
-        }
-
-        usbTxState.prevSending = ptop->sending;
+    } else {
+        // Start send packet request
+        usbTxState.requestedSendPacket = true;
+        ptop->txReqSendPacket = 1;
     }
+
+    if (!usbTxState.doneSending && usbTxState.prevSending && !ptop->sending) {
+        usbTxState.doneSending = true;
+    }
+
+    usbTxState.prevSending = ptop->sending;
 }

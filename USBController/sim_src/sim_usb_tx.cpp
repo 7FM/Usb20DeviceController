@@ -24,6 +24,9 @@ static void signalHandler(int signal) {
 
 class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
 
+  private:
+    uint8_t clk12_counter;
+
   public:
     void simReset() {
 
@@ -43,6 +46,8 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
 
         rxState.reset();
         txState.reset();
+
+        clk12_counter = 0;
     }
 
     bool stopCondition() {
@@ -50,8 +55,17 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
     }
 
     void onRisingEdge() {
-        receiveDeserializedInput(top, rxState);
-        feedTransmitSerializer(top, txState);
+        clk12_counter = (clk12_counter + 1) % 2;
+        bool posedge = false;
+        bool negedge = false;
+        if (clk12_counter == 0) {
+            top->CLK12 = !top->CLK12;
+            negedge = !(posedge = top->CLK12);
+        }
+        if (posedge) {
+            feedTransmitSerializer(top, txState);
+        }
+        receiveDeserializedInput(top, rxState, posedge, negedge);
     }
 
     bool customInit(int opt) { return false; }

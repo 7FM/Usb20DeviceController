@@ -32,6 +32,8 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
     int signalIdx;
     uint8_t delayCnt;
 
+    uint8_t clk12_counter;
+
     void applyUsbSignal(const uint8_t *data, std::size_t arraySize) {
         if (signalIdx + 1 < arraySize) {
             delayCnt = (delayCnt + 1) % USB_SIGNAL_LENGTH;
@@ -55,6 +57,8 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
         signalIdx = 0;
         // Here we could test different signal start offsets!
         delayCnt = 0;
+
+        clk12_counter = 0;
     }
 
     bool stopCondition() {
@@ -62,7 +66,16 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
     }
 
     void onRisingEdge() {
-        receiveDeserializedInput(top, rxState);
+
+        clk12_counter = (clk12_counter + 1) % 2;
+        bool posedge = false;
+        bool negedge = false;
+        if (clk12_counter == 0) {
+            top->CLK12 = !top->CLK12;
+            negedge = !(posedge = top->CLK12);
+        }
+        receiveDeserializedInput(top, rxState, posedge, negedge);
+
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
         applyUsbSignal(signalToReceive.data(), signalToReceive.size());
 #endif

@@ -26,6 +26,9 @@ static void signalHandler(int signal) {
 
 class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
+  private:
+    uint8_t clk12_counter;
+
   public:
     void simReset() {
         // Data send/transmit interface
@@ -44,6 +47,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
         rxState.reset();
         txState.reset();
+
+        clk12_counter = 0;
     }
 
     bool stopCondition() {
@@ -51,8 +56,17 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     }
 
     void onRisingEdge() {
-        receiveDeserializedInput(top, rxState);
-        feedTransmitSerializer(top, txState);
+        clk12_counter = (clk12_counter + 1) % 2;
+        bool posedge = false;
+        bool negedge = false;
+        if (clk12_counter == 0) {
+            top->CLK12 = !top->CLK12;
+            negedge = !(posedge = top->CLK12);
+        }
+        if (posedge) {
+            feedTransmitSerializer(top, txState);
+        }
+        receiveDeserializedInput(top, rxState, posedge, negedge);
     }
 
     void issueDummySignal() {
