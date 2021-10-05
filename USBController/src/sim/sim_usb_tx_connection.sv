@@ -67,17 +67,17 @@ module sim_usb_tx_connection (
         .txBitStuffDataOut_i(txBitStuffDataOut),
         .txNoBitStuffingNeeded_i(txNoBitStuffingNeeded),
 
+        // Serial frontend interface
+        .sending_o(sending),
+        .dataOutN_reg_o(dataOutN_reg),
+        .dataOutP_reg_o(dataOutP_reg),
+
         // Data interface
         .txReqSendPacket_i(txReqSendPacket),
         .txAcceptNewData_o(txAcceptNewData),
         .txIsLastByte_i(txIsLastByte),
         .txDataValid_i(txDataValid),
-        .txData_i(txData),
-
-        // Serial frontend interface
-        .sending_o(sending),
-        .dataOutN_reg_o(dataOutN_reg),
-        .dataOutP_reg_o(dataOutP_reg)
+        .txData_i(txData)
     );
 
     assign USB_DP = sending ? dataOutP_reg : 1'b1;

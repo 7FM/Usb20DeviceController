@@ -241,18 +241,18 @@ module usb_sie (
         .txBitStuffDataOut_i(txBitStuffDataOut),
         .txNoBitStuffingNeeded_i(txNoBitStuffingNeeded),
 
+        // Serial frontend interface
+        .sending_o(txIsSending), // indicates that currently data is transmitted
+        .dataOutN_reg_o(dataOutN_reg),
+        .dataOutP_reg_o(dataOutP_reg),
+
         // Data interface
         .txReqSendPacket_i(txReqSendPacket_o), // Trigger sending a new packet
         .txIsLastByte_i(txIsLastByte_o), // Indicates that the applied sendData is the last byte to send
         .txDataValid_i(txDataValid_o), // Indicates that sendData contains valid & new data
         .txData_i(txData_o), // Data to be send: First byte should be PID, followed by the user data bytes
         // interface output signals
-        .txAcceptNewData_o(txAcceptNewData_i), // indicates that the send buffer can be filled
-
-        // Serial frontend interface
-        .sending_o(txIsSending), // indicates that currently data is transmitted
-        .dataOutN_reg_o(dataOutN_reg),
-        .dataOutP_reg_o(dataOutP_reg)
+        .txAcceptNewData_o(txAcceptNewData_i) // indicates that the send buffer can be filled
     );
 
     cdc_tx txInterfaceClockDomainCrosser(
@@ -269,140 +269,6 @@ module usb_sie (
         .txIsLastByte_o(txIsLastByte_o),
         .txData_o(txData_o),
         .txAcceptNewData_i(txAcceptNewData_i)
-    );
-
-endmodule
-
-module cdc_sync (
-    input logic clk,
-    input logic in,
-    output logic out
-);
-
-    logic in_sync;
-
-    always_ff @(posedge clk) begin
-        {out, in_sync} <= {in_sync, in};
-    end
-
-endmodule
-
-// https://zipcpu.com/blog/2020/10/03/tfrvalue.html
-module cdc_2phase_sync #(
-    parameter DATA_WID
-)(
-    input logic clk1,
-    input logic valid_i,
-    output logic ready_o,
-    input logic [DATA_WID-1:0] data_i,
-
-    input logic clk2,
-    input logic ready_i,
-    output logic valid_o,
-    output logic [DATA_WID-1:0] data_o
-);
-    logic req; // clk1
-    logic[DATA_WID-1:0] cdcData; // clk1
-
-    logic meta_req, req_sync, last_req_sync; // clk2
-    initial begin
-        meta_req = 1'b0;
-        req_sync = 1'b0;
-        last_req_sync = 1'b0;
-        valid_o = 1'b0;
-    end
-
-    always_ff @(posedge clk2) begin
-        {meta_req, req_sync} <= {req, meta_req};
-
-        if (valid_o && !ready_i) begin
-            // Do not propergate the ready ack signal if clk2 domain is not yet ready!
-            last_req_sync <= last_req_sync;
-        end else begin
-            last_req_sync <= req_sync;
-        end
-    end
-    logic newData_o;
-    assign newData_o = req_sync != last_req_sync;
-
-    always_ff @(posedge clk2) begin
-        // newData_o should work as condition too, this stricter condition avoids multiple copies of the same data
-        data_o <= newData_o && (!valid_o || ready_i) ? cdcData : data_o;
-        // Accept new data if we have none stored yet, or currently stored data may be read anyways
-        valid_o <= !valid_o || ready_i ? newData_o : valid_o;
-    end
-
-    logic meta_ack, ack_sync; // clk1
-    initial begin
-        meta_ack = 1'b0;
-        ack_sync = 1'b0;
-    end
-
-    always_ff @(posedge clk1) begin
-        {meta_ack, ack_sync} <= {last_req_sync, meta_ack};
-    end
-    assign ready_o = ack_sync == req;
-
-    logic clk1_handshake;
-    assign clk1_handshake = valid_i && ready_o;
-    always_ff @(posedge clk1) begin
-        req <= clk1_handshake ? !req : req;
-        cdcData <= clk1_handshake ? data_i : cdcData;
-    end
-
-endmodule
-
-module cdc_tx(
-    input logic clk1,
-    input logic txReqSendPacket_i,
-    input logic txDataValid_i,
-    input logic txIsLastByte_i,
-    input logic [7:0] txData_i,
-    output logic txAcceptNewData_o,
-
-    input logic clk2,
-    output logic txReqSendPacket_o,
-    output logic txDataValid_o,
-    output logic txIsLastByte_o,
-    output logic [7:0] txData_o,
-    input logic txAcceptNewData_i
-);
-
-    //TODO this will change to two clocks of the same speed but with different phases!
-    //TODO -> it would be the best to use a minimal 2 phase sync here to to avoid any clock requirements!
-    //TODO sync txReqSendPacket from faster clk1 to slower clk2
-    logic stretchedReq;
-    logic [1:0] cnt;
-    initial begin
-        stretchedReq = 1'b0;
-    end
-    always_ff @(posedge clk1) begin
-        if (txReqSendPacket_i) begin
-            cnt <= 0;
-            stretchedReq <= 1'b1;
-        end else if (stretchedReq) begin
-            cnt <= cnt + 1;
-            stretchedReq <= !(&cnt);
-        end
-    end
-    cdc_sync trivialSyncer (
-        .clk(clk2),
-        .in(stretchedReq),
-        .out(txReqSendPacket_o)
-    );
-
-    cdc_2phase_sync #(
-        .DATA_WID(8 + 1)
-    ) dataSyncer (
-        .clk1(clk1),
-        .valid_i(txDataValid_i),
-        .ready_o(txAcceptNewData_o),
-        .data_i({txData_i, txIsLastByte_i}),
-
-        .clk2(clk2),
-        .ready_i(txAcceptNewData_i),
-        .valid_o(txDataValid_o),
-        .data_o({txData_o, txIsLastByte_o})
     );
 
 endmodule
