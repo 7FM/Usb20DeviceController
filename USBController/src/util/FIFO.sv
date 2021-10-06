@@ -30,6 +30,8 @@ module FIFO #(
     output logic [DATA_WID-1:0] data_o
 );
 
+//TODO we might wanna use the trick from ASYNC_FIFO here too to avoid being able to only store ENTRIES-1 element at a time!
+
     logic [ADDR_WID-1:0] dataCounter, readCounter;
     logic [ADDR_WID-1:0] transDataCounter, transReadCounter, next_transDataCounter, next_transReadCounter;
 
