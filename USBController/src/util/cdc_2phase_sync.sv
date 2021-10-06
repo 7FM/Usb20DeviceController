@@ -16,6 +16,7 @@ module cdc_2phase_sync #(
     logic[DATA_WID-1:0] cdcData; // clk1
 
     logic meta_req, req_sync, last_req_sync; // clk2
+    //TODO reset logic
     initial begin
         meta_req = 1'b0;
         req_sync = 1'b0;
@@ -44,6 +45,7 @@ module cdc_2phase_sync #(
     end
 
     logic meta_ack, ack_sync; // clk1
+    //TODO reset logic
     initial begin
         meta_ack = 1'b0;
         ack_sync = 1'b0;
