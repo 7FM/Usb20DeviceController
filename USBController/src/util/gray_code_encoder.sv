@@ -6,6 +6,6 @@ module gray_code_encoder #(
 );
 
     // out = (in >> 1) ^ in
-    assign out = {1'b0, in[WID-2:0]} ^ in;
+    assign out = {1'b0, in[WID-1:1]} ^ in;
 
 endmodule
