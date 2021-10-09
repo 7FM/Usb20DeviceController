@@ -169,10 +169,6 @@ class InTransaction {
             sim.txState.dataToSend.push_back(handshakeToken);
         })) return true;
 
-        //TODO remove, we wanna be fast!
-        // Execute a few more cycles to give the logic some time between the packages
-        sim.run<true, false>(50);
-
         return false;
     }
 };
@@ -200,8 +196,6 @@ class OutTransaction {
 
         // Execute a few more cycles to give the logic some time between the packages
         sim.run<true, false>(10);
-        //TODO remove, we wanna be fast!
-        sim.run<true, false>(40);
 
         //=========================================================================
         // 2. Send Data packet
