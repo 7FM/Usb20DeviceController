@@ -194,7 +194,8 @@ module usb_rx#()(
 
     logic signalError;
     assign signalError = gotInvalidDPSignal || rxBitStuffError_i;
-    assign next_byteGotSignalError = byteGotSignalError || signalError;
+    logic defaultNextByteGotSignalError;
+    assign defaultNextByteGotSignalError = byteGotSignalError || signalError;
 
     logic defaultNextDropPacket;
     // Variant which CAN detect missing bit stuffing after CRC edge case: even if this was the last byte, the following bit still needs to statisfy the bit stuffing condition
@@ -211,6 +212,7 @@ module usb_rx#()(
         next_rxState = rxState;
         nextNeedCRC16Handling = needCRC16Handling;
         next_dropPacket = defaultNextDropPacket;
+        next_byteGotSignalError = defaultNextByteGotSignalError;
         next_lastByteValidCRC = lastByteValidCRC;
 
         unique case (rxState)
@@ -227,6 +229,7 @@ module usb_rx#()(
 
                     // reset drop state
                     next_dropPacket = 1'b0;
+                    next_byteGotSignalError = 1'b0;
                 end
             end
             RX_GET_PID: begin
