@@ -308,7 +308,8 @@ struct UsbReceiveState {
     bool receivedLastByte = false;
     bool keepPacket = false;
     uint8_t delayedDataAccept = 0;
-    const uint8_t acceptAfterXAvailableCycles = 5;
+    const uint8_t acceptAfterXAvailableCycles = 4;
+    // const uint8_t acceptAfterXAvailableCycles = 0;
 
     bool enableTimeout = false;
     bool timerReset = false;
