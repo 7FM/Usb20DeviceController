@@ -33,6 +33,11 @@ module ASYNC_FIFO #(
     // This enables effiction CDC of the multibit value with double flopping too!
     logic [ADDR_WID:0] rAddrGrayCode, wAddrGrayCode;
 
+    initial begin
+        rAddr = 0;
+        wAddr = 0;
+    end
+
     gray_code_encoder #(
         .WID(ADDR_WID)
     ) readAddressGrayCodeEncoder(
@@ -50,14 +55,16 @@ module ASYNC_FIFO #(
     logic [ADDR_WID:0] rAddrGrayCode_synced, wAddrGrayCode_synced;
 
     cdc_sync #(
-        .WID(ADDR_WID)
+        .WID(ADDR_WID),
+        .INIT_VALUE({ADDR_WID{1'b0}})
     ) readAddressGrayCodeSyncer (
         .clk(w_clk_i),
         .in(rAddrGrayCode),
         .out(rAddrGrayCode_synced)
     );
     cdc_sync #(
-        .WID(ADDR_WID)
+        .WID(ADDR_WID),
+        .INIT_VALUE({ADDR_WID{1'b0}})
     ) writeAddressGrayCodeSyncer (
         .clk(r_clk_i),
         .in(wAddrGrayCode),
