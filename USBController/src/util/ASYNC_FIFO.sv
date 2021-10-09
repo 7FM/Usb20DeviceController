@@ -18,7 +18,7 @@ module ASYNC_FIFO #(
 
     //TODO initialization & reset logic!
 
-    logic [DATA_WID-1:0] mem [0:(2**ADDR_WID)-1]
+    logic [DATA_WID-1:0] mem [0:(2**ADDR_WID)-1];
 
     // Use one bit more than required, to be able to use the entire mem buffer (2^ADDR_WID many elemets)
     // Else the full state is represented when wAddr + 1 == rAddr -> mem[wAddr] is unused!
