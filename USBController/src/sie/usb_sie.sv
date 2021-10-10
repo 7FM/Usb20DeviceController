@@ -142,11 +142,6 @@ module usb_sie (
     logic isValidCRC;
     logic [15:0] crc;
 
-    assign useCRC16 = isSendingPhase_i ? txUseCRC16 : rxUseCRC16;
-    assign crcReset = isSendingPhase_i ? txCRCReset : rxCRCReset;
-    assign crcInput = isSendingPhase_i ? txCRCInput : rxCRCInput;
-    assign crcInputValid = isSendingPhase_i ? txCRCInputValid : rxCRCInputValid;
-
     usb_crc crcEngine (
         .clk12_i(rxClk12),
         .rst_i(crcReset),
@@ -175,8 +170,11 @@ module usb_sie (
 
     logic txBitStuffDataOut;
 
-    assign bitStuffRst = isSendingPhase_i ? txBitStuffRst : rxBitStuffRst;
-    assign bitStuffDataIn = isSendingPhase_i ? txBitStuffDataIn : rxBitStuffDataIn;
+    assign {useCRC16, crcReset,crcInput, crcInputValid ,bitStuffRst ,bitStuffDataIn} = 
+        isSendingPhase_i ? 
+            {txUseCRC16, txCRCReset, txCRCInput, txCRCInputValid, txBitStuffRst, txBitStuffDataIn}
+        :
+            {rxUseCRC16, rxCRCReset, rxCRCInput, rxCRCInputValid, rxBitStuffRst, rxBitStuffDataIn};
 
     usb_bit_stuffing_wrapper bitStuffWrap (
         .clk12_i(rxClk12),
