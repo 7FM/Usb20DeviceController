@@ -9,7 +9,7 @@ module usb_endpoint_0 #(
     parameter USB_DEV_CONF_WID = 8,
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF
 )(
-    input logic clk48_i,
+    input logic clk12_i,
 
     input logic usbResetDetected_i,
     output logic ackUsbResetDetect_o,
@@ -128,7 +128,7 @@ module usb_endpoint_0 #(
         end
     end
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         deviceState <= nextDeviceState;
         deviceAddr_o <= nextDeviceAddr;
         deviceConf_o <= nextDeviceConf;
@@ -170,7 +170,7 @@ module usb_endpoint_0 #(
         end
     end
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         byteIsData <= nextByteIsData;
     end
 
@@ -202,7 +202,7 @@ module usb_endpoint_0 #(
         .DATA_WID(8),
         .BUF_SIZE(BUF_BYTE_COUNT)
     ) packetBufWrapper (
-        .clk_i(clk48_i),
+        .clk_i(clk12_i),
         .rst_i(packetBufRst),
 
         .data_i(EP_IN_data_i),
@@ -233,7 +233,7 @@ module usb_endpoint_0 #(
     logic dataDirChanged;
     assign dataDirChanged = prevDataDir ^ isInTransStart;
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         prevDataDir <= patchPrevDataDir ? setupDataPacket.bmRequestType.dataTransDevToHost : (gotTransStartPacket_i ? isInTransStart : prevDataDir);
     end
 
@@ -491,7 +491,7 @@ generate
     end
 endgenerate
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         ctrlTransState <= nextCtrlTransState;
 
         requestError <= nextRequestError;

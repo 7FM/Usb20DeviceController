@@ -4,6 +4,7 @@
 // USB Serial Interface Engine(SIE)
 module usb_sie (
     input logic clk48_i,
+    input logic clk12_i,
 
     // Raw usb pins
 `ifdef RUN_SIM
@@ -58,7 +59,7 @@ module usb_sie (
     logic ackEOP;
 
     // Serial frontend which handles the differential input and detects differential encoding errors, EOP and USB resets
-    usb_serial_frontend usbSerialFrontend(
+    usb_serial_frontend usbSerialFrontend (
         .clk48_i(clk48_i),
         .pinP(USB_DP),
         .pinN(USB_DN),
@@ -71,19 +72,27 @@ module usb_sie (
         .dataOutN_i(dataOutN_reg),
         .dataInP_o(dataInP),
         .dataInP_negedge_o(dataInP_negedge),
-        // Service signals
-        .isValidDPSignal_o(isValidDPSignal),
-        .eopDetected_o(eopDetected),
-        .ackEOP_i(ackEOP),
-        .usbResetDetected_o(usbResetDetected_o),
-        .ackUsbRst_i(ackUsbResetDetect_i)
+
+        // Service signals for usb_rx
+        //TODO use rxCLK12 for proper syncing!
+        .isValidDPSignal_o(isValidDPSignal), //TODO different clock domain
+        .eopDetected_o(eopDetected), //TODO different clock domain
+        .ackEOP_i(ackEOP), //TODO different clock domain
+
+        // Service signals for usb_pe: ep0
+        //TODO use clk12 for proper syncing!
+        .usbResetDetected_o(usbResetDetected_o), //TODO different clock domain
+        .ackUsbRst_i(ackUsbResetDetect_i) //TODO different clock domain
     );
 
-    logic prevTxIsSending;
     logic prevIsSendingPhase;
-    always_ff @(posedge clk48_i) begin
-        prevTxIsSending <= txIsSending;
+    always_ff @(posedge clk48_i) begin //TODO this is a different clock domain than the sampled signals!
         prevIsSendingPhase <= isSendingPhase_i;
+    end
+
+    logic prevTxIsSending;
+    always_ff @(posedge clk12_i) begin //TODO this is a different clock domain than the sampled signals!
+        prevTxIsSending <= txIsSending;
     end
     initial begin
         // Start in receiving mode
@@ -189,7 +198,7 @@ module usb_sie (
     logic [7:0] rxData_i;
     logic keepPacket_i;
 
-    usb_rx#() usbRxModules(
+    usb_rx#() usbRxModules (
         .clk12_i(rxClk12),
 
         // CRC interface
@@ -228,7 +237,7 @@ module usb_sie (
         .rxData_i(rxData_i),
         .keepPacket_i(keepPacket_i),
 
-        .clk2(clk48_i), // Sync out
+        .clk2(clk12_i), // Sync out
         .rxAcceptNewData_i(rxAcceptNewData_i),
         .rxIsLastByte_o(rxIsLastByte_o),
         .rxDataValid_o(rxDataValid_o),
@@ -246,7 +255,7 @@ module usb_sie (
     logic [7:0] txData_o;
     logic txAcceptNewData_i;
 
-    usb_tx#() usbTxModules(
+    usb_tx#() usbTxModules (
         // Inputs
         .clk12_i(txClk12),
 
@@ -277,8 +286,8 @@ module usb_sie (
         .txAcceptNewData_o(txAcceptNewData_i) // indicates that the send buffer can be filled
     );
 
-    cdc_tx txInterfaceClockDomainCrosser(
-        .clk1(clk48_i), //TODO this will be changed to an 12 MHz clock later on!
+    cdc_tx txInterfaceClockDomainCrosser (
+        .clk1(clk12_i),
         .txReqSendPacket_i(txReqSendPacket_i),
         .txDataValid_i(txDataValid_i),
         .txIsLastByte_i(txIsLastByte_i),

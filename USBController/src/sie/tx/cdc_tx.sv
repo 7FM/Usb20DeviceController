@@ -14,29 +14,12 @@ module cdc_tx(
     input logic txAcceptNewData_i
 );
 
-    //TODO this will change to two clocks of the same speed but with different phases!
-    //TODO -> it would be the best to use a minimal 2 phase sync here to to avoid any clock requirements!
-    //TODO sync txReqSendPacket from faster clk1 to slower clk2
-    logic stretchedReq;
-    logic [1:0] cnt;
-    initial begin
-        stretchedReq = 1'b0;
-    end
-    always_ff @(posedge clk1) begin
-        if (txReqSendPacket_i) begin
-            cnt <= 0;
-            stretchedReq <= 1'b1;
-        end else if (stretchedReq) begin
-            cnt <= cnt + 1;
-            stretchedReq <= !(&cnt);
-        end
-    end
     cdc_sync trivialSyncer (
         .clk(clk2),
-        .in(stretchedReq),
+        .in(txReqSendPacket_i),
         .out(txReqSendPacket_o)
     );
-
+///*
     cdc_2phase_sync #(
         .DATA_WID(8 + 1)
     ) dataSyncer (
@@ -50,5 +33,27 @@ module cdc_tx(
         .valid_o(txDataValid_o),
         .data_o({txData_o, txIsLastByte_o})
     );
+//*/
+/*
+    logic fifoFull;
+    assign txAcceptNewData_o = !fifoFull;
 
+    logic fifoEmpty;
+    assign txDataValid_o = !fifoEmpty;
+
+    ASYNC_FIFO #(
+        .ADDR_WID(2),
+        .DATA_WID(9)
+    ) cdcFifo (
+        .w_clk_i(clk1),
+        .dataValid_i(txDataValid_i),
+        .data_i({txData_i, txIsLastByte_i}),
+        .full_o(fifoFull),
+
+        .r_clk_i(clk2),
+        .popData_i(txAcceptNewData_i),
+        .empty_o(fifoEmpty),
+        .data_o({txData_o, txIsLastByte_o})
+    );
+*/
 endmodule

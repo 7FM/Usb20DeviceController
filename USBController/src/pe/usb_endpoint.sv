@@ -10,7 +10,7 @@ module usb_endpoint#(
     //TODO more setting possibilities!
     localparam USB_DEV_CONF_WID = 8
 )(
-    input logic clk48_i,
+    input logic clk12_i,
 
 `MUTE_LINT(UNUSED) //TODO remove
     input logic gotTransStartPacket_i, //TODO
@@ -61,7 +61,7 @@ module usb_endpoint#(
         .EP_ADDR_WID(EP_ADDR_WID),
         .EP_DATA_WID(EP_DATA_WID)
     ) fifoXIn(
-        .clk_i(clk48_i),
+        .clk_i(clk12_i),
 
         .fillTransDone_i(EP_IN_fillTransDone_i),
         .fillTransSuccess_i(EP_IN_fillTransSuccess_i),
@@ -80,7 +80,7 @@ module usb_endpoint#(
         .EP_ADDR_WID(EP_ADDR_WID),
         .EP_DATA_WID(EP_DATA_WID)
     ) fifoXOut(
-        .clk_i(clk48_i),
+        .clk_i(clk12_i),
 
         .fillTransDone_i(EP_OUT_fillTransDone_i),
         .fillTransSuccess_i(EP_OUT_fillTransSuccess_i),

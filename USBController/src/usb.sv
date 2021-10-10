@@ -22,6 +22,12 @@ module usb#(
     output logic USB_PULLUP_o
 );
 
+    logic clk12;
+
+//====================================================================================
+//============================USB Serial Interface Engine=============================
+//====================================================================================
+
     logic usbResetDetected;
     logic ackUsbResetDetect;
 
@@ -48,6 +54,8 @@ module usb#(
 
     usb_sie #() serialInterfaceEngine (
         .clk48_i(clk48_i),
+        .clk12_i(clk12),
+
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
 `ifdef RUN_SIM
@@ -82,6 +90,14 @@ module usb#(
         .txAcceptNewData_o(txAcceptNewData) // indicates that the send buffer can be filled
     );
 
+
+//====================================================================================
+//================================USB Protocol Engine=================================
+//====================================================================================
+
+    logic readTimerRst;
+    logic packetWaitTimeout;
+
     //TODO export
     // Endpoint interfaces
 
@@ -111,15 +127,18 @@ module usb#(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF),
         .EP_DATA_WID(EP_DATA_WID)
     ) usbProtocolEngine(
-        .clk48_i(clk48_i),
+        .clk12_i(clk12),
 
         // Serial Engine Services:
         .usbResetDetected_i(usbResetDetected),
         .ackUsbResetDetect_o(ackUsbResetDetect),
 
+        // USB Timeout Services:
+        .readTimerRst_o(readTimerRst),
+        .packetWaitTimeout_i(packetWaitTimeout),
+
         // State information
         .txDoneSending_i(txDoneSending),
-        .rxDPPLGotSignal_i(rxDPPLGotSignal),
         .isSendingPhase_o(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
@@ -150,4 +169,24 @@ module usb#(
         .EP_OUT_full_o(EP_OUT_full),
         .EP_OUT_data_i(EP_OUT_dataIn)
     );
+
+//====================================================================================
+//===============================USB timeout submodules===============================
+//====================================================================================
+
+    clock_gen #(
+        .DIVIDE_LOG_2(2)
+    ) clk12Generator (
+        .clk_i(clk48_i),
+        .clk_o(clk12)
+    );
+
+    usb_timeout readTimer (
+        .clk48_i(clk48_i),
+        .clk12_i(clk12),
+        .rst_i(readTimerRst),
+        .rxGotSignal_i(rxDPPLGotSignal),
+        .rxTimeout_o(packetWaitTimeout)
+    );
+
 endmodule

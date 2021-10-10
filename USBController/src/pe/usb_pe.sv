@@ -9,25 +9,28 @@ module usb_pe #(
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
-    input logic clk48_i,
+    input logic clk12_i,
 
     input logic usbResetDetected_i,
     output logic ackUsbResetDetect_o,
 
+    // Timeout module
+    output logic readTimerRst_o,
+    input logic packetWaitTimeout_i,
+
     // State information
     input logic txDoneSending_i,
-    input logic rxDPPLGotSignal_i,
     output logic isSendingPhase_o,
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
-    // Data Receive Interface: synced with clk48_i!
+    // Data Receive Interface: synced with clk12_i!
     output logic rxAcceptNewData_o,
     input logic [7:0] rxData_i,
     input logic rxIsLastByte_i,
     input logic rxDataValid_i,
     input logic keepPacket_i,
 
-    // Data Transmit Interface: synced with clk48_i!
+    // Data Transmit Interface: synced with clk12_i!
     output logic txReqSendPacket_o,
     output logic txDataValid_o,
     output logic txIsLastByte_o,
@@ -125,7 +128,7 @@ module usb_pe #(
 
     `define CREATE_EP_CASE(x)                                                   \
         x: `EP_``x``_MODULE(epConfig) epX (                                     \
-            .clk48_i(clk48_i),                                                  \
+            .clk12_i(clk12_i),                                                  \
             .transStartTokenID_i(upperTransStartPID),                           \
             .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),        \
             .deviceConf_i(deviceConf),                                          \
@@ -173,7 +176,7 @@ module usb_pe #(
         logic isEp0Selected;
         assign isEp0Selected = epSelect == 0;
         `EP_0_MODULE(USB_DEV_ADDR_WID, USB_DEV_CONF_WID, USB_DEV_EP_CONF) ep0 (
-            .clk48_i(clk48_i),
+            .clk12_i(clk12_i),
 
             // Endpoint 0 handles the decice state!
             .usbResetDetected_i(usbResetDetected_i),
@@ -277,7 +280,7 @@ module usb_pe #(
         .BUF_SIZE(usb_packet_pkg::INIT_TRANS_PACKET_BUF_BYTE_COUNT),
         .INITIALIZE_BUF_IDX(1)
     ) transStartBufWrapper (
-        .clk_i(clk48_i),
+        .clk_i(clk12_i),
         .rst_i(transBufRst),
 
         .data_i(wData),
@@ -324,7 +327,7 @@ module usb_pe #(
     assign isValidTransStartPacket = receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
 
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         // Delay gotTransStartPacket to ensure that epSelect is set too! Else the previous endpoint feels responsible!
         gotTransStartPacket <= !transactionStarted && receiveDone && isValidTransStartPacket;
 
@@ -381,7 +384,7 @@ module usb_pe #(
     end
     assign sentLastByte = maxBytesLeft == 0;
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         sendPID <= sendPID ? !txHandshake : nextSendPID;
 
         if (!sendPID && nextSendPID) begin
@@ -455,15 +458,11 @@ Device Transaction State Machine Hierarchy Overview:
     assign isDevIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
     logic isEpIsochronous;
 
-    logic packetWaitTimeout;
-    logic readTimerRst;
-    //assign readTimerRst = isSendingPhase_o || receiveDone;
-
     logic nextIsSendingPhase;
 
     always_comb begin
         nextTransState = transState;
-        readTimerRst = 1'b0;
+        readTimerRst_o = 1'b0;
         nextIsSendingPhase = isSendingPhase_o;
         transactionDone = 1'b0;
 
@@ -507,14 +506,14 @@ Device Transaction State Machine Hierarchy Overview:
                 end
 
                 // Just always reset the read timeout watchdog in this state!
-                readTimerRst = 1'b1;
+                readTimerRst_o = 1'b1;
             end
 
             IsochO_HANDLE_PACKET: begin
                 fillTransSuccess = receiveSuccess;
                 fillTransDone = receiveDone;
 
-                if (packetWaitTimeout || receiveDone) begin
+                if (packetWaitTimeout_i || receiveDone) begin
                     // We are done after receiving!
                     nextTransState = PE_RST_RX_CLK;
                 end
@@ -524,7 +523,7 @@ Device Transaction State Machine Hierarchy Overview:
                 fillTransSuccess = receiveSuccess;
                 fillTransDone = receiveDone;
 
-                if (packetWaitTimeout) begin
+                if (packetWaitTimeout_i) begin
                     nextTransState = PE_RST_RX_CLK;
                 end else if (receiveDone) begin
                     // We are done after receiving!
@@ -574,7 +573,7 @@ Device Transaction State Machine Hierarchy Overview:
 
             BCINTI_WAIT_PACKET_SENT: begin
                 // Just always reset the read timeout watchdog in this state!
-                readTimerRst = 1'b1;
+                readTimerRst_o = 1'b1;
 
                 if (txDoneSending_i) begin
                     // We are done here
@@ -589,7 +588,7 @@ Device Transaction State Machine Hierarchy Overview:
                 popTransSuccess = receiveSuccess && packetPID == usb_packet_pkg::PID_HANDSHAKE_ACK;
                 popTransDone = receiveDone;
 
-                if (packetWaitTimeout || receiveDone) begin
+                if (packetWaitTimeout_i || receiveDone) begin
                     // We are done after receiving the handshake or a timeout!
                     nextTransState = PE_RST_RX_CLK;
 
@@ -599,7 +598,7 @@ Device Transaction State Machine Hierarchy Overview:
         endcase
     end
 
-    always_ff @(posedge clk48_i) begin
+    always_ff @(posedge clk12_i) begin
         transState <= nextTransState;
         isSendingPhase_o <= nextIsSendingPhase;
     end
@@ -646,25 +645,5 @@ generate
         assign isEpIsochronous = 1'b0;
     end
 endgenerate
-
-//====================================================================================
-//===============================USB timeout submodules===============================
-//====================================================================================
-
-    logic clk12;
-    clock_gen #(
-        .DIVIDE_LOG_2(2)
-    ) clk12Generator (
-        .clk_i(clk48_i),
-        .clk_o(clk12)
-    );
-
-    usb_timeout readTimer(
-        .clk48_i(clk48_i),
-        .clk12_i(clk12),
-        .rst_i(readTimerRst),
-        .rxGotSignal_i(rxDPPLGotSignal_i),
-        .rxTimeout_o(packetWaitTimeout)
-    );
 
 endmodule
