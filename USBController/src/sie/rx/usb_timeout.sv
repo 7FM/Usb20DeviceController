@@ -14,7 +14,8 @@ module usb_timeout(
     A high-speed host or device expecting a response to a transmission must not timeout the transaction if the interpacket delay is less than 736 bit times,
     and it must timeout the transaction if no signaling is seen within 816 bit times.
     */
-    localparam TIMEOUT_TICKS = 16;
+    // localparam TIMEOUT_TICKS = 16;
+    localparam TIMEOUT_TICKS = 17;
     localparam TIMEOUT_CNT_WID = $clog2(TIMEOUT_TICKS);
 
     logic [TIMEOUT_CNT_WID-1:0] timeoutCnt, timeoutCntAdd1;
