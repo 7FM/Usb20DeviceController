@@ -72,10 +72,13 @@ module usb_rx#()(
     // If waiting for EOP -> we need the detection -> clear RST flag
     assign ackEOP_o = ~isRxWaitForEop;
 
-    logic [7:0] inputBufRescue, next_inputBufRescue;
-    logic [7:0] inputBufDelay1, next_inputBufDelay1;
-    logic [7:0] inputBufDelay2, next_inputBufDelay2;
-    logic [7:0] next_rxData;
+    //TODO can we reduce the buffer requirements?
+    logic [7:0] rxQueue [0:3];
+    logic [1:0] rxQueueAddr;
+    initial begin
+        rxQueueAddr = 2'b00;
+    end
+
     logic [3:0] isDataShiftReg, next_isDataShiftReg;
     // This is the last data byte if this currently is a data byte but the next one is not!
     assign rxIsLastByte_o = isDataShiftReg[3] && !isDataShiftReg[2];
@@ -98,23 +101,23 @@ module usb_rx#()(
     // propagate faster (independent from inputBufFull) after we received the EOP signal
     assign rxPropagatePipeline = (rxState != RX_WAIT_FOR_SYNC && inputBufFull) || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
 
+    assign rxData_o = rxQueue[rxQueueAddr];
+    always_ff @(posedge clk12_i) begin
+        rxQueueAddr <= rxQueueAddr + rxPropagatePipeline;
+
+        if (rxPropagatePipeline) begin
+            rxQueue[rxQueueAddr] <= inputBuf;
+        end
+    end
+
     always_comb begin
         // If there is no more data left then we can clear the flag!
         next_byteWasNotReceived = byteWasNotReceived && (isDataShiftReg[3] || isDataShiftReg[2]);
 
         // Data output pipeline
-        next_inputBufRescue = inputBufRescue;
-        next_inputBufDelay1 = inputBufDelay1;
-        next_inputBufDelay2 = inputBufDelay2;
-        next_rxData = rxData_o;
         next_isDataShiftReg = isDataShiftReg;
 
         if (rxPropagatePipeline) begin
-            // Propagate pipeline
-            next_inputBufRescue = inputBuf;
-            next_inputBufDelay1 = inputBufRescue;
-            next_inputBufDelay2 = inputBufDelay1;
-            next_rxData = inputBufDelay2;
             next_isDataShiftReg = {isDataShiftReg[2:0], isByteData && !flushBuffersFast};
 
             // If we want to propagate the pipeline and there was still unread data (isData is set & we have no handshake in the same cycle)
@@ -153,11 +156,8 @@ module usb_rx#()(
 
     // Use faster clock domain for the handshaking logic
     always_ff @(posedge clk12_i) begin
-        inputBufRescue <= next_inputBufRescue;
-        inputBufDelay1 <= next_inputBufDelay1;
-        inputBufDelay2 <= next_inputBufDelay2;
-        rxData_o <= next_rxData;
         isDataShiftReg <= next_isDataShiftReg;
+
         byteWasNotReceived <= next_byteWasNotReceived;
         flushBuffersFast <= next_flushBuffersFast;
     end
