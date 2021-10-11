@@ -211,15 +211,14 @@ module usb_rx#()(
 
         next_rxState = rxState;
         nextNeedCRC16Handling = needCRC16Handling;
-        next_dropPacket = defaultNextDropPacket;
+
+        // Ensure that the previous dropPacket wont be changed by default!
+        next_dropPacket = dropPacket;
         next_byteGotSignalError = defaultNextByteGotSignalError;
         next_lastByteValidCRC = lastByteValidCRC;
 
         unique case (rxState)
             RX_WAIT_FOR_SYNC: begin
-                // Ensure that the previous dropPacket wont be changed until we receive a new packet!
-                next_dropPacket = dropPacket;
-
                 if (syncDetect) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
