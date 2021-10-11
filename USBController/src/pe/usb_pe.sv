@@ -364,7 +364,7 @@ module usb_pe #(
     logic [10:0] maxBytesLeft;
 
     logic sendPID, nextSendPID;
-    assign txReqSendPacket_o = sendPID;
+    assign txReqSendPacket_o = !sendPID && nextSendPID;
     logic sendHandshake, nextSendHandshake;
     logic sentLastByte, nextIsPidLast;
     logic [3:0] pidData;
