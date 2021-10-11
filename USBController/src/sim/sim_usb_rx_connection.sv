@@ -4,7 +4,7 @@
 `ifdef RUN_SIM
 module sim_usb_rx_connection (
     input logic CLK,
-    input logic CLK12, //TODO sync input
+    input logic CLK12,
     input logic USB_DP,
     input logic USB_DN,
     input logic rxRST,

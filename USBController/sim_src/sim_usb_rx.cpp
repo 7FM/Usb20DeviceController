@@ -52,13 +52,16 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
 
         top->rxRST = 0;
         top->rxAcceptNewData = 0;
+        top->CLK12 = 0;
 
         // Simulation state
         signalIdx = 0;
         // Here we could test different signal start offsets!
         delayCnt = 0;
 
-        clk12_counter = 0;
+        clk12_counter = clk12Offset;
+
+        rxState.reset();
     }
 
     bool stopCondition() {
@@ -93,6 +96,8 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
   public:
     // Usb data receive state variables
     UsbReceiveState rxState;
+
+    uint8_t clk12Offset = 0;
 };
 
 /******************************************************************************/
@@ -102,19 +107,23 @@ int main(int argc, char **argv) {
     UsbRxSim sim;
     sim.init(argc, argv);
 
-    // start things going
-    sim.reset();
+    for (sim.clk12Offset = 0; sim.clk12Offset < 4; ++sim.clk12Offset) {
+        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
 
-    // Execute till stop condition
-    while (!sim.run<true>(0));
-    // Execute a few more cycles
-    sim.run<true, false>(4 * 10);
+        // start things going
+        sim.reset();
 
-    {
-        IosFlagSaver flagSaver(std::cout);
-        std::cout << "Received Data:" << std::endl;
-        for (auto data : sim.rxState.receivedData) {
-            std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+        // Execute till stop condition
+        while (!sim.run<true>(0));
+        // Execute a few more cycles
+        sim.run<true, false>(4 * 10);
+
+        {
+            IosFlagSaver flagSaver(std::cout);
+            std::cout << "Received Data:" << std::endl;
+            for (auto data : sim.rxState.receivedData) {
+                std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+            }
         }
     }
 

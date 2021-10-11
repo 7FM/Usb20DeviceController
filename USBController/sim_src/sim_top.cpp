@@ -27,7 +27,8 @@ static void signalHandler(int signal) {
 class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
   private:
-    uint8_t clk12_counter;
+    uint8_t rx_clk12_counter;
+    uint8_t tx_clk12_counter;
 
   public:
     void simReset() {
@@ -38,6 +39,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         top->txData = 0;
         // Data receive interface
         top->rxAcceptNewData = 0;
+        top->rxCLK12 = 0;
+        top->txCLK12 = 0;
 
         top->rxRST = 1;
         // Give modules some time to settle
@@ -48,7 +51,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         rxState.reset();
         txState.reset();
 
-        clk12_counter = 0;
+        tx_clk12_counter = 0;
+        rx_clk12_counter = clk12Offset;
     }
 
     bool stopCondition() {
@@ -56,15 +60,24 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     }
 
     void onRisingEdge() {
-        clk12_counter = (clk12_counter + 1) % 2;
+        tx_clk12_counter = (tx_clk12_counter + 1) % 2;
         bool posedge = false;
         bool negedge = false;
-        if (clk12_counter == 0) {
-            top->CLK12 = !top->CLK12;
-            negedge = !(posedge = top->CLK12);
+        if (tx_clk12_counter == 0) {
+            top->txCLK12 = !top->txCLK12;
+            negedge = !(posedge = top->txCLK12);
         }
+
         if (posedge) {
             feedTransmitSerializer(top, txState);
+        }
+
+        rx_clk12_counter = (rx_clk12_counter + 1) % 2;
+        posedge = false;
+        negedge = false;
+        if (rx_clk12_counter == 0) {
+            top->rxCLK12 = !top->rxCLK12;
+            negedge = !(posedge = top->rxCLK12);
         }
         receiveDeserializedInput(top, rxState, posedge, negedge);
     }
@@ -83,6 +96,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     // Usb data receive state variables
     UsbReceiveState rxState;
     UsbTransmitState txState;
+
+    uint8_t clk12Offset = 0;
 };
 
 template <class T>
