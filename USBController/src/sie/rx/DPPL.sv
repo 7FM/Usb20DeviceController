@@ -10,8 +10,6 @@ module DPPL(
     input logic dpNegEdgeSync_i,
     output logic readCLK12_o,
     output logic DPPLGotSignal_o
-    // TODO is this always true or better read input? also which data would this be? J/K or already decoded NRZI???
-    //, output logic data
 );
 
     typedef enum logic [3:0] {
@@ -37,7 +35,6 @@ module DPPL(
     DPPL_FSM fsmState, nextFsmState, fsmStateNextGrayCode;
 
     assign readCLK12_o = fsmState[1];
-    //assign data = fsmState[2];
     // We got a signal if we are within the left cycle -> received a 0
     assign DPPLGotSignal_o = fsmState == STATE_D || fsmState <= STATE_3;
 
