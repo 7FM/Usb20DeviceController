@@ -6,7 +6,6 @@
 
 module usb#(
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
-    parameter EP_DATA_WID = 8,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic clk48_i,
@@ -108,7 +107,7 @@ module usb#(
     `UNMUTE_LINT(UNDRIVEN) //TODO remove
     `MUTE_LINT(UNUSED) //TODO remove
     logic [ENDPOINTS-2:0] EP_IN_dataAvailable;
-    logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_IN_dataOut;
+    logic [8*(ENDPOINTS-1) - 1:0] EP_IN_dataOut;
     `UNMUTE_LINT(UNUSED) //TODO remove
 
     `MUTE_LINT(UNDRIVEN) //TODO remove
@@ -120,12 +119,11 @@ module usb#(
     logic [ENDPOINTS-2:0] EP_OUT_full;
     `UNMUTE_LINT(UNUSED) //TODO remove
     `MUTE_LINT(UNDRIVEN) //TODO remove
-    logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_OUT_dataIn;
+    logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_dataIn;
     `UNMUTE_LINT(UNDRIVEN) //TODO remove
 
     usb_pe #(
-        .USB_DEV_EP_CONF(USB_DEV_EP_CONF),
-        .EP_DATA_WID(EP_DATA_WID)
+        .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) usbProtocolEngine(
         .clk12_i(clk12),
 
