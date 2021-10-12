@@ -5,7 +5,6 @@
 
 // USB Protocol Engine (PE)
 module usb_pe #(
-    parameter EP_DATA_WID = 8, //TODO this is a pseudo parameter as byte wise data transfers is fixed assumption throughout the code!
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
@@ -43,12 +42,12 @@ module usb_pe #(
     input logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i,
     input logic [ENDPOINTS-2:0] EP_IN_popData_i,
     output logic [ENDPOINTS-2:0] EP_IN_dataAvailable_o,
-    output logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_IN_data_o,
+    output logic [8*(ENDPOINTS-1) - 1:0] EP_IN_data_o,
 
     input logic [ENDPOINTS-2:0] EP_OUT_fillTransDone_i,
     input logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess_i,
     input logic [ENDPOINTS-2:0] EP_OUT_dataValid_i,
-    input logic [EP_DATA_WID*(ENDPOINTS-1) - 1:0] EP_OUT_data_i,
+    input logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_data_i,
     output logic [ENDPOINTS-2:0] EP_OUT_full_o
 );
 
@@ -65,7 +64,7 @@ module usb_pe #(
     logic fillTransDone;
     logic fillTransSuccess;
     logic EP_WRITE_EN;
-    logic [EP_DATA_WID-1:0] wData;
+    logic [8-1:0] wData;
     logic writeFifoFull;
 
     // Used for data to be output
@@ -74,7 +73,7 @@ module usb_pe #(
     logic EP_READ_EN;
     logic readDataAvailable;
     logic readIsLastPacketByte;
-    logic [EP_DATA_WID-1:0] rData;
+    logic [8-1:0] rData;
     logic epResponseValid;
     logic epResponseIsHandshakePID;
     logic [1:0] epResponsePacketID;
@@ -83,14 +82,14 @@ module usb_pe #(
 
     logic [ENDPOINTS-1:0] EP_OUT_dataAvailable;
     logic [ENDPOINTS-1:0] EP_OUT_isLastPacketByte;
-    logic [EP_DATA_WID*ENDPOINTS - 1:0] EP_OUT_dataOut;
+    logic [8*ENDPOINTS - 1:0] EP_OUT_dataOut;
 
     logic [ENDPOINTS-1:0] EP_respValid;
     // If epRespHandshakePID == 1'b1 then epRespPacketID is expected to be for a handshake, otherwise a DATA pid is expected
     logic [ENDPOINTS-1:0] EP_respHandshakePID;
     logic [2*ENDPOINTS - 1:0] EP_respPacketID;
 
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(EP_DATA_WID)) rDataMux (
+    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(8)) rDataMux (
         .dataSelect_i(epSelect),
         .dataVec_i(EP_OUT_dataOut),
         .data_o(rData)
@@ -126,43 +125,43 @@ module usb_pe #(
         .data_o(epResponsePacketID)
     );
 
-    `define CREATE_EP_CASE(x)                                                   \
-        x: `EP_``x``_MODULE(epConfig) epX (                                     \
-            .clk12_i(clk12_i),                                                  \
-            .transStartTokenID_i(upperTransStartPID),                           \
-            .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),        \
-            .deviceConf_i(deviceConf),                                          \
-                                                                                \
-            /* Device IN interface */                                           \
-            .EP_IN_fillTransDone_i(fillTransDone),                              \
-            .EP_IN_fillTransSuccess_i(fillTransSuccess),                        \
-            .EP_IN_dataValid_i(EP_WRITE_EN && isEpSelected),                    \
-            .EP_IN_data_i(wData),                                               \
-            .EP_IN_full_o(EP_IN_full[x]),                                       \
-                                                                                \
-            .EP_IN_popTransDone_i(EP_IN_popTransDone_i[x-1]),                   \
-            .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[x-1]),             \
-            .EP_IN_popData_i(EP_IN_popData_i[x-1]),                             \
-            .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[x-1]),                 \
-            .EP_IN_data_o(EP_IN_data_o[(x-1) * EP_DATA_WID +: EP_DATA_WID]),    \
-                                                                                \
-            /* Device OUT interface */                                          \
-            .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[x-1]),               \
-            .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[x-1]),         \
-            .EP_OUT_dataValid_i(EP_OUT_dataValid_i[x-1]),                       \
-            .EP_OUT_data_i(EP_OUT_data_i[(x-1) * EP_DATA_WID +: EP_DATA_WID]),  \
-            .EP_OUT_full_o(EP_OUT_full_o[x-1]),                                 \
-                                                                                \
-            .EP_OUT_popTransDone_i(popTransDone),                               \
-            .EP_OUT_popTransSuccess_i(popTransSuccess),                         \
-            .EP_OUT_popData_i(EP_READ_EN && isEpSelected),                      \
-            .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[x]),                   \
-            .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[x]),             \
-            .EP_OUT_data_o(EP_OUT_dataOut[x * EP_DATA_WID +: EP_DATA_WID]),     \
-                                                                                \
-            .respValid_o(EP_respValid[x]),                                      \
-            .respHandshakePID_o(EP_respHandshakePID[x]),                        \
-            .respPacketID_o(EP_respPacketID[x * 2 +: 2])                        \
+    `define CREATE_EP_CASE(x)                                               \
+        x: `EP_``x``_MODULE(epConfig) epX (                                 \
+            .clk12_i(clk12_i),                                              \
+            .transStartTokenID_i(upperTransStartPID),                       \
+            .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),    \
+            .deviceConf_i(deviceConf),                                      \
+                                                                            \
+            /* Device IN interface */                                       \
+            .EP_IN_fillTransDone_i(fillTransDone),                          \
+            .EP_IN_fillTransSuccess_i(fillTransSuccess),                    \
+            .EP_IN_dataValid_i(EP_WRITE_EN && isEpSelected),                \
+            .EP_IN_data_i(wData),                                           \
+            .EP_IN_full_o(EP_IN_full[x]),                                   \
+                                                                            \
+            .EP_IN_popTransDone_i(EP_IN_popTransDone_i[x-1]),               \
+            .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[x-1]),         \
+            .EP_IN_popData_i(EP_IN_popData_i[x-1]),                         \
+            .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[x-1]),             \
+            .EP_IN_data_o(EP_IN_data_o[(x-1) * 8 +: 8]),                    \
+                                                                            \
+            /* Device OUT interface */                                      \
+            .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[x-1]),           \
+            .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[x-1]),     \
+            .EP_OUT_dataValid_i(EP_OUT_dataValid_i[x-1]),                   \
+            .EP_OUT_data_i(EP_OUT_data_i[(x-1) * 8 +: 8]),                  \
+            .EP_OUT_full_o(EP_OUT_full_o[x-1]),                             \
+                                                                            \
+            .EP_OUT_popTransDone_i(popTransDone),                           \
+            .EP_OUT_popTransSuccess_i(popTransSuccess),                     \
+            .EP_OUT_popData_i(EP_READ_EN && isEpSelected),                  \
+            .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[x]),               \
+            .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[x]),         \
+            .EP_OUT_data_o(EP_OUT_dataOut[x * 8 +: 8]),                     \
+                                                                            \
+            .respValid_o(EP_respValid[x]),                                  \
+            .respHandshakePID_o(EP_respHandshakePID[x]),                    \
+            .respPacketID_o(EP_respPacketID[x * 2 +: 2])                    \
         )
 
 
@@ -199,7 +198,7 @@ module usb_pe #(
             .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[0]),
             .EP_IN_popData_i(EP_IN_popData_i[0]),
             .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[0]),
-            .EP_IN_data_o(EP_IN_data_o[0 * EP_DATA_WID +: EP_DATA_WID]),
+            .EP_IN_data_o(EP_IN_data_o[0 * 8 +: 8]),
             */
 
             // Device OUT interface
@@ -207,7 +206,7 @@ module usb_pe #(
             .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[0]),
             .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[0]),
             .EP_OUT_dataValid_i(EP_OUT_dataValid_i[0]),
-            .EP_OUT_data_i(EP_OUT_data_i[0 * EP_DATA_WID +: EP_DATA_WID]),
+            .EP_OUT_data_i(EP_OUT_data_i[0 * 8 +: 8]),
             .EP_OUT_full_o(EP_OUT_full_o[0]),
             */
 
@@ -216,7 +215,7 @@ module usb_pe #(
             .EP_OUT_popData_i(EP_READ_EN && isEp0Selected),
             .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[0]),
             .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[0]),
-            .EP_OUT_data_o(EP_OUT_dataOut[0 * EP_DATA_WID +: EP_DATA_WID]),
+            .EP_OUT_data_o(EP_OUT_dataOut[0 * 8 +: 8]),
             .respValid_o(EP_respValid[0]),
             .respHandshakePID_o(EP_respHandshakePID[0]),
             .respPacketID_o(EP_respPacketID[0 +: 2])
