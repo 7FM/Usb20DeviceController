@@ -1,11 +1,6 @@
-module usb_timeout(
-    input logic clk48_i,
-    input logic clk12_i, // Note that this clock has to run all the time, no matter the internal state of the DPPL
-    input logic rst_i,
-    input logic rxGotSignal_i,
-    output logic rxTimeout_o
-);
-
+module usb_timeout #(
+    // Might require fine tuning due to internal delays of bus activity detections
+    parameter TIMEOUT_TICKS = 16,
     /* TIMEOUT REQUIREMENTS:
     The device expecting the response will not time out
     before 16 bit times but will timeout before 18 bit times (measured at the data pins of the device from the SE0-toJ transition at the end of the EOP).
@@ -14,8 +9,14 @@ module usb_timeout(
     A high-speed host or device expecting a response to a transmission must not timeout the transaction if the interpacket delay is less than 736 bit times,
     and it must timeout the transaction if no signaling is seen within 816 bit times.
     */
-    localparam TIMEOUT_TICKS = 16;
     localparam TIMEOUT_CNT_WID = $clog2(TIMEOUT_TICKS);
+)(
+    input logic clk48_i,
+    input logic clk12_i, // Note that this clock has to run all the time, no matter the internal state of the DPPL
+    input logic rst_i,
+    input logic rxGotSignal_i,
+    output logic rxTimeout_o
+);
 
     logic [TIMEOUT_CNT_WID-1:0] timeoutCnt, timeoutCntAdd1;
 
