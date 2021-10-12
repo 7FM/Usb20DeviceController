@@ -160,7 +160,6 @@ class InTransaction {
     bool send(UsbTopSim &sim) {
         //=========================================================================
         // 1. Send Token packet
-        sim.issueDummySignal();
         std::cout << "Send IN token!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -169,7 +168,6 @@ class InTransaction {
 
         //=========================================================================
         // 2. Receive Data packet / Timeout
-        sim.issueDummySignal();
         std::cout << "Receive IN data!" << std::endl;
 
         if (receiveStuff(sim, "Timeout waiting for input data!"))
@@ -177,7 +175,6 @@ class InTransaction {
 
         //=========================================================================
         // 3. (Send Handshake)
-        sim.issueDummySignal();
         std::cout << "Send handshake!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -202,7 +199,6 @@ class OutTransaction {
     bool send(UsbTopSim &sim) {
         //=========================================================================
         // 1. Send Token packet
-        sim.issueDummySignal();
         std::cout << "Send OUT token!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -214,7 +210,6 @@ class OutTransaction {
 
         //=========================================================================
         // 2. Send Data packet
-        sim.issueDummySignal();
         std::cout << "Send OUT data!" << std::endl;
 
         if(sendStuff(sim, [&]{
@@ -225,7 +220,6 @@ class OutTransaction {
 
         //=========================================================================
         // 3. Receive Handshake / Timeout
-        sim.issueDummySignal();
         std::cout << "Wait for response!" << std::endl;
 
         if (receiveStuff(sim, "Timeout waiting for a response!"))
@@ -466,6 +460,7 @@ int main(int argc, char **argv) {
             "Interface Description:"
         };
         for (int i = 0; !failed && i < sizeof(stringDescName)/sizeof(stringDescName[0]); ++i) {
+            sim.issueDummySignal();
             failed |= readDescriptor(result, sim, DESC_STRING, i + 1, ep0MaxPacketSize, addr, 2);
             std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
             prettyPrintDescriptors(result);
@@ -477,6 +472,7 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
+    sim.issueDummySignal();
     std::cout << std::endl << "Lets try reading the configuration descriptor!" << std::endl;
 
     // Read the default configuration
@@ -491,6 +487,7 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
+    sim.issueDummySignal();
     // set address to 42
     std::cout << "Setting device address to 42!" << std::endl;
     failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, 42, ep0MaxPacketSize, 0, 0);
@@ -501,6 +498,7 @@ int main(int argc, char **argv) {
 
     addr = 42;
 
+    sim.issueDummySignal();
     // set configuration value to 1
     std::cout << std::endl << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
     // This is expected to fail!
@@ -510,6 +508,7 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
+    sim.issueDummySignal();
     std::cout << std::endl << "Selecting device configuration 1 (correct addr)!" << std::endl;
     failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
 
