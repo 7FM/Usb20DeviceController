@@ -535,6 +535,7 @@ Device Transaction State Machine Hierarchy Overview:
             end
             BCINTO_ISSUE_RESPONSE: begin
                 nextSendPID = epResponseValid;
+                // nextIsPidLast & nextSendHandshake are set to 1 by default -> overrule EP response to avoid protocol violations... //TODO we might want to fix the EP0 implementation to have matching values...
 
                 if (epResponseValid) begin
                     nextTransState = BCINTO_WAIT_RESPONSE_SENT;

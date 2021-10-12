@@ -183,6 +183,7 @@ module usb_endpoint_0 #(
     ep0_rom #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) ep0rom (
+        .clk(clk12_i),
         .readAddr_i(romTransReadIdx),
         .romData_o(romData)
     );
@@ -223,6 +224,7 @@ module usb_endpoint_0 #(
     typedef enum logic[2:0] {
         IDLE,
         SETUP_STAGE,
+        SETUP_STAGE_RESOLVE_ROM_ADDR_ROM_DELAY,
         SETUP_STAGE_RESOLVE_ROM_ADDR,
         DATA_STAGE,
         STATUS_STAGE
@@ -263,10 +265,17 @@ module usb_endpoint_0 #(
     logic isInStatusStage;
     assign isInStatusStage = ctrlTransState == STATUS_STAGE;
 
+    logic awaitROMData, gotNewROMReq;
+
+    initial begin
+        awaitROMData = 1'b0;
+    end
+
 generate
     always_comb begin
         nextCtrlTransState = ctrlTransState;
 
+        gotNewROMReq = 1'b0;
         gotAddrAssigned = 1'b0;
         gotDevConfig = 1'b0;
         patchPrevDataDir = 1'b0;
@@ -288,7 +297,7 @@ generate
             SETUP_STAGE: begin
                 //TODO how to handle failed transactions: for now lets stay in the state!
                 if (EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) begin
-                    nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : SETUP_STAGE_RESOLVE_ROM_ADDR;
+                    nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : SETUP_STAGE_RESOLVE_ROM_ADDR_ROM_DELAY;
                     // on the state transition from SETUP_STAGE to DATA_STAGE we need to patch prevDataDir such that the DATA_STAGE wont be skipped immediately!
                     patchPrevDataDir = 1'b1;
 
@@ -436,11 +445,16 @@ generate
 
                     // reset transaction counter
                     nextRomTransReadIdx = nextRomReadIdx;
+                    gotNewROMReq = 1'b1;
                 end
             end
+            SETUP_STAGE_RESOLVE_ROM_ADDR_ROM_DELAY: begin
+                gotNewROMReq = 1'b1;
+                nextCtrlTransState = SETUP_STAGE_RESOLVE_ROM_ADDR;
+            end
             SETUP_STAGE_RESOLVE_ROM_ADDR: begin
-                //TODO
                 nextCtrlTransState = DATA_STAGE;
+                gotNewROMReq = 1'b1;
 
                 //TODO this does currently only support a single address byte!
                 nextRomReadIdx = romData;
@@ -475,6 +489,7 @@ generate
         if (ctrlTransState == DATA_STAGE || isInStatusStage) begin
             if (epOutHandshake) begin
                 nextRomTransReadIdx = romTransReadIdx + 1;
+                gotNewROMReq = 1'b1;
                 nextRequestedBytesLeft = requestedBytesLeft - 1;
             end else if (EP_OUT_popTransDone_i) begin
                 if (EP_OUT_popTransSuccess_i) begin
@@ -492,6 +507,7 @@ generate
 endgenerate
 
     always_ff @(posedge clk12_i) begin
+        awaitROMData <= gotNewROMReq;
         ctrlTransState <= nextCtrlTransState;
 
         requestError <= nextRequestError;
@@ -522,7 +538,7 @@ endgenerate
     assign EP_OUT_data_o = isRomDataOutSrc ? romData : (setupDataPacket.bRequest == usb_dev_req_pkg::GET_CONFIGURATION ? deviceConf_o : 8'b0);
     assign EP_OUT_isLastPacketByte_o = requestedBytesLeft == 1;
     // Only show data is available, when we are in a sending state!
-    assign EP_OUT_dataAvailable_o = requestedBytesLeft != 0 && sendDataToHost;
+    assign EP_OUT_dataAvailable_o = !awaitROMData && requestedBytesLeft != 0 && sendDataToHost;
 
     // 1'b1 signals that the PID is a handshake (host sent data or we have an request error)
     // Ignore the direction bit if there is no data stage
@@ -530,7 +546,7 @@ endgenerate
     // This expects the usb_pe to check this flag only after the end of a corresponding phase
     // Also it is expected that if the device is supposed to send something and respValid_o == 1'b1 and EP_OUT_dataAvailable_o == 1'b0, then a zero length data packet should be send!
     // If a packet was incorrectly received then it is also expected that the usb_pe automatically issues a response timeout and ignores these signals!
-    assign respValid_o = 1'b1;
+    assign respValid_o = !awaitROMData;
     // Ensure DATA1 PID is used for the status stage!
     assign respPacketID_o = requestError ? usb_packet_pkg::RES_STALL : (isInTransStart ? {isInStatusStage || epOutDataToggleState, 1'b0} : usb_packet_pkg::RES_ACK);
 

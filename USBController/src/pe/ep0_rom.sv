@@ -7,12 +7,15 @@ module ep0_rom #(
     localparam LUT_ENTRIES = usb_ep_pkg::requiredLUTEntries(USB_DEV_EP_CONF),
     localparam LUT_ROM_SIZE = usb_ep_pkg::requiredLUTROMSize(USB_DEV_EP_CONF)
 )(
+    input logic clk,
     input logic [ROM_IDX_WID-1:0] readAddr_i,
-    output logic [7:0] romData_o
+    output logic [7:0] romData_o // One cycle delayed compared to readAddr_i
 );
 
     logic [7:0] rom [0:EP0_ROM_SIZE-1];
-    assign romData_o = rom[readAddr_i];
+    always_ff @(posedge clk) begin
+        romData_o <= rom[readAddr_i];
+    end
 
     //===============================================================================================================
     // Initialize the ROM
