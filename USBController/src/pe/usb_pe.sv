@@ -329,10 +329,11 @@ module usb_pe #(
     // treat full buffer as error -> not all data could be stored!
     // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
+    //TODO !keepPacket can also have multiple reasons: byte was not received (similar to rxBufFull), CRC error, DP signal error
     assign rxFailCondition = rxBufFull || !keepPacket_i;
 
     always_ff @(posedge clk12_i) begin
-        // Will only be asserted on receiveDone
+        // Will only be asserted on receiveDone -> we dont have to specifically check whether be received a byte & if it was the last byte
         receiveSuccess <= receiveDone || !rxFailCondition;
         // Signal that receiving is done for a single cycle
         receiveDone <= !receiveDone && rxHandshake && rxIsLastByte_i;
@@ -341,6 +342,7 @@ module usb_pe #(
         transactionStarted <= transactionStarted ? !transactionDone : isValidTransStartPacket;
         // Delay gotTransStartPacket to ensure that epSelect is set too! Else the previous endpoint feels responsible!
         gotTransStartPacket <= !transactionStarted && isValidTransStartPacket;
+        //TODO it might be worth considering to replace the epSelect register with an static assign to tokenPacketPart.endptSel[EP_SELECT_WID-1:0]
         epSelect <= transactionStarted ? epSelect : tokenPacketPart.endptSel[EP_SELECT_WID-1:0];
     end
 
@@ -531,6 +533,7 @@ Device Transaction State Machine Hierarchy Overview:
                 end
             end
             BCINTO_ISSUE_RESPONSE: begin
+                //TODO this expects the EP response within X cycles to not trigger USB timeouts! //TODO determine X
                 nextSendPID = epResponseValid;
                 // nextIsPidLast & nextSendHandshake are set to 1 by default -> overrule EP response to avoid protocol violations... //TODO we might want to fix the EP0 implementation to have matching values...
 
@@ -547,6 +550,7 @@ Device Transaction State Machine Hierarchy Overview:
 
             // New transaction types
             IsochI_ISSUE_PACKET, BCINTI_ISSUE_PACKET: begin
+                //TODO this expects the EP response within X cycles to not trigger USB timeouts! //TODO determine X
                 nextSendPID = epResponseValid;
                 // If its an handshake PID we are done, if the EP signals that its ready to respond but no data is available -> send zero data length packet!
                 // Otherwise if the EP want's to indicate that there is no data then it should respond with an NAK and no DATA PID
