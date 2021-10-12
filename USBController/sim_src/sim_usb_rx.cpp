@@ -1,6 +1,7 @@
 #include <atomic>
 #include <csignal>
 #include <cstdint>
+#include <array>
 
 #define TOP_MODULE Vsim_usb_rx
 #include "Vsim_usb_rx.h"       // basic Top header
@@ -107,6 +108,16 @@ int main(int argc, char **argv) {
     UsbRxSim sim;
     sim.init(argc, argv);
 
+    constexpr std::array<uint8_t, 5> expectedOutput = {
+        0xc3,
+        0xde,
+        0xad,
+        0xbe,
+        0xef
+    };
+
+    int testFailed = 0;
+
     for (sim.clk12Offset = 0; sim.clk12Offset < 4; ++sim.clk12Offset) {
         std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
 
@@ -125,7 +136,42 @@ int main(int argc, char **argv) {
                 std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
             }
         }
+
+        if (expectedOutput.size() != sim.rxState.receivedData.size()) {
+            std::cerr << "Unexpected response size! Expected: " << expectedOutput.size() << " got: " << sim.rxState.receivedData.size() << std::endl;
+            ++testFailed;
+        }
+
+        {
+            IosFlagSaver flagSaver(std::cout);
+            for (int i = 0; i < std::min(expectedOutput.size(), sim.rxState.receivedData.size()); ++i) {
+                if (expectedOutput[i] != sim.rxState.receivedData[i]) {
+                    std::cerr << "Received wrong data at index: " << std::dec << i << "! Expected: " << std::hex << static_cast<int>(expectedOutput[i]) << " got: " << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << std::endl;
+                    ++testFailed;
+                }
+            }
+        }
+
+        // Finally check that the packet should be kept!
+        if (!sim.rxState.keepPacket) {
+            std::cerr << "Keep packet has an unexpected value! Expected: " << true << " got: " << sim.rxState.keepPacket << std::endl;
+            ++testFailed;
+        }
+
     }
+
+    std::cout << std::endl
+              << "Tests ";
+
+    if (forceStop) {
+        std::cout << "ABORTED!" << std::endl;
+        std::cerr << "The user requested a forced stop!" << std::endl;
+    } else if (testFailed) {
+        std::cout << "FAILED!" << std::endl;
+    } else {
+        std::cout << "PASSED!" << std::endl;
+    }
+
 
     return 0;
 }
