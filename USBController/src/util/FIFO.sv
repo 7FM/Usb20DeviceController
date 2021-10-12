@@ -3,8 +3,7 @@
 module FIFO #(
     parameter ADDR_WID = 9,
     parameter DATA_WID = 8,
-    parameter ENTRIES = 0,
-    parameter bit REDUCE_COMB_PATH = 1
+    parameter ENTRIES = 0
 )(
     input logic clk_i,
 
@@ -27,13 +26,11 @@ module FIFO #(
     input logic popTransSuccess_i,
     input logic popData_i,
     output logic dataAvailable_o,
-    output logic [DATA_WID-1:0] data_o
+    output logic [DATA_WID-1:0] data_o //NOTE: data_o will be delayed by one cycle compared to the rAddr_o signal!
 );
 
-//TODO we might wanna use the trick from ASYNC_FIFO here too to avoid being able to only store ENTRIES-1 element at a time!
-
-    logic [ADDR_WID-1:0] dataCounter, readCounter;
-    logic [ADDR_WID-1:0] transDataCounter, transReadCounter, next_transDataCounter, next_transReadCounter;
+    logic [ADDR_WID:0] dataCounter, readCounter;
+    logic [ADDR_WID:0] transDataCounter, transReadCounter, next_transDataCounter, next_transReadCounter;
 
     // the data available flag compares registers -> okish combinatorial path
     assign dataAvailable_o = transReadCounter != dataCounter;
@@ -44,9 +41,9 @@ module FIFO #(
 
     // Attach signals to memory interface
     assign wEn_o = writeHandshake;
-    assign wAddr_o = transDataCounter;
+    assign wAddr_o = transDataCounter[ADDR_WID-1:0];
     assign wData_o = data_i;
-    assign rAddr_o = transReadCounter;
+    assign rAddr_o = transReadCounter[ADDR_WID-1:0];
     assign data_o = rData_i;
 
     localparam MAX_IDX = ENTRIES - 1;
@@ -59,30 +56,18 @@ generate
         assign next_transReadCounter = transReadCounter + 1; // Abuses overflows to avoid wrap around logic
     end else begin
         // Otherwise not the entire address space is memory backed -> we need to make bounds checks to avoid invalid states & memory requests
-        assign next_transDataCounter = transDataCounter == MAX_IDX[ADDR_WID-1:0] ? {ADDR_WID{1'b0}} : transDataCounter + 1;
-        assign next_transReadCounter = transReadCounter == MAX_IDX[ADDR_WID-1:0] ? {ADDR_WID{1'b0}} : transReadCounter + 1;
+        assign next_transDataCounter = transDataCounter[ADDR_WID-1:0] == MAX_IDX[ADDR_WID-1:0] ? {!transDataCounter[ADDR_WID], {ADDR_WID{1'b0}}} : transDataCounter + 1;
+        assign next_transReadCounter = transReadCounter[ADDR_WID-1:0] == MAX_IDX[ADDR_WID-1:0] ? {!transReadCounter[ADDR_WID], {ADDR_WID{1'b0}}} : transReadCounter + 1;
     end
 
     // Reduce the combinatorial path by adding an additional counter that stores how many elements are left
-    `MUTE_LINT(UNUSED)
-    logic [ADDR_WID-1:0] prevReadCounter;
-    `UNMUTE_LINT(UNUSED)
-    if (REDUCE_COMB_PATH) begin
-        // We can shorten the critical path by storing the prevReadCounter to compare the current transDataCounter with
-        assign full_o = transDataCounter == prevReadCounter;
-    end else begin
-        // this flag has a rather long critial path as it has to perform an addition before comparing!
-        assign full_o = next_transDataCounter == readCounter;
-    end
+    assign full_o = transDataCounter[ADDR_WID] != readCounter[ADDR_WID] && transDataCounter[ADDR_WID-1:0] == readCounter[ADDR_WID-1:0];
 
     initial begin
         dataCounter = 0;
         transDataCounter = 0;
         readCounter = 0;
         transReadCounter = 0;
-        if (REDUCE_COMB_PATH) begin
-            prevReadCounter = MAX_IDX[ADDR_WID-1:0];
-        end
     end
 
     always_ff @(posedge clk_i) begin
@@ -107,13 +92,6 @@ generate
             if (popTransSuccess_i) begin
                 // if it was successful we want to update our permanent read counter
                 readCounter <= transReadCounter;
-                if (REDUCE_COMB_PATH) begin
-                    if (ENTRIES <= 0 || ENTRIES == 2**ADDR_WID) begin
-                        prevReadCounter <= transReadCounter - 1;
-                    end else begin
-                        prevReadCounter <= transReadCounter == 0 ? MAX_IDX : transReadCounter - 1;
-                    end
-                end
             end else begin
                 // if it was unsuccessful we need to reset out transaction read counter
                 transReadCounter <= readCounter;

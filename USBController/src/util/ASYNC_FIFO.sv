@@ -1,5 +1,5 @@
 // Credits go to:
-// http://www.sunburst-design.com/papers/CummingsSNUG2002SJ_FIFO1.pdf and https://zipcpu.com/blog/2017/07/29/fifo.html
+// http://www.sunburst-design.com/papers/CummingsSNUG2002SJ_FIFO1.pdf and https://zipcpu.com/blog/2018/07/06/afifo.html
 
 module ASYNC_FIFO #(
     parameter ADDR_WID = 2, // Minimal required address width
@@ -13,7 +13,7 @@ module ASYNC_FIFO #(
     input logic r_clk_i,
     input logic popData_i,
     output logic empty_o,
-    output logic [DATA_WID-1:0] data_o
+    output logic [DATA_WID-1:0] data_o //NOTE: data_o will be delayed by one cycle compared to the associated handshake!
 );
 
     //TODO initialization & reset logic!
@@ -88,7 +88,8 @@ module ASYNC_FIFO #(
 
     always_ff @(posedge w_clk_i) begin
         wAddr <= wAddr + writeHandshake;
-
+    end
+    always_ff @(posedge w_clk_i) begin
         if (writeHandshake) begin
             mem[wAddr[ADDR_WID-1:0]] <= data_i;
         end
@@ -98,7 +99,6 @@ module ASYNC_FIFO #(
     //===========================Read clock domain===========================
     //=======================================================================
 
-    assign data_o = mem[rAddr[ADDR_WID-1:0]];
     // The empty condition does still work with an simple comparison as each gray code is unique
     // -> equality still means that the address pointers point to the same element -> the fifo is empty
     assign empty_o = rAddrGrayCode == wAddrGrayCode_synced;
@@ -108,6 +108,9 @@ module ASYNC_FIFO #(
 
     always_ff @(posedge r_clk_i) begin
         rAddr <= rAddr + readHandshake;
+    end
+    always_ff @(posedge r_clk_i) begin
+        data_o <= mem[rAddr[ADDR_WID-1:0]];
     end
 
 endmodule
