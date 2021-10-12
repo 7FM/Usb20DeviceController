@@ -43,7 +43,8 @@ module cdc_tx(
 
     ASYNC_FIFO #(
         .ADDR_WID(2),
-        .DATA_WID(9)
+        .DATA_WID(9),
+        .USE_DRAM(1)
     ) cdcFifo (
         .w_clk_i(clk1),
         .dataValid_i(txDataValid_i),

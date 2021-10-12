@@ -3,7 +3,8 @@
 
 module ASYNC_FIFO #(
     parameter ADDR_WID = 2, // Minimal required address width
-    parameter DATA_WID = 8
+    parameter DATA_WID = 8,
+    parameter bit USE_DRAM = 0
 )(
     input logic w_clk_i,
     input logic dataValid_i,
@@ -13,7 +14,9 @@ module ASYNC_FIFO #(
     input logic r_clk_i,
     input logic popData_i,
     output logic empty_o,
-    output logic [DATA_WID-1:0] data_o //NOTE: data_o will be delayed by one cycle compared to the associated handshake!
+    //NOTE: data_o will be delayed by one cycle compared to the associated handshake!
+    // This can be avoided if USE_DRAM = 1 is set, HOWEVER this can drastically increase the LUT usage (LUT as Memory)
+    output logic [DATA_WID-1:0] data_o
 );
 
     //TODO initialization & reset logic!
@@ -109,8 +112,14 @@ module ASYNC_FIFO #(
     always_ff @(posedge r_clk_i) begin
         rAddr <= rAddr + readHandshake;
     end
-    always_ff @(posedge r_clk_i) begin
-        data_o <= mem[rAddr[ADDR_WID-1:0]];
+generate
+    if (USE_DRAM) begin
+        assign data_o = mem[rAddr[ADDR_WID-1:0]];
+    end else begin       
+        always_ff @(posedge r_clk_i) begin
+            data_o <= mem[rAddr[ADDR_WID-1:0]];
+        end
     end
+endgenerate
 
 endmodule

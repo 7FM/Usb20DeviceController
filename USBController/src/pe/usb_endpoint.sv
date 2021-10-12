@@ -58,8 +58,8 @@ module usb_endpoint#(
     localparam EP_DATA_WID = 8;
 
     BRAM_FIFO #(
-        .EP_ADDR_WID(EP_ADDR_WID),
-        .EP_DATA_WID(EP_DATA_WID)
+        .ADDR_WID(EP_ADDR_WID),
+        .DATA_WID(EP_DATA_WID)
     ) fifoXIn(
         .clk_i(clk12_i),
 
@@ -77,8 +77,8 @@ module usb_endpoint#(
     );
 
     BRAM_FIFO #(
-        .EP_ADDR_WID(EP_ADDR_WID),
-        .EP_DATA_WID(EP_DATA_WID)
+        .ADDR_WID(EP_ADDR_WID),
+        .DATA_WID(EP_DATA_WID)
     ) fifoXOut(
         .clk_i(clk12_i),
 
