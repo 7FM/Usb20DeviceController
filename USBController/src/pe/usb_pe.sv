@@ -295,7 +295,6 @@ module usb_pe #(
     logic receiveSuccess;
     initial begin
         receiveDone = 1'b0;
-        receiveSuccess = 1'b1;
         transactionStarted = 1'b0;
         gotTransStartPacket = 1'b0;
     end
@@ -324,35 +323,25 @@ module usb_pe #(
     assign isTokenPID = packetPID[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
 
     logic isValidTransStartPacket;
-    assign isValidTransStartPacket = receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
+    assign isValidTransStartPacket = receiveDone && receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
 
+    logic rxFailCondition;
+    // treat full buffer as error -> not all data could be stored!
+    // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
+    assign rxFailCondition = rxBufFull || !keepPacket_i;
+
     always_ff @(posedge clk12_i) begin
+        // Will only be asserted on receiveDone
+        receiveSuccess <= receiveDone || !rxFailCondition;
+        // Signal that receiving is done for a single cycle
+        receiveDone <= !receiveDone && rxHandshake && rxIsLastByte_i;
+
+        // Only start the transaction if we recieved the packet correctly!
+        transactionStarted <= transactionStarted ? !transactionDone : isValidTransStartPacket;
         // Delay gotTransStartPacket to ensure that epSelect is set too! Else the previous endpoint feels responsible!
-        gotTransStartPacket <= !transactionStarted && receiveDone && isValidTransStartPacket;
-
-        if (transactionDone) begin
-            transactionStarted <= 1'b0;
-        end else if (receiveDone) begin
-            receiveDone <= 1'b0;
-            receiveSuccess <= 1'b1;
-
-            // check that the endptSel is in bounds!
-            if (!transactionStarted) begin
-                // Only start the transaction if we recieved the packet correctly!
-                if (isValidTransStartPacket) begin
-                    transactionStarted <= 1'b1;
-                    epSelect <= tokenPacketPart.endptSel[EP_SELECT_WID-1:0];
-                end
-            end
-        end else if (rxHandshake) begin
-            if (rxBufFull || (rxIsLastByte_i && !keepPacket_i)) begin
-                // treat full buffer as error -> not all data could be stored!
-                // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
-                receiveSuccess <= 1'b0;
-            end
-            receiveDone <= rxIsLastByte_i;
-        end
+        gotTransStartPacket <= !transactionStarted && isValidTransStartPacket;
+        epSelect <= transactionStarted ? epSelect : tokenPacketPart.endptSel[EP_SELECT_WID-1:0];
     end
 
 //====================================================================================
