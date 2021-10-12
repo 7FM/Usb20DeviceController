@@ -363,8 +363,9 @@ module usb_pe #(
     // This counter is used to ensure that we do not send more than max. packet size many bytes!
     logic [10:0] maxBytesLeft;
 
+    logic issuePacket;
+    assign txReqSendPacket_o = issuePacket;
     logic sendPID, nextSendPID;
-    assign txReqSendPacket_o = !sendPID && nextSendPID;
     logic sendHandshake, nextSendHandshake;
     logic sentLastByte, nextIsPidLast;
     logic [3:0] pidData;
@@ -477,6 +478,9 @@ Device Transaction State Machine Hierarchy Overview:
 
         forceInternalBuf = 1'b0;
 
+        // By default we do not want to issue a request
+        issuePacket = 1'b0; //TODO this might be replaced with isSendingPhase
+
         unique case (transState)
             PE_RST_RX_CLK: begin
                 // Ensure that the we start with a new transaction
@@ -495,6 +499,7 @@ Device Transaction State Machine Hierarchy Overview:
                     if (isDevIn) begin
                         // We are sending data to the device
                         nextIsSendingPhase = 1'b1;
+                        issuePacket = 1'b1;
                         // Either IsochI_ISSUE_PACKET or BCINTI_ISSUE_PACKET
                         nextTransState = isEpIsochronous ? IsochI_ISSUE_PACKET : BCINTI_ISSUE_PACKET;
                     end else begin
@@ -509,6 +514,7 @@ Device Transaction State Machine Hierarchy Overview:
                 readTimerRst_o = 1'b1;
             end
 
+            // New transaction types
             IsochO_HANDLE_PACKET: begin
                 fillTransSuccess = receiveSuccess;
                 fillTransDone = receiveDone;
@@ -519,6 +525,7 @@ Device Transaction State Machine Hierarchy Overview:
                 end
             end
 
+            // New transaction types
             BCINTO_HANDLE_PACKET: begin
                 fillTransSuccess = receiveSuccess;
                 fillTransDone = receiveDone;
@@ -531,6 +538,7 @@ Device Transaction State Machine Hierarchy Overview:
 
                     // We are sending data to the device
                     nextIsSendingPhase = 1'b1;
+                    issuePacket = receiveSuccess;
                 end
             end
             BCINTO_ISSUE_RESPONSE: begin
@@ -548,7 +556,8 @@ Device Transaction State Machine Hierarchy Overview:
                 end
             end
 
-           IsochI_ISSUE_PACKET, BCINTI_ISSUE_PACKET: begin
+            // New transaction types
+            IsochI_ISSUE_PACKET, BCINTI_ISSUE_PACKET: begin
                 nextSendPID = epResponseValid;
                 // If its an handshake PID we are done, if the EP signals that its ready to respond but no data is available -> send zero data length packet!
                 // Otherwise if the EP want's to indicate that there is no data then it should respond with an NAK and no DATA PID
