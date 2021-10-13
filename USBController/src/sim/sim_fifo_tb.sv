@@ -16,7 +16,6 @@ module sim_fifo_tb (
     output logic [EP_DATA_WID-1:0] data_o
 );
 
-
     localparam EP_ADDR_WID = 9;
     localparam EP_DATA_WID = 8;
 

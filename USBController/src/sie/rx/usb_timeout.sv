@@ -9,7 +9,7 @@ module usb_timeout #(
     A high-speed host or device expecting a response to a transmission must not timeout the transaction if the interpacket delay is less than 736 bit times,
     and it must timeout the transaction if no signaling is seen within 816 bit times.
     */
-    localparam TIMEOUT_CNT_WID = $clog2(TIMEOUT_TICKS);
+    localparam TIMEOUT_CNT_WID = $clog2(TIMEOUT_TICKS)
 )(
     input logic clk48_i,
     input logic clk12_i, // Note that this clock has to run all the time, no matter the internal state of the DPPL

@@ -47,8 +47,7 @@ module usb_endpoint #(
     logic [1:0] respPacketID_IN;
 
     usb_endpoint_in #(
-        .EP_CONF(EP_CONF),
-        .USB_DEV_CONF_WID(USB_DEV_CONF_WID)
+        .EP_CONF(EP_CONF)
     ) epXin (
         .clk12_i(clk12_i),
 
@@ -79,8 +78,7 @@ module usb_endpoint #(
     logic [1:0] respPacketID_OUT;
 
     usb_endpoint_out #(
-        .EP_CONF(EP_CONF),
-        .USB_DEV_CONF_WID(USB_DEV_CONF_WID)
+        .EP_CONF(EP_CONF)
     ) epXout (
         .clk12_i(clk12_i),
 
