@@ -59,6 +59,7 @@ module usb_pe #(
     logic [EP_SELECT_WID-1:0] epSelect;
     logic [1:0] upperTransStartPID;
     logic gotTransStartPacket;
+    logic isHostIn;
 
     // Used for received data
     logic fillTransDone;
@@ -77,6 +78,7 @@ module usb_pe #(
     logic epResponseValid;
     logic epResponseIsHandshakePID;
     logic [1:0] epResponsePacketID;
+    logic resetDataToggle;
 
     logic [ENDPOINTS-1:0] EP_IN_full;
 
@@ -128,9 +130,11 @@ module usb_pe #(
     `define CREATE_EP_CASE(x)                                               \
         x: `EP_``x``_MODULE(epConfig) epX (                                 \
             .clk12_i(clk12_i),                                              \
-            .transStartTokenID_i(upperTransStartPID),                       \
             .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),    \
+            .isHostIn_i(isHostIn),                                          \
+            .transStartTokenID_i(upperTransStartPID),                       \
             .deviceConf_i(deviceConf),                                      \
+            .resetDataToggle_i(resetDataToggle),                            \
                                                                             \
             /* Device IN interface */                                       \
             .EP_IN_fillTransDone_i(fillTransDone),                          \
@@ -182,6 +186,7 @@ module usb_pe #(
             .ackUsbResetDetect_o(ackUsbResetDetect_o),
             .deviceAddr_o(deviceAddr),
             .deviceConf_o(deviceConf),
+            .resetDataToggle_o(resetDataToggle),
 
             .transStartTokenID_i(upperTransStartPID),
             .gotTransStartPacket_i(gotTransStartPacket && isEp0Selected),
@@ -445,7 +450,6 @@ Device Transaction State Machine Hierarchy Overview:
         isSendingPhase_o = 1'b0;
     end
 
-    logic isHostIn;
     assign isHostIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
     logic isEpIsochronous;
 

@@ -15,6 +15,7 @@ module usb_endpoint_0 #(
     output logic ackUsbResetDetect_o,
     output logic [USB_DEV_ADDR_WID-1:0] deviceAddr_o,
     output logic [USB_DEV_CONF_WID-1:0] deviceConf_o,
+    output logic resetDataToggle_o,
 
     input logic gotTransStartPacket_i,
     input logic [1:0] transStartTokenID_i,
@@ -270,6 +271,10 @@ module usb_endpoint_0 #(
     initial begin
         awaitROMData = 1'b0;
     end
+
+    // reset upon configuration event: SetConfiguration() or ClearFeature(ENDPOINT_HALT) device request!
+    assign resetDataToggle_o = gotDevConfig; // This flag is only intended for SetConfiguration() and is shared amoung all endpoints
+    // we also need to reset the DATA toggle state endpoint specific for ClearFeature(ENDPOINT_HALT) requests!
 
 generate
     always_comb begin

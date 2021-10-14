@@ -7,8 +7,10 @@ module usb_endpoint #(
     input logic clk12_i,
 
     input logic gotTransStartPacket_i,
+    input logic isHostIn_i,
     input logic [1:0] transStartTokenID_i,
     input logic [USB_DEV_CONF_WID-1:0] deviceConf_i,
+    input logic resetDataToggle_i,
 
     // Device IN interface
     input logic EP_IN_fillTransDone_i,
@@ -51,9 +53,10 @@ module usb_endpoint #(
     ) epXin (
         .clk12_i(clk12_i),
 
-        .gotTransStartPacket_i(gotTransStartPacket_i),
+        .gotTransStartPacket_i(gotTransStartPacket_i && !isHostIn_i),
         .transStartTokenID_i(transStartTokenID_i),
         .deviceConf_i(deviceConf_i),
+        .resetDataToggle_i(resetDataToggle_i),
 
         // Device IN interface
         .EP_IN_fillTransDone_i(EP_IN_fillTransDone_i),
@@ -82,9 +85,10 @@ module usb_endpoint #(
     ) epXout (
         .clk12_i(clk12_i),
 
-        .gotTransStartPacket_i(gotTransStartPacket_i),
+        .gotTransStartPacket_i(gotTransStartPacket_i && !isHostIn_i),
         .transStartTokenID_i(transStartTokenID_i),
         .deviceConf_i(deviceConf_i),
+        .resetDataToggle_i(resetDataToggle_i),
 
         // Device OUT interface
         .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i),
@@ -105,10 +109,8 @@ module usb_endpoint #(
         .respPacketID_o(respPacketID_OUT)
     );
 
-    logic targetsEpIN; //TODO
-
-    assign {respValid_o, respHandshakePID_o, respPacketID_o} = targetsEpIN ? 
-           {respValid_IN, respHandshakePID_IN, respPacketID_IN}
-        :  {respValid_OUT, respHandshakePID_OUT, respPacketID_OUT};
+    assign {respValid_o, respHandshakePID_o, respPacketID_o} =  isHostIn_i ? 
+           {respValid_OUT, respHandshakePID_OUT, respPacketID_OUT}
+        :  {respValid_IN, respHandshakePID_IN, respPacketID_IN};
 
 endmodule
