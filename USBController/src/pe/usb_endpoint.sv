@@ -23,6 +23,8 @@ module usb_endpoint #(
     input logic EP_IN_popTransSuccess_i,
     input logic EP_IN_popData_i,
     output logic EP_IN_dataAvailable_o,
+    //NOTE: EP_IN_data_o will be delayed by one cycle compared to the corresponding handshake signal!
+    //TODO provide parameter to adjust this behaviour: option 1: max. speed -> as described above, option 2: half speed + additional logic to await that the data is read before rising the EP_IN_dataAvailable_o flag
     output logic [7:0] EP_IN_data_o,
 
     // Device OUT interface
