@@ -445,8 +445,8 @@ Device Transaction State Machine Hierarchy Overview:
         isSendingPhase_o = 1'b0;
     end
 
-    logic isDevIn;
-    assign isDevIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
+    logic isHostIn;
+    assign isHostIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
     logic isEpIsochronous;
 
     logic nextIsSendingPhase;
@@ -486,8 +486,8 @@ Device Transaction State Machine Hierarchy Overview:
             end
             PE_WAIT_FOR_TRANSACTION: begin
                 if (transactionStarted) begin
-                    if (isDevIn) begin
-                        // We are sending data to the device
+                    if (isHostIn) begin
+                        // We are sending data to the host
                         nextIsSendingPhase = 1'b1;
                         issuePacket = 1'b1;
                         // Either IsochI_ISSUE_PACKET or BCINTI_ISSUE_PACKET
@@ -641,8 +641,8 @@ generate
             end
         end
 
-        // assign isEpIsochronous = {(isDevIn ? isEpOutIsochronousLUT : isEpInIsochronousLUT), 1'b0}[epSelect];
-        assign isEpIsochronous = (|epSelect) && (isDevIn ? isEpOutIsochronousLUT[epSelect-1] : isEpInIsochronousLUT[epSelect-1]);
+        // assign isEpIsochronous = {(isHostIn ? isEpOutIsochronousLUT : isEpInIsochronousLUT), 1'b0}[epSelect];
+        assign isEpIsochronous = (|epSelect) && (isHostIn ? isEpOutIsochronousLUT[epSelect-1] : isEpInIsochronousLUT[epSelect-1]);
     end else begin
         assign isEpIsochronous = 1'b0;
     end
