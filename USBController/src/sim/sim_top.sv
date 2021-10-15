@@ -2,7 +2,10 @@
 `include "util_macros.sv"
 
 `ifdef RUN_SIM
-module sim_top (
+module sim_top #(
+    localparam usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF = usb_ep_pkg::DefaultUsbDeviceEpConfig,
+    localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
+)(
     input logic CLK,
     input logic rxCLK12,
     input logic txCLK12,
@@ -30,7 +33,22 @@ module sim_top (
 
     // Timeout interface
     input logic resetTimeout,
-    output logic gotTimeout
+    output logic gotTimeout,
+
+    // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
+    // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
+    output logic EP_CLK12,
+    input logic [ENDPOINTS-2:0] EP_IN_popTransDone_i,
+    input logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i,
+    input logic [ENDPOINTS-2:0] EP_IN_popData_i,
+    output logic [ENDPOINTS-2:0] EP_IN_dataAvailable_o,
+    output logic [8*(ENDPOINTS-1) - 1:0] EP_IN_data_o, // Note the EP dependent timing conditions compared to the EP_IN_dataAvailable_o flag!
+
+    input logic [ENDPOINTS-2:0] EP_OUT_fillTransDone_i,
+    input logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess_i,
+    input logic [ENDPOINTS-2:0] EP_OUT_dataValid_i,
+    input logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_data_i,
+    output logic [ENDPOINTS-2:0] EP_OUT_full_o
 );
 
     logic USB_DP;
@@ -44,7 +62,21 @@ module sim_top (
         .USB_DP_OUT(USB_DP_OUT),
         .USB_DN(USB_DN),
         .USB_DN_OUT(USB_DN_OUT),
-        `MUTE_PIN_CONNECT_EMPTY(USB_PULLUP)
+        `MUTE_PIN_CONNECT_EMPTY(USB_PULLUP),
+
+        // Endpoint interfaces
+        .clk12_o(EP_CLK12),
+        .EP_IN_popData_i(EP_IN_popData_i),
+        .EP_IN_popTransDone_i(EP_IN_popTransDone_i),
+        .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i),
+        .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o),
+        .EP_IN_data_o(EP_IN_data_o),
+
+        .EP_OUT_dataValid_i(EP_OUT_dataValid_i),
+        .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i),
+        .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i),
+        .EP_OUT_full_o(EP_OUT_full_o),
+        .EP_OUT_data_i(EP_OUT_data_i)
     );
 
     sim_usb_tx_connection hostTxImitator(

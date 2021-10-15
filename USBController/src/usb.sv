@@ -9,6 +9,8 @@ module usb#(
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic clk48_i,
+
+    // Raw USB interface
 `ifdef RUN_SIM
     input logic USB_DP,
     input logic USB_DN,
@@ -18,10 +20,26 @@ module usb#(
     inout logic USB_DP,
     inout logic USB_DN,
 `endif
-    output logic USB_PULLUP_o
+    output logic USB_PULLUP_o,
+
+    // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
+    // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
+    output logic clk12_o,
+    input logic [ENDPOINTS-2:0] EP_IN_popTransDone_i,
+    input logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i,
+    input logic [ENDPOINTS-2:0] EP_IN_popData_i,
+    output logic [ENDPOINTS-2:0] EP_IN_dataAvailable_o,
+    output logic [8*(ENDPOINTS-1) - 1:0] EP_IN_data_o, // Note the EP dependent timing conditions compared to the EP_IN_dataAvailable_o flag!
+
+    input logic [ENDPOINTS-2:0] EP_OUT_fillTransDone_i,
+    input logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess_i,
+    input logic [ENDPOINTS-2:0] EP_OUT_dataValid_i,
+    input logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_data_i,
+    output logic [ENDPOINTS-2:0] EP_OUT_full_o
 );
 
     logic clk12;
+    assign clk12_o = clk12;
 
 //====================================================================================
 //============================USB Serial Interface Engine=============================
@@ -97,31 +115,6 @@ module usb#(
     logic readTimerRst;
     logic packetWaitTimeout;
 
-    //TODO export
-    // Endpoint interfaces
-
-    `MUTE_LINT(UNDRIVEN) //TODO remove
-    logic [ENDPOINTS-2:0] EP_IN_popData;
-    logic [ENDPOINTS-2:0] EP_IN_popTransDone;
-    logic [ENDPOINTS-2:0] EP_IN_popTransSuccess;
-    `UNMUTE_LINT(UNDRIVEN) //TODO remove
-    `MUTE_LINT(UNUSED) //TODO remove
-    logic [ENDPOINTS-2:0] EP_IN_dataAvailable;
-    logic [8*(ENDPOINTS-1) - 1:0] EP_IN_dataOut;
-    `UNMUTE_LINT(UNUSED) //TODO remove
-
-    `MUTE_LINT(UNDRIVEN) //TODO remove
-    logic [ENDPOINTS-2:0] EP_OUT_dataValid;
-    logic [ENDPOINTS-2:0] EP_OUT_fillTransDone;
-    logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess;
-    `UNMUTE_LINT(UNDRIVEN) //TODO remove
-    `MUTE_LINT(UNUSED) //TODO remove
-    logic [ENDPOINTS-2:0] EP_OUT_full;
-    `UNMUTE_LINT(UNUSED) //TODO remove
-    `MUTE_LINT(UNDRIVEN) //TODO remove
-    logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_dataIn;
-    `UNMUTE_LINT(UNDRIVEN) //TODO remove
-
     usb_pe #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) usbProtocolEngine(
@@ -155,17 +148,17 @@ module usb#(
         .txAcceptNewData_i(txAcceptNewData),
 
         // Endpoint interfaces
-        .EP_IN_popData_i(EP_IN_popData),
-        .EP_IN_popTransDone_i(EP_IN_popTransDone),
-        .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess),
-        .EP_IN_dataAvailable_o(EP_IN_dataAvailable),
-        .EP_IN_data_o(EP_IN_dataOut),
+        .EP_IN_popData_i(EP_IN_popData_i),
+        .EP_IN_popTransDone_i(EP_IN_popTransDone_i),
+        .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i),
+        .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o),
+        .EP_IN_data_o(EP_IN_data_o),
 
-        .EP_OUT_dataValid_i(EP_OUT_dataValid),
-        .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone),
-        .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess),
-        .EP_OUT_full_o(EP_OUT_full),
-        .EP_OUT_data_i(EP_OUT_dataIn)
+        .EP_OUT_dataValid_i(EP_OUT_dataValid_i),
+        .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i),
+        .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i),
+        .EP_OUT_full_o(EP_OUT_full_o),
+        .EP_OUT_data_i(EP_OUT_data_i)
     );
 
 //====================================================================================
