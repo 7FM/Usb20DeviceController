@@ -11,6 +11,7 @@
 #include "common/print_utils.hpp"
 #include "common/usb_transactions.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
+#include "common/fifo_utils.hpp"
 
 static std::atomic_bool forceStop = false;
 
@@ -193,6 +194,17 @@ int main(int argc, char **argv) {
     sim.issueDummySignal();
     std::cout << std::endl << "Selecting device configuration 1 (correct addr)!" << std::endl;
     failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
+
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
+    //TODO fill EP1_OUT fifo
+    //TODO request data from EP1
+
+
+    //TODO send data to EP1
+    //TODO check contents of EP1_IN fifo
 
 exitAndCleanup:
 
