@@ -37,6 +37,7 @@ endgenerate
         timeoutCnt = {TIMEOUT_CNT_WID{1'b0}};
     end
 
+    //TODO minimize risk of metastability (rst_i is from a different clock domain!)
     always_ff @(posedge clk48_i) begin
         //gotSignalSync <= rst_i ? 1'b0 : |timeoutCnt && (gotSignalSync || rxGotSignal_i);
         // Might be very bad if we miss this signal!

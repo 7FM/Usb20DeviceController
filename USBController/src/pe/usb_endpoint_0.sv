@@ -488,7 +488,7 @@ generate
             end
         endcase
 
-        nextEpOutDataToggleState = epOutDataToggleState;
+        nextEpOutDataToggleState = epOutDataToggleState; //TODO this must probaly be reset for new transactions?
         //nextPidData1Expected = pidData1Expected;
 
         if (ctrlTransState == DATA_STAGE || isInStatusStage) begin
