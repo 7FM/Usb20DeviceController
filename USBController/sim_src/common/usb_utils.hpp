@@ -338,15 +338,15 @@ struct UsbReceiveState {
 };
 
 template <typename T>
-void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
-    if (posedge && ptop->rxAcceptNewData && ptop->rxDataValid) {
-        usbRxState.receivedData.push_back(ptop->rxData);
+void receiveDeserializedInput(T *top, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
+    if (posedge && top->rxAcceptNewData && top->rxDataValid) {
+        usbRxState.receivedData.push_back(top->rxData);
 
-        if (ptop->rxIsLastByte) {
+        if (top->rxIsLastByte) {
             if (usbRxState.receivedLastByte) {
                 std::cerr << "Error: received bytes after last signal was set!" << std::endl;
             } else {
-                usbRxState.keepPacket = ptop->keepPacket;
+                usbRxState.keepPacket = top->keepPacket;
                 std::cout << "Received last byte! Overall packet size: " << usbRxState.receivedData.size() << std::endl;
                 std::cout << "Usb RX module keepPacket: " << usbRxState.keepPacket << std::endl;
             }
@@ -355,22 +355,22 @@ void receiveDeserializedInput(T *ptop, UsbReceiveState &usbRxState, bool posedge
 
         usbRxState.delayedDataAccept = 0;
     } else if (negedge) {
-        if (ptop->rxAcceptNewData) {
-            ptop->rxAcceptNewData = 0;
-        } else if (ptop->rxDataValid) {
+        if (top->rxAcceptNewData) {
+            top->rxAcceptNewData = 0;
+        } else if (top->rxDataValid) {
             // New data is available but wait for x cycles before accepting!
             if (usbRxState.acceptAfterXAvailableCycles == usbRxState.delayedDataAccept) {
-                ptop->rxAcceptNewData = 1;
+                top->rxAcceptNewData = 1;
             }
 
             ++usbRxState.delayedDataAccept;
         }
     }
 
-    ptop->resetTimeout = !usbRxState.enableTimeout || !usbRxState.timerReset;
+    top->resetTimeout = !usbRxState.enableTimeout || !usbRxState.timerReset;
     usbRxState.timerReset = true;
 
-    usbRxState.timedOut = usbRxState.enableTimeout && ptop->gotTimeout;
+    usbRxState.timedOut = usbRxState.enableTimeout && top->gotTimeout;
 }
 
 struct UsbTransmitState {
@@ -408,40 +408,40 @@ struct UsbTransmitState {
 };
 
 template <typename T>
-void feedTransmitSerializer(T *ptop, UsbTransmitState &usbTxState) {
+void feedTransmitSerializer(T *top, UsbTransmitState &usbTxState) {
     if (usbTxState.requestedSendPacket) {
-        ptop->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
+        top->txIsLastByte = usbTxState.transmitIdx == usbTxState.dataToSend.size() - 1 ? 1 : 0;
         if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
-            ptop->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
+            top->txData = usbTxState.dataToSend[usbTxState.transmitIdx];
         }
 
-        if (ptop->txAcceptNewData) {
-            if (ptop->txDataValid) {
+        if (top->txAcceptNewData) {
+            if (top->txDataValid) {
                 // clear send packet request, once send data is requested
                 // else we might trigger several packet sends which is illegal
-                ptop->txReqSendPacket = 0;
+                top->txReqSendPacket = 0;
 
                 // Triggered Handshake!
-                ptop->txDataValid = 0;
+                top->txDataValid = 0;
                 // Update index of data that should be send!
                 ++usbTxState.transmitIdx;
             } else {
                 // Only signal data is valid if there is still data left to send!
                 if (usbTxState.transmitIdx < usbTxState.dataToSend.size()) {
                     // Data was requested but not yet signaled that txData is valid, lets change the later
-                    ptop->txDataValid = 1;
+                    top->txDataValid = 1;
                 }
             }
         }
     } else {
         // Start send packet request
         usbTxState.requestedSendPacket = true;
-        ptop->txReqSendPacket = 1;
+        top->txReqSendPacket = 1;
     }
 
-    if (!usbTxState.doneSending && usbTxState.prevSending && !ptop->sending) {
+    if (!usbTxState.doneSending && usbTxState.prevSending && !top->sending) {
         usbTxState.doneSending = true;
     }
 
-    usbTxState.prevSending = ptop->sending;
+    usbTxState.prevSending = top->sending;
 }
