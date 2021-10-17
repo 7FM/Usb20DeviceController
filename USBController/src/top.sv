@@ -18,6 +18,7 @@ module top #(
 `endif
     output logic USB_PULLUP,
 
+`ifdef RUN_SIM
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
     // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
     output logic clk12_o,
@@ -32,6 +33,7 @@ module top #(
     input logic [ENDPOINTS-2:0] EP_OUT_dataValid_i,
     input logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_data_i,
     output logic [ENDPOINTS-2:0] EP_OUT_full_o
+`endif
 );
     logic clk48;
 
@@ -55,6 +57,24 @@ module top #(
 `else
     assign clk48 = CLK;
 `endif
+
+`ifndef RUN_SIM
+    // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
+    // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
+    logic clk12_o;
+    logic [ENDPOINTS-2:0] EP_IN_popTransDone_i;
+    logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i;
+    logic [ENDPOINTS-2:0] EP_IN_popData_i;
+    logic [ENDPOINTS-2:0] EP_IN_dataAvailable_o;
+    logic [8*(ENDPOINTS-1) - 1:0] EP_IN_data_o; // Note the EP dependent timing conditions compared to the EP_IN_dataAvailable_o flag!
+
+    logic [ENDPOINTS-2:0] EP_OUT_fillTransDone_i;
+    logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess_i;
+    logic [ENDPOINTS-2:0] EP_OUT_dataValid_i;
+    logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_data_i;
+    logic [ENDPOINTS-2:0] EP_OUT_full_o;
+`endif
+
     logic clk12;
     assign clk12_o = clk12;
 

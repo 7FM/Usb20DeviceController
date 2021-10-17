@@ -14,12 +14,11 @@ index d1ffd46..b51fe8c 100644
  	logic [2:0] ctrlTransState;
  	logic [2:0] nextCtrlTransState;
  	logic prevDataDir;
-@@ -1407,7 +1407,7 @@ module usb_pe (
+@@ -1407,6 +1407,6 @@ module usb_pe (
  		isSendingPhase_o = 1'b0;
  	end
- 	logic isDevIn;
--	assign isDevIn = upperTransStartPID == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
-+	assign isDevIn = upperTransStartPID == 2'b10;
+-	assign isHostIn = upperTransStartPID == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
++	assign isHostIn = upperTransStartPID == 2'b10;
  	logic isEpIsochronous;
  	logic packetWaitTimeout;
  	logic readTimerRst;
