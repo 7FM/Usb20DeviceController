@@ -49,13 +49,17 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
         rxState.reset();
         txState.reset();
+        fifoFillState.reset();
+        fifoEmptyState.reset();
 
         tx_clk12_counter = 0;
         rx_clk12_counter = clk12Offset;
     }
 
     bool stopCondition() {
-        return txState.doneSending || rxState.receivedLastByte || rxState.timedOut || forceStop;
+        return txState.doneSending || rxState.receivedLastByte || rxState.timedOut || forceStop
+        || (fifoFillState.isEnabled() && fifoFillState.allDone())
+        || (fifoFillState.fifoEmptyState() && fifoFillState.fifoEmptyState());
     }
 
     void onRisingEdge() {
@@ -79,6 +83,9 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
             negedge = !(posedge = top->rxCLK12);
         }
         receiveDeserializedInput(top, rxState, posedge, negedge);
+
+        fillFIFO(top, fifoFillState);
+        emptyFIFO(top, fifoEmptyState);
     }
 
     void issueDummySignal() {
@@ -95,6 +102,10 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     // Usb data receive state variables
     UsbReceiveState rxState;
     UsbTransmitState txState;
+
+    // EP fifo state variables
+    FIFOFillState<1> fifoFillState;
+    FIFOEmptyState<1> fifoEmptyState;
 
     uint8_t clk12Offset = 0;
 };
@@ -199,7 +210,13 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
-    //TODO fill EP1_OUT fifo
+    sim.txState.actAsNop();
+    sim.rxState.actAsNop();
+
+    for (uint8_t i = 0; i < 31; ++i)
+        sim.fifoFillState.epState->data.push_back(i);
+    sim.fifoFillState.enable();
+    //TODO fill EP1_OUT fifo / execute fifo filling!
     //TODO request data from EP1
 
 

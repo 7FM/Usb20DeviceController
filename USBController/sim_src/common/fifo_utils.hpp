@@ -1,64 +1,114 @@
 #pragma once
 
-#include <vector>
 #include <cstdint>
 #include <type_traits>
+#include <vector>
 
-template<typename T>
-void setBit(T& data, unsigned int bitOffset, bool value) {
+template <typename T>
+void setBit(T &data, unsigned int bitOffset, bool value) {
     data = (data & ~(1 << bitOffset)) | (static_cast<T>(value ? 1 : 0) << bitOffset);
 }
 
-template<typename T, typename V>
-void setValue(T& data, unsigned int offset, V value) {
+template <typename T, typename V>
+void setValue(T &data, unsigned int offset, V value) {
     V v_mask = static_cast<V>(-1);
     T mask = static_cast<T>(~(static_cast<std::make_unsigned<T>::type>(v_mask) << offset));
     data = (data & mask) | (static_cast<T>(value) << offset);
 }
 
-template<typename T>
-bool getBit(const T& data, unsigned int bitOffset) {
+template <typename T>
+bool getBit(const T &data, unsigned int bitOffset) {
     return data & (1 << bitOffset);
 }
 
-template<typename T, typename V>
-V getValue(const T& data, unsigned int offset) {
+template <typename T, typename V = uint8_t>
+V getValue(const T &data, unsigned int offset) {
     V v_mask = static_cast<V>(-1);
     T mask = static_cast<std::make_unsigned<T>::type>(v_mask);
     return static_cast<V>((data >> offset) & mask);
 }
 
-template<unsigned int EPs>
-struct FIFOFillState
-{
-    struct EpFillState{
-        std::vector<uint8_t> data;
-        int writePointer;
-    };
-
-    EpFillState epState[EPs];
-    bool prevCLK12;
+template <unsigned int EPs, class Impl, class EpState>
+class BaseFIFOState {
+  public:
+    BaseFIFOState() {
+        reset();
+    }
 
     void reset() {
-        for (auto& s: epState) {
-            s.data.clear();
-            s.writePointer = 0;
+        for (auto &s : epState) {
+            s.reset();
         }
         prevCLK12 = false;
+        disable();
+        static_cast<Impl *>(this)->do_reset();
+    }
+
+    void enable() {
+        enabled = true;
+    }
+    void disable() {
+        enabled = false;
+    }
+
+    bool isEnabled() {
+        return enabled;
+    }
+    bool anyDone() {
+        bool done = false;
+        for (const auto &s : epState) {
+            done |= epState.isDone();
+        }
+        return done;
+    }
+    bool allDone() {
+        bool done = true;
+        for (const auto &s : epState) {
+            done &= epState.isDone();
+        }
+        return done;
+    }
+
+  public:
+    EpState epState[EPs];
+    bool prevCLK12;
+
+  private:
+    bool enabled;
+};
+
+struct EpFillState {
+    std::vector<uint8_t> data;
+    unsigned int writePointer;
+
+    void reset() {
+        data.clear();
+        writePointer = 0;
+    }
+
+    bool isDone() {
+        return data.size() == writePointer;
     }
 };
 
-template<typename T, unsigned int EPs>
-void fillFIFO(T* top, FIFOFillState<EPs>& s) {
+template <unsigned int EPs>
+class FIFOFillState : public BaseFIFOState<EPs, FIFOFillState<EPs>, EpFillState> {
+  public:
+    void do_reset() {
+    }
+};
+
+template <typename T, unsigned int EPs>
+void fillFIFO(T *top, FIFOFillState<EPs> &s) {
 
     // bool posedge = !s.prevCLK12 && top->EP_CLK12;
     bool negedge = s.prevCLK12 && !top->EP_CLK12;
 
-    if (negedge) {
+    if (negedge && s.isEnabled()) {
         for (unsigned int i = 0; i < EPs; ++i) {
             auto &ep = s.epState[i];
-            setBit(top->EP_OUT_fillTransDone_i, i, ep.writePointer == ep.data.size());
-            setBit(top->EP_OUT_fillTransSuccess_i, i, ep.writePointer == ep.data.size());
+            setBit(top->EP_OUT_fillTransDone_i, i, ep.isDone());
+            setBit(top->EP_OUT_fillTransSuccess_i, i, ep.isDone());
 
             setBit(top->EP_OUT_dataValid_i, i, ep.writePointer < ep.data.size());
             if (ep.writePointer < ep.data.size()) {
@@ -74,35 +124,35 @@ void fillFIFO(T* top, FIFOFillState<EPs>& s) {
     s.prevCLK12 = top->EP_CLK12;
 }
 
-template<unsigned int EPs>
-struct FIFOEmptyState {
-
-    struct EpEmptyState{
-        std::vector<uint8_t> data;
-        bool done;
-        bool waited;
-    };
-
-    EpEmptyState epState[EPs];
-    bool prevCLK12;
+struct EpEmptyState {
+    std::vector<uint8_t> data;
+    bool done;
+    bool waited;
 
     void reset() {
-        for (auto &s : epState) {
-            s.data.clear();
-            s.done = false;
-            s.waited = false;
-        }
+        data.clear();
+        done = false;
+        waited = false;
+    }
 
-        prevCLK12 = false;
+    bool isDone() {
+        return done;
     }
 };
 
-template<typename T, unsigned int EPs>
-void emptyFIFO(T* top, FIFOEmptyState<EPs>& s) {
+template <unsigned int EPs>
+class FIFOEmptyState : public BaseFIFOState<EPs, FIFOEmptyState<EPs>, EpEmptyState> {
+  public:
+    void do_reset() {
+    }
+};
+
+template <typename T, unsigned int EPs>
+void emptyFIFO(T *top, FIFOEmptyState<EPs> &s) {
     // bool posedge = !s.prevCLK12 && top->EP_CLK12;
     bool negedge = s.prevCLK12 && !top->EP_CLK12;
 
-    if (negedge) {
+    if (negedge && s.isEnabled()) {
         for (unsigned int i = 0; i < EPs; ++i) {
             auto &ep = s.epState[i];
 

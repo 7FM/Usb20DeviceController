@@ -97,7 +97,7 @@ endgenerate
     always_ff @(posedge clk12_i) begin
         EP_OUT_dataAvailable_o <= !awaitBRAMData && dataAvailable;
     end
-    // -> dely dataAvailable by one cycle & use the current value of dataAvailable as isLastPacketByte
+    // -> delay dataAvailable by one cycle & use the current value of dataAvailable as isLastPacketByte
     // data_o should not change with this extra cycle as the BRAM has an latency of 1 cycle 
     assign EP_OUT_isLastPacketByte_o = !dataAvailable;
     // anwser with NAK in case we have no data yet! (noDataAvailable is true)
