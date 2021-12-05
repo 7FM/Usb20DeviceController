@@ -59,7 +59,7 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     bool stopCondition() {
         return txState.doneSending || rxState.receivedLastByte || rxState.timedOut || forceStop
         || (fifoFillState.isEnabled() && fifoFillState.allDone())
-        || (fifoFillState.fifoEmptyState() && fifoFillState.fifoEmptyState());
+        || (fifoEmptyState.isEnabled() && fifoEmptyState.allDone());
     }
 
     void onRisingEdge() {

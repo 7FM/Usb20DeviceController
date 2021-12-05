@@ -57,14 +57,14 @@ class BaseFIFOState {
     bool anyDone() {
         bool done = false;
         for (const auto &s : epState) {
-            done |= epState.isDone();
+            done |= s.isDone();
         }
         return done;
     }
     bool allDone() {
         bool done = true;
         for (const auto &s : epState) {
-            done &= epState.isDone();
+            done &= s.isDone();
         }
         return done;
     }
@@ -86,7 +86,7 @@ struct EpFillState {
         writePointer = 0;
     }
 
-    bool isDone() {
+    bool isDone() const {
         return data.size() == writePointer;
     }
 };
@@ -135,7 +135,7 @@ struct EpEmptyState {
         waited = false;
     }
 
-    bool isDone() {
+    bool isDone() const {
         return done;
     }
 };
