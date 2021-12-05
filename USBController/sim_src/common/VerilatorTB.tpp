@@ -49,7 +49,7 @@ bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
     if (traceFilePath) {
         // init trace dump
         simContext->traceEverOn(true);
-        traceFile = new VerilatedVcdC;
+        traceFile = new VERILATOR_DUMPFILE_CLASS;
         top->trace(traceFile, 99);
         traceFile->open(traceFilePath);
     }

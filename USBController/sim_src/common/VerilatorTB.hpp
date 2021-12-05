@@ -2,7 +2,14 @@
 
 #include <getopt.h>
 #include <verilated.h> // Defines common routines
+
+#ifdef DUMP_FST
+#include <verilated_fst_c.h>
+#define VERILATOR_DUMPFILE_CLASS VerilatedFstC
+#else
 #include <verilated_vcd_c.h>
+#define VERILATOR_DUMPFILE_CLASS VerilatedVcdC
+#endif
 
 template <class Impl, class TOP>
 class VerilatorTB {
@@ -42,7 +49,7 @@ class VerilatorTB {
     TOP *const top;
 
   private:
-    VerilatedVcdC *traceFile = nullptr;
+    VERILATOR_DUMPFILE_CLASS *traceFile = nullptr;
 };
 
 double sc_time_stamp() {

@@ -5,6 +5,8 @@ OUT ?= bin
 BUILDDIR ?= build
 PATCH_DIR ?= patches
 V_DIR ?= sim_build
+
+SIM_DUMP_FST ?= 1
 SIM_DEFS ?= -DRUN_SIM
 
 TOP_MODULE ?= top
@@ -80,11 +82,12 @@ syn_target := $(BUILDDIR)/$(TOP_MODULE).json
 
 PWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 CCFLAGS := -g -ffast-math -Wall -O3 -I$(PWD)$(SIM_SRC)
-#ifeq ($(OS),Windows_NT)
-#  LDFLAGS := -lmingw32 -lSDL2main -lSDL2
-#else
-#  LDFLAGS := -lSDL2
-#endif
+LDFLAGS :=
+
+ifeq ($(SIM_DUMP_FST),1)
+SIM_DEFS += --trace-fst
+CCFLAGS += -DDUMP_FST
+endif
 
 .PHONY: all clean genBitstream sanityChecks sim
 
