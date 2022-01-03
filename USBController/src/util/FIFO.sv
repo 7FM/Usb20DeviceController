@@ -26,6 +26,7 @@ module FIFO #(
     input logic popTransSuccess_i,
     input logic popData_i,
     output logic dataAvailable_o,
+    output logic isLast_o,
     output logic [DATA_WID-1:0] data_o //NOTE: data_o will be delayed by one cycle compared to the rAddr_o signal!
 );
 
@@ -34,6 +35,7 @@ module FIFO #(
 
     // the data available flag compares registers -> okish combinatorial path
     assign dataAvailable_o = transReadCounter != dataCounter;
+    assign isLast_o = next_transReadCounter == dataCounter;
 
     logic writeHandshake, readHandshake;
     assign writeHandshake = !full_o && dataValid_i;

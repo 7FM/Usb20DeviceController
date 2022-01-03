@@ -75,6 +75,7 @@ endgenerate
         .popTransSuccess_i(EP_IN_popTransSuccess_i),
         .popData_i(EP_IN_popData_i),
         .dataAvailable_o(EP_IN_dataAvailable_o),
+        `MUTE_PIN_CONNECT_EMPTY(isLast_o),
         .data_o(EP_IN_data_o)
     );
 

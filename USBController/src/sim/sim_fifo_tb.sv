@@ -13,6 +13,7 @@ module sim_fifo_tb (
     input logic popTransSuccess_i,
     input logic popData_i,
     output logic dataAvailable_o,
+    output logic isLast_o,
     output logic [EP_DATA_WID-1:0] data_o
 );
 
@@ -37,6 +38,7 @@ module sim_fifo_tb (
         .popTransSuccess_i(popTransSuccess_i),
         .popData_i(popData_i),
         .dataAvailable_o(dataAvailable_o),
+        .isLast_o(isLast_o),
         .data_o(data_o)
     );
 

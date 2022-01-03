@@ -81,6 +81,7 @@ endgenerate
         .popTransSuccess_i(EP_OUT_popTransSuccess_i),
         .popData_i(EP_OUT_popData_i && !awaitBRAMData), //TODO avoid multiple pops when waiting for BRAM! Effectively half the read speed!
         .dataAvailable_o(dataAvailable),
+        .isLast_o(EP_OUT_isLastPacketByte_o),
         .data_o(EP_OUT_data_o)
     );
 
@@ -91,15 +92,8 @@ endgenerate
     end
 
     assign respValid_o = noDataAvailable || !awaitBRAMData;
-    //TODO test if this approach works!
-    //TODO we get this information too late!
-    // assign EP_OUT_dataAvailable_o = !awaitBRAMData && dataAvailable;
-    always_ff @(posedge clk12_i) begin
-        EP_OUT_dataAvailable_o <= !awaitBRAMData && dataAvailable;
-    end
-    // -> delay dataAvailable by one cycle & use the current value of dataAvailable as isLastPacketByte
-    // data_o should not change with this extra cycle as the BRAM has an latency of 1 cycle 
-    assign EP_OUT_isLastPacketByte_o = !dataAvailable;
+
+    assign EP_OUT_dataAvailable_o = !awaitBRAMData && dataAvailable;
     // anwser with NAK in case we have no data yet! (noDataAvailable is true)
     // Otherwise this is a DATAx PID
     assign respHandshakePID_o = noDataAvailable;
