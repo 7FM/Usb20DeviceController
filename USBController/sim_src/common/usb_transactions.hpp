@@ -164,13 +164,13 @@ void printResponse(const std::vector<uint8_t> &response) {
 }
 
 template<typename Sim>
-bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, uint8_t ep0MaxDescriptorSize) {
+bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, uint8_t ep0MaxDescriptorSize, uint8_t ep = 0) {
     result.clear();
 
     InTransaction<Sim> getDesc;
     getDesc.inTokenPacket.token = PID_IN_TOKEN;
     getDesc.inTokenPacket.addr = addr;
-    getDesc.inTokenPacket.endpoint = 0;
+    getDesc.inTokenPacket.endpoint = ep;
     getDesc.inTokenPacket.crc = 0b11111; // Should be a dont care!
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
