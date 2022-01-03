@@ -213,12 +213,24 @@ int main(int argc, char **argv) {
     sim.txState.actAsNop();
     sim.rxState.actAsNop();
 
-    for (uint8_t i = 0; i < 31; ++i)
+    // fill EP1_OUT fifo / execute fifo filling!
+    std::cout << "Filling EP1 OUT fifo" << std::endl;
+    for (uint8_t i = 0; i < 32; ++i)
         sim.fifoFillState.epState->data.push_back(i);
     sim.fifoFillState.enable();
-    //TODO fill EP1_OUT fifo / execute fifo filling!
-    //TODO request data from EP1
+    // Execute till stop condition
+    while (!sim.template run<true>(0));
+    sim.fifoFillState.disable();
 
+    {
+        std::cout << "Requesting data from EP1" << std::endl;
+        std::vector<uint8_t> ep1Res;
+        failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
+    }
+
+    if (failed) {
+        goto exitAndCleanup;
+    }
 
     //TODO send data to EP1
     //TODO check contents of EP1_IN fifo
