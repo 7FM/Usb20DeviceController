@@ -79,14 +79,20 @@ class BaseFIFOState {
 
 struct EpFillState {
     std::vector<uint8_t> data;
+    bool doneSent;
     unsigned int writePointer;
 
     void reset() {
         data.clear();
+        doneSent = false;
         writePointer = 0;
     }
 
     bool isDone() const {
+        return sentAllData() && doneSent;
+    }
+
+    bool sentAllData() const {
         return data.size() == writePointer;
     }
 };
@@ -107,15 +113,16 @@ void fillFIFO(T *top, FIFOFillState<EPs> &s) {
     if (negedge && s.isEnabled()) {
         for (unsigned int i = 0; i < EPs; ++i) {
             auto &ep = s.epState[i];
-            setBit(top->EP_OUT_fillTransDone_i, i, ep.isDone());
-            setBit(top->EP_OUT_fillTransSuccess_i, i, ep.isDone());
+            setBit(top->EP_OUT_fillTransDone_i, i, ep.sentAllData());
+            setBit(top->EP_OUT_fillTransSuccess_i, i, ep.sentAllData());
+            ep.doneSent = ep.sentAllData();
 
             setBit(top->EP_OUT_dataValid_i, i, ep.writePointer < ep.data.size());
             if (ep.writePointer < ep.data.size()) {
                 setValue(top->EP_OUT_data_i, i * 8, ep.data[ep.writePointer]);
 
                 if (!getBit(top->EP_OUT_full_o, i)) {
-                    ++ep.writePointer;
+                  ++ep.writePointer;
                 }
             }
         }
