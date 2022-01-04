@@ -219,13 +219,29 @@ int main(int argc, char **argv) {
         sim.fifoFillState.epState->data.push_back(i);
     sim.fifoFillState.enable();
     // Execute till stop condition
-    while (!sim.template run<true>(0));
+    while (!sim.template run<true>(0)) {
+    }
     sim.fifoFillState.disable();
 
     {
         std::cout << "Requesting data from EP1" << std::endl;
         std::vector<uint8_t> ep1Res;
         failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
+
+        const auto &sentData = sim.fifoFillState.epState->data;
+        if (ep1Res.size() != sentData.size()) {
+            std::cout << "Error: Fifo data length & received data does not match!" << std::endl;
+            std::cout << "  Expected: " << sentData.size() << " but got: " << ep1Res.size() << std::endl;
+            failed = true;
+            goto exitAndCleanup;
+        }
+        for (int i = 0; i < ep1Res.size(); ++i) {
+            if (ep1Res[i] != sentData[i]) {
+                failed = true;
+                std::cout << "Fifo fill data vs received data does not match at index: " << i << std::endl;
+                std::cout << "  Expected: " << sentData[i] << " but got: " << ep1Res[i] << std::endl;
+            }
+        }
     }
 
     if (failed) {
