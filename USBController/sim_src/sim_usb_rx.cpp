@@ -1,7 +1,7 @@
+#include <array>
 #include <atomic>
 #include <csignal>
 #include <cstdint>
-#include <array>
 
 #define TOP_MODULE Vsim_usb_rx
 #include "Vsim_usb_rx.h"       // basic Top header
@@ -125,7 +125,8 @@ int main(int argc, char **argv) {
         sim.reset();
 
         // Execute till stop condition
-        while (!sim.run<true>(0));
+        while (!sim.run<true>(0)) {
+        }
         // Execute a few more cycles
         sim.run<true, false>(4 * 10);
 
@@ -157,7 +158,6 @@ int main(int argc, char **argv) {
             std::cerr << "Keep packet has an unexpected value! Expected: " << true << " got: " << sim.rxState.keepPacket << std::endl;
             ++testFailed;
         }
-
     }
 
     std::cout << std::endl
@@ -171,7 +171,6 @@ int main(int argc, char **argv) {
     } else {
         std::cout << "PASSED!" << std::endl;
     }
-
 
     return 0;
 }

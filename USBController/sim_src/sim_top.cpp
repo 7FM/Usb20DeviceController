@@ -8,10 +8,10 @@
 #include "Vsim_top__Syms.h" // all headers to access exposed internal signals
 
 #include "common/VerilatorTB.hpp"
+#include "common/fifo_utils.hpp"
 #include "common/print_utils.hpp"
 #include "common/usb_transactions.hpp"
 #include "common/usb_utils.hpp" // Utils to create & read a usb packet
-#include "common/fifo_utils.hpp"
 
 static std::atomic_bool forceStop = false;
 
@@ -58,8 +58,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
     bool stopCondition() {
         return txState.doneSending || rxState.receivedLastByte || rxState.timedOut || forceStop
-        || (fifoFillState.isEnabled() && fifoFillState.allDone())
-        || (fifoEmptyState.isEnabled() && fifoEmptyState.allDone());
+            || (fifoFillState.isEnabled() && fifoFillState.allDone())
+            || (fifoEmptyState.isEnabled() && fifoEmptyState.allDone());
     }
 
     void onRisingEdge() {
@@ -144,21 +144,21 @@ int main(int argc, char **argv) {
     {
         std::cout << "Device Descriptor:" << std::endl;
         prettyPrintDescriptors(result);
-        //TODO check content
+        // TODO check content
 
-        const char * stringDescName[] = {
+        const char *stringDescName[] = {
             "Manufacturer Name:",
             "Product Name:",
             "Serial Number:",
             "Configuration Description:",
-            "Interface Description:"
+            "Interface Description:",
         };
-        for (int i = 0; !failed && i < sizeof(stringDescName)/sizeof(stringDescName[0]); ++i) {
+        for (int i = 0; !failed && i < sizeof(stringDescName) / sizeof(stringDescName[0]); ++i) {
             sim.issueDummySignal();
             failed |= readDescriptor(result, sim, DESC_STRING, i + 1, ep0MaxPacketSize, addr, 2);
             std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
             prettyPrintDescriptors(result);
-            //TODO check content
+            // TODO check content
         }
     }
 
@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
     std::cout << "Result size: " << result.size() << std::endl;
 
     prettyPrintDescriptors(result);
-    //TODO check content
+    // TODO check content
 
     if (failed) {
         goto exitAndCleanup;
@@ -232,8 +232,8 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
-    //TODO send data to EP1
-    //TODO check contents of EP1_IN fifo
+    // TODO send data to EP1
+    // TODO check contents of EP1_IN fifo
 
 exitAndCleanup:
 

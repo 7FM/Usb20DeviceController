@@ -66,7 +66,6 @@ class FIFOPusher {
 
         bool pushHandshake = top->dataValid_i && !top->full_o;
 
-
         if (pushHandshake) {
             ++pushed;
         }
@@ -204,7 +203,8 @@ int main(int argc, char **argv) {
     bool failed = false;
 
     // Execute till stop condition
-    while (!sim.run<true>(0));
+    while (!sim.run<true>(0)) {
+    }
 
     sim.commit = true;
     sim.run<true, false>(1);
@@ -222,7 +222,8 @@ int main(int argc, char **argv) {
     sim.popper.enable();
 
     // Execute till stop condition
-    while (!sim.run<true>(0));
+    while (!sim.run<true>(0)) {
+    }
 
     sim.commit = true;
     sim.run<true, false>(1);

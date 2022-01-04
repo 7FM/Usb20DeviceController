@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
         for (int it = 0; !forceStop; ++it) {
             sim.reset();
 
-            //TODO test different packet types!
+            // TODO test different packet types!
             bool expectedKeepPacket = true;
             bool crc5Patching = false;
 
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
 
                     std::cout << "Test \"normal\" data packet:" << std::endl;
                     std::cout << "Expected CRC: " << std::bitset<16>(constExprCRC<static_cast<uint8_t>(0x11), static_cast<uint8_t>(0x22), static_cast<uint8_t>(0x33), static_cast<uint8_t>(0x44), static_cast<uint8_t>(0x55), static_cast<uint8_t>(0x66), static_cast<uint8_t>(0x77), static_cast<uint8_t>(0x88), static_cast<uint8_t>(0x99), static_cast<uint8_t>(0xAA), static_cast<uint8_t>(0xBB), static_cast<uint8_t>(0xCC), static_cast<uint8_t>(0xDD), static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF), static_cast<uint8_t>(0xFF)>(CRC16))
-                            << std::endl;
+                              << std::endl;
                     break;
                 }
 
@@ -287,7 +287,8 @@ int main(int argc, char **argv) {
             std::cout << "Expected packet size: " << sim.txState.dataToSend.size() << std::endl;
 
             // Execute till stop condition
-            while (!sim.run<true>(0));
+            while (!sim.run<true>(0)) {
+            }
 
             if (forceStop) {
                 goto exitAndCleanup;

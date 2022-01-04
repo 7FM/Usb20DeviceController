@@ -1,13 +1,13 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
 #include <cstdint>
 #include <functional>
+#include <iostream>
+#include <vector>
 
 #include "common/print_utils.hpp"
-#include "common/usb_packets.hpp"
 #include "common/usb_descriptors.hpp"
+#include "common/usb_packets.hpp"
 
 bool getForceStop();
 
@@ -20,7 +20,7 @@ void fillVector(std::vector<uint8_t> &vec, const T &data) {
     }
 }
 
-template<typename Sim>
+template <typename Sim>
 bool sendStuff(Sim &sim, std::function<void()> fillSendData) {
     // Disable receive logic
     sim.rxState.actAsNop();
@@ -31,14 +31,15 @@ bool sendStuff(Sim &sim, std::function<void()> fillSendData) {
     fillSendData();
 
     // Execute till stop condition
-    while (!sim.template run<true>(0));
+    while (!sim.template run<true>(0)) {
+    }
 
     assert(sim.txState.doneSending);
 
     return getForceStop();
 }
 
-template<typename Sim>
+template <typename Sim>
 bool receiveStuff(Sim &sim, const char *errMsg) {
     // Enable timeout for receiving a response
     sim.rxState.reset();
@@ -48,7 +49,8 @@ bool receiveStuff(Sim &sim, const char *errMsg) {
     sim.txState.actAsNop();
 
     // Execute till stop condition
-    while (!sim.template run<true>(0));
+    while (!sim.template run<true>(0)) {
+    }
 
     if (sim.rxState.timedOut) {
         std::cerr << errMsg << std::endl;
@@ -59,7 +61,7 @@ bool receiveStuff(Sim &sim, const char *errMsg) {
     return getForceStop();
 }
 
-template<typename Sim>
+template <typename Sim>
 class InTransaction {
     /*
     In Transaction:
@@ -91,15 +93,16 @@ class InTransaction {
         // 3. (Send Handshake)
         std::cout << "Send handshake!" << std::endl;
 
-        if(sendStuff(sim, [&]{
-            sim.txState.dataToSend.push_back(handshakeToken);
-        })) return true;
+        if (sendStuff(sim, [&] {
+                sim.txState.dataToSend.push_back(handshakeToken);
+            }))
+            return true;
 
         return false;
     }
 };
 
-template<typename Sim>
+template <typename Sim>
 class OutTransaction {
     /*
     Out Transaction:
@@ -163,7 +166,7 @@ void printResponse(const std::vector<uint8_t> &response) {
     }
 }
 
-template<typename Sim>
+template <typename Sim>
 bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, uint8_t ep0MaxDescriptorSize, uint8_t ep = 0) {
     result.clear();
 
@@ -215,14 +218,14 @@ bool expectHandshake(std::vector<uint8_t> &response, PID_Types expectedResponse)
     return false;
 }
 
-template<typename Sim>
+template <typename Sim>
 void updateSetupTrans(OutTransaction<Sim> &setupTrans, SetupPacket &packet) {
     setupTrans.dataPacket.clear();
     setupTrans.dataPacket.push_back(PID_DATA0);
     fillVector(setupTrans.dataPacket, packet);
 }
 
-template<typename Sim>
+template <typename Sim>
 OutTransaction<Sim> initDescReadTrans(SetupPacket &packet, DescriptorType descType, uint8_t descIdx, uint8_t addr, uint16_t initialReadSize, StandardDeviceRequest request) {
     OutTransaction<Sim> setupTrans;
     setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
@@ -257,16 +260,16 @@ uint16_t getConfigurationDescriptorSize(const std::vector<uint8_t> &result) {
     return static_cast<uint16_t>(result[2]) | (static_cast<uint16_t>(result[3]) << 8);
 }
 
-template<typename Sim>
-bool sendOutputStage(Sim &sim, OutTransaction<Sim>& outTrans) {
+template <typename Sim>
+bool sendOutputStage(Sim &sim, OutTransaction<Sim> &outTrans) {
     bool failed = outTrans.send(sim);
     printResponse(sim.rxState.receivedData);
     failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
     return failed;
 }
 
-template<typename Sim>
-bool statusStage(Sim &sim, OutTransaction<Sim>& outTrans) {
+template <typename Sim>
+bool statusStage(Sim &sim, OutTransaction<Sim> &outTrans) {
     // Status stage
     outTrans.outTokenPacket.token = PID_OUT_TOKEN;
     outTrans.dataPacket.clear();
@@ -277,8 +280,8 @@ bool statusStage(Sim &sim, OutTransaction<Sim>& outTrans) {
     return sendOutputStage(sim, outTrans);
 }
 
-template<typename Sim>
-bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, std::function<uint16_t (const std::vector<uint8_t> &)> descSizeExtractor = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR, bool recurse = true) {
+template <typename Sim>
+bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, std::function<uint16_t(const std::vector<uint8_t> &)> descSizeExtractor = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR, bool recurse = true) {
     SetupPacket packet;
     OutTransaction<Sim> setupTrans = initDescReadTrans<Sim>(packet, descType, descIdx, addr, initialReadSize, request);
 
@@ -336,7 +339,7 @@ bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descT
     return false;
 }
 
-template<typename Sim>
+template <typename Sim>
 bool sendValueSetRequest(Sim &sim, StandardDeviceRequest request, uint16_t wValue, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize) {
     std::vector<uint8_t> dummyRes;
     return readDescriptor(dummyRes, sim, static_cast<DescriptorType>((wValue >> 8) & 0x0FF), static_cast<uint8_t>((wValue >> 0) & 0x0FF), ep0MaxDescriptorSize, addr, initialReadSize, defaultGetDescriptorSize, request);
