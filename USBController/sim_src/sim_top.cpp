@@ -2,6 +2,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 #define TOP_MODULE Vsim_top
 #include "Vsim_top.h"       // basic Top header
@@ -112,6 +113,25 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
 bool getForceStop() {
     return forceStop;
+}
+
+static bool compareVec(const std::vector<uint8_t> &expected, const std::vector<uint8_t> &got,
+                       const std::string &lengthErrMsg, const std::string &dataErrMsg) {
+    if (got.size() != expected.size()) {
+        std::cout << lengthErrMsg << std::endl;
+        std::cout << "  Expected: " << expected.size() << " but got: " << got.size() << std::endl;
+        return true;
+    }
+
+    bool failed = false;
+    for (int i = 0; i < got.size(); ++i) {
+        if (got[i] != expected[i]) {
+            failed = true;
+            std::cout << "Fifo fill data vs received data does not match at index: " << i << std::endl;
+            std::cout << "  Expected: " << expected[i] << " but got: " << got[i] << std::endl;
+        }
+    }
+    return failed;
 }
 
 /******************************************************************************/
@@ -229,19 +249,10 @@ int main(int argc, char **argv) {
         failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
 
         const auto &sentData = sim.fifoFillState.epState->data;
-        if (ep1Res.size() != sentData.size()) {
-            std::cout << "Error: Fifo data length & received data does not match!" << std::endl;
-            std::cout << "  Expected: " << sentData.size() << " but got: " << ep1Res.size() << std::endl;
-            failed = true;
-            goto exitAndCleanup;
-        }
-        for (int i = 0; i < ep1Res.size(); ++i) {
-            if (ep1Res[i] != sentData[i]) {
-                failed = true;
-                std::cout << "Fifo fill data vs received data does not match at index: " << i << std::endl;
-                std::cout << "  Expected: " << sentData[i] << " but got: " << ep1Res[i] << std::endl;
-            }
-        }
+        failed |= compareVec(
+            sentData, ep1Res,
+            "Error: Fifo data length & received data does not match!",
+            "Fifo fill data vs received data does not match at index: ");
     }
 
     if (failed) {
