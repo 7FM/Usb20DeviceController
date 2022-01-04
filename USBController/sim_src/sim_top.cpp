@@ -262,8 +262,36 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
-    // TODO send data to EP1
-    // TODO check contents of EP1_IN fifo
+    {
+        std::cout << "Sending data to EP1" << std::endl;
+        std::vector<uint8_t> ep1Data;
+        for (uint8_t i = 0; i < 42 + 1; ++i)
+            ep1Data.push_back(i);
+
+        // send data to EP1
+        int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
+        if (maxPacketSize == 0) {
+            failed = true;
+            std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
+            goto exitAndCleanup;
+        }
+        failed = sendItAll(ep1Data, sim, addr, maxPacketSize, 1);
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        // check contents of EP1_IN fifo
+        sim.fifoEmptyState.enable();
+        // Execute till stop condition
+        while (!sim.template run<true>(0)) {
+        }
+        sim.fifoEmptyState.disable();
+
+        failed |= compareVec(
+            ep1Data, sim.fifoEmptyState.epState->data,
+            "Error: Fifo data length & sent data does not match!",
+            "Fifo empty data vs sent data does not match at index: ");
+    }
 
 exitAndCleanup:
 
