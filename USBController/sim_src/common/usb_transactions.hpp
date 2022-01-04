@@ -203,6 +203,39 @@ bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, u
     return false;
 }
 
+template <typename Sim>
+bool sendItAll(const std::vector<uint8_t> &dataToSend, Sim &sim, int addr, int epMaxDescriptorSize, uint8_t ep = 0) {
+    OutTransaction<Sim> getDesc;
+    getDesc.outTokenPacket.token = PID_OUT_TOKEN;
+    getDesc.outTokenPacket.addr = addr;
+    getDesc.outTokenPacket.endpoint = ep;
+    getDesc.outTokenPacket.crc = 0b11111; // Should be a dont care!
+
+    int i = 0;
+    int sendSize = dataToSend.size();
+    int subpackets = (sendSize + epMaxDescriptorSize - 1) / epMaxDescriptorSize;
+    do {
+        std::cout << std::endl << "Send Output transaction packet " << (i / epMaxDescriptorSize + 1) << "/" << subpackets << std::endl;
+
+        getDesc.dataPacket.clear();
+        int nextPacketSize = std::min(sendSize, epMaxDescriptorSize);
+        for (int j = 0; j < nextPacketSize; ++j) {
+            getDesc.dataPacket.push_back(dataToSend[i + j]);
+        }
+        i += nextPacketSize;
+
+        bool failed = getDesc.send(sim);
+
+        if (failed) {
+            return true;
+        }
+
+        sendSize -= nextPacketSize;
+    } while (sendSize > 0);
+
+    return false;
+}
+
 bool expectHandshake(std::vector<uint8_t> &response, PID_Types expectedResponse) {
     if (response.size() != 1) {
         std::cerr << "Expected only a Handshake as response but got multiple bytes!" << std::endl;
