@@ -147,6 +147,9 @@ int main(int argc, char **argv) {
     bool failed = false;
 
     std::vector<uint8_t> result;
+    std::vector<ConfigurationDescriptor> configDescs;
+    std::vector<InterfaceDescriptor> ifaceDescs;
+    std::vector<EndpointDescriptor> epDescs;
     uint8_t ep0MaxPacketSize = 0;
     uint8_t addr = 0;
 
@@ -194,7 +197,7 @@ int main(int argc, char **argv) {
 
     std::cout << "Result size: " << result.size() << std::endl;
 
-    prettyPrintDescriptors(result);
+    prettyPrintDescriptors(result, &epDescs, &ifaceDescs, &configDescs);
     // TODO check content
 
     if (failed) {
