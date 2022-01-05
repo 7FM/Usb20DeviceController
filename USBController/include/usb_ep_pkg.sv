@@ -73,7 +73,7 @@ package usb_ep_pkg;
     localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
         epTypeDevIn: NONE,
         epTypeDevOut: BULK,
-        maxPacketSize: 64
+        maxPacketSize: 64 // At max 512 bytes per transaction
     };
 
     localparam EndpointConfig DefaultEpConfig = '{
@@ -120,14 +120,14 @@ package usb_ep_pkg;
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointINDescriptor = '{
         bEndpointAddress: {1'b0, 3'b0 , 4'd1}, // Address Zero is reserved
         bmAttributes: {2'b0, 2'b0, 2'b0, BULK[1:0]},
-        wMaxPacketSize: {3'b0, 2'b0, 11'd512}, // At max 512 bytes per transaction
+        wMaxPacketSize: {3'b0, 2'b0, DefaultNonControlEpConfig.maxPacketSize[10:0]},
         bInterval: 1
     };
 
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointOUTDescriptor = '{
         bEndpointAddress: {1'b1, 3'b0 , 4'd1}, // Address Zero is reserved
         bmAttributes: {2'b0, 2'b0, 2'b0, BULK[1:0]},
-        wMaxPacketSize: {3'b0, 2'b0, 11'd512}, // At max 512 bytes per transaction
+        wMaxPacketSize: {3'b0, 2'b0, DefaultNonControlEpConfig.maxPacketSize[10:0]},
         bInterval: 1
     };
 
