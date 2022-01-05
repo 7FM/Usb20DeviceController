@@ -227,7 +227,8 @@ bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Si
         i += nextPacketSize;
 
         bool failed = getDesc.send(sim);
-
+        printResponse(sim.rxState.receivedData);
+        failed |= expectHandshake(sim.rxState.receivedData, PID_HANDSHAKE_ACK);
         if (failed) {
             return true;
         }
