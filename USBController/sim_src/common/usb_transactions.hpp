@@ -204,7 +204,7 @@ bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, u
 }
 
 template <typename Sim>
-bool sendItAll(const std::vector<uint8_t> &dataToSend, Sim &sim, int addr, int epMaxDescriptorSize, uint8_t ep = 0) {
+bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Sim &sim, int addr, int epMaxDescriptorSize, uint8_t ep = 0) {
     OutTransaction<Sim> getDesc;
     getDesc.outTokenPacket.token = PID_OUT_TOKEN;
     getDesc.outTokenPacket.addr = addr;
@@ -218,6 +218,8 @@ bool sendItAll(const std::vector<uint8_t> &dataToSend, Sim &sim, int addr, int e
         std::cout << std::endl << "Send Output transaction packet " << (i / epMaxDescriptorSize + 1) << "/" << subpackets << std::endl;
 
         getDesc.dataPacket.clear();
+        getDesc.dataPacket.push_back(dataToggleState ? PID_DATA1 : PID_DATA0);
+        dataToggleState = !dataToggleState;
         int nextPacketSize = std::min(sendSize, epMaxDescriptorSize);
         for (int j = 0; j < nextPacketSize; ++j) {
             getDesc.dataPacket.push_back(dataToSend[i + j]);

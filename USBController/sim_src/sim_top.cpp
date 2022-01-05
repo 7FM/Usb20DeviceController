@@ -270,12 +270,13 @@ int main(int argc, char **argv) {
 
         // send data to EP1
         int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
+        bool dataToggleState = false;
         if (maxPacketSize == 0) {
             failed = true;
             std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
             goto exitAndCleanup;
         }
-        failed = sendItAll(ep1Data, sim, addr, maxPacketSize, 1);
+        failed = sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
         if (failed) {
             goto exitAndCleanup;
         }
