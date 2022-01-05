@@ -383,8 +383,8 @@ module usb_pe #(
     // This counter is used to ensure that we do not send more than max. packet size many bytes!
     logic [10:0] maxBytesLeft;
 
-    logic issuePacket;
-    assign txReqSendPacket_o = issuePacket;
+    logic nextIsSendingPhase;
+    assign txReqSendPacket_o = !isSendingPhase_o && nextIsSendingPhase;
     logic sendPID, nextSendPID;
     logic sendHandshake, nextSendHandshake;
     logic sentLastByte, nextIsPidLast;
@@ -478,8 +478,6 @@ Device Transaction State Machine Hierarchy Overview:
     assign isHostIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
     logic isEpIsochronous;
 
-    logic nextIsSendingPhase;
-
     always_comb begin
         nextTransState = transState;
         readTimerRst_o = 1'b0;
@@ -496,9 +494,6 @@ Device Transaction State Machine Hierarchy Overview:
         popTransSuccess = 1'b0;
 
         forceInternalBuf = 1'b0;
-
-        // By default we do not want to issue a request
-        issuePacket = 1'b0; //TODO this might be replaced with isSendingPhase
 
         unique case (transState)
             PE_RST_RX_CLK: begin
@@ -518,7 +513,6 @@ Device Transaction State Machine Hierarchy Overview:
                     if (isHostIn) begin
                         // We are sending data to the host
                         nextIsSendingPhase = 1'b1;
-                        issuePacket = 1'b1;
                         // Either IsochI_ISSUE_PACKET or BCINTI_ISSUE_PACKET
                         nextTransState = isEpIsochronous ? IsochI_ISSUE_PACKET : BCINTI_ISSUE_PACKET;
                     end else begin
@@ -556,8 +550,7 @@ Device Transaction State Machine Hierarchy Overview:
                     nextTransState = receiveSuccess ? BCINTO_ISSUE_RESPONSE : PE_RST_RX_CLK;
 
                     // We are sending data to the device
-                    nextIsSendingPhase = 1'b1;
-                    issuePacket = receiveSuccess;
+                    nextIsSendingPhase = receiveSuccess;
                 end
             end
             BCINTO_ISSUE_RESPONSE: begin
