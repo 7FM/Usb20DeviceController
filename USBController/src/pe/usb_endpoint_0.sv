@@ -146,7 +146,7 @@ module usb_endpoint_0 #(
     logic byteIsData, nextByteIsData;
 
     always_comb begin
-        // Set this byte as soon as we have a handshake -> we skipped PID
+        // Set this bit as soon as we have a handshake -> we skipped PID
         nextByteIsData = byteIsData;
 
         // A new transaction started
