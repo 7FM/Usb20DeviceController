@@ -258,6 +258,11 @@ int main(int argc, char **argv) {
             "Fifo fill data vs received data does not match at index: ");
     }
 
+    sim.txState.actAsNop();
+    sim.txState.reset();
+    sim.rxState.actAsNop();
+    sim.rxState.reset();
+
     if (failed) {
         goto exitAndCleanup;
     }
@@ -281,6 +286,11 @@ int main(int argc, char **argv) {
             goto exitAndCleanup;
         }
 
+        sim.txState.actAsNop();
+        sim.txState.reset();
+        sim.rxState.actAsNop();
+        sim.rxState.reset();
+
         // check contents of EP1_IN fifo
         sim.fifoEmptyState.enable();
         // Execute till stop condition
@@ -293,6 +303,11 @@ int main(int argc, char **argv) {
             "Error: Fifo data length & sent data does not match!",
             "Fifo empty data vs sent data does not match at index: ");
     }
+
+    sim.txState.actAsNop();
+    sim.txState.reset();
+    sim.rxState.actAsNop();
+    sim.rxState.reset();
 
 exitAndCleanup:
 
