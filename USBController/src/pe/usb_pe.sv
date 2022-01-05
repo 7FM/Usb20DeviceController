@@ -386,15 +386,19 @@ module usb_pe #(
     logic nextIsSendingPhase;
     assign txReqSendPacket_o = !isSendingPhase_o && nextIsSendingPhase;
     logic sendPID, nextSendPID;
-    logic sendHandshake, nextSendHandshake;
-    logic sentLastByte, nextIsPidLast;
+    logic sendHandshake;
+    logic nextIsPidLast;
     logic [3:0] pidData;
-    assign pidData = {epResponsePacketID, sendHandshake ? usb_packet_pkg::HANDSHAKE_PACKET_MASK_VAL : usb_packet_pkg::DATA_PACKET_MASK_VAL};
+    // This flag is supposed to be set during the isSendingPhase_o, after the PID was sent and after that only data will be send
+    logic isActiveSendingData;
+    always_ff @(posedge clk12_i) begin
+        pidData <= sendPID ? pidData : {epResponsePacketID, sendHandshake ? usb_packet_pkg::HANDSHAKE_PACKET_MASK_VAL : usb_packet_pkg::DATA_PACKET_MASK_VAL};
+    end
 
     assign txData_o = sendPID ? {~pidData, pidData} : rData;
-    assign txDataValid_o = sendPID || (readDataAvailable && !sentLastByte);
-    assign txIsLastByte_o = sentLastByte || (!sendPID && readIsLastPacketByte) || maxBytesLeft == 1;
-    assign EP_READ_EN = !sendPID && txAcceptNewData_i && !sentLastByte;
+    assign txDataValid_o = sendPID || (readDataAvailable && isActiveSendingData);
+    assign txIsLastByte_o = (isActiveSendingData && readIsLastPacketByte) || maxBytesLeft == 1;
+    assign EP_READ_EN = isActiveSendingData && txAcceptNewData_i;
 
     logic txHandshake;
     assign txHandshake = txDataValid_o && txAcceptNewData_i;
@@ -402,20 +406,22 @@ module usb_pe #(
     initial begin
         maxBytesLeft = 11'b0;
         sendPID = 1'b0;
+        isActiveSendingData = 1'b0;
     end
-    assign sentLastByte = maxBytesLeft == 0;
 
     always_ff @(posedge clk12_i) begin
         sendPID <= sendPID ? !txHandshake : nextSendPID;
 
-        if (!sendPID && nextSendPID) begin
-            sendHandshake <= nextSendHandshake;
-            maxBytesLeft <= nextIsPidLast ? 0 : maxPacketSize;
-        end else begin
-            sendHandshake <= sendHandshake;
+        // When the last byte was sent, clear this flag
+        // Else if we have a falling sendPID edge (sendPID && txHandshake)
+        // then data will be send next (except if PID was the only thing to send (&& maxBytesLeft != 1))
+        isActiveSendingData <= isActiveSendingData ? !(txIsLastByte_o && txHandshake) : sendPID && txHandshake && !(maxBytesLeft == 1);
 
+        if (!sendPID && nextSendPID) begin
+            maxBytesLeft <= nextIsPidLast ? 1 : maxPacketSize;
+        end else begin
             // Update maxBytesLeft at every handshake
-            maxBytesLeft <= !sendPID && txHandshake ? maxBytesLeft - 1 : maxBytesLeft;
+            maxBytesLeft <= isActiveSendingData && txHandshake ? maxBytesLeft - 1 : maxBytesLeft;
         end
 
     end
@@ -486,7 +492,7 @@ Device Transaction State Machine Hierarchy Overview:
 
         nextSendPID = 1'b0;
         nextIsPidLast = 1'b1;
-        nextSendHandshake = 1'b1;
+        sendHandshake = 1'b1;
 
         fillTransSuccess = 1'b0;
         fillTransDone = 1'b0;
@@ -556,7 +562,15 @@ Device Transaction State Machine Hierarchy Overview:
             BCINTO_ISSUE_RESPONSE: begin
                 //TODO this expects the EP response within X cycles to not trigger USB timeouts! //TODO determine X
                 nextSendPID = epResponseValid;
-                // nextIsPidLast & nextSendHandshake are set to 1 by default -> overrule EP response to avoid protocol violations... //TODO we might want to fix the EP0 implementation to have matching values...
+
+                // sendHandshake are set to 1 by default -> overrule EP response to avoid protocol violations... 
+                //TODO fix the EP0 implementation to have matching values... and allways assign epResponseIsHandshakePID!
+                // sendHandshake = 1'b1;
+                // The response may only be a handshake -> thus it is the last byte!
+                // nextIsPidLast is set to 1 by default
+                //TODO if all endpoints behave correctly, then this might also be replaced by epResponseIsHandshakePID || !readDataAvailable
+                //     Yet, that would also increase the chance of failing
+                // nextIsPidLast = 1'b1;
 
                 if (epResponseValid) begin
                     nextTransState = BCINTO_WAIT_RESPONSE_SENT;
@@ -576,7 +590,7 @@ Device Transaction State Machine Hierarchy Overview:
                 // If its an handshake PID we are done, if the EP signals that its ready to respond but no data is available -> send zero data length packet!
                 // Otherwise if the EP want's to indicate that there is no data then it should respond with an NAK and no DATA PID
                 nextIsPidLast = epResponseIsHandshakePID || !readDataAvailable;
-                nextSendHandshake = epResponseIsHandshakePID;
+                sendHandshake = epResponseIsHandshakePID;
 
                 if (epResponseValid) begin
                     // If we have a bulk transfer and the PID is handshake, then there won't be a handshake stage afterwards -> reuse isochronous logic
