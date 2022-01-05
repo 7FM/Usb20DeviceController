@@ -19,6 +19,11 @@ module usb_endpoint_0 #(
 
     input logic gotTransStartPacket_i,
     input logic [1:0] transStartTokenID_i,
+    // Status bit that indicated whether the next byte is the PID or actual data
+    // This information can be simply obtained by watching gotTransStartPacket_i
+    // but as this is likely needed for IN endpoints, the logic was centralized
+    // to safe resources!
+    input logic byteIsData_i,
 
     // Device IN interface
     input logic EP_IN_fillTransDone_i,
@@ -143,38 +148,6 @@ module usb_endpoint_0 #(
     logic epOutHandshake;
     assign epOutHandshake = EP_OUT_popData_i && EP_OUT_dataAvailable_o;
 
-    logic byteIsData, nextByteIsData;
-
-    always_comb begin
-        // Set this bit as soon as we have a handshake -> we skipped PID
-        nextByteIsData = byteIsData;
-
-        // A new transaction started
-        if (gotTransStartPacket_i) begin
-            // Ignore the first byte which is the PID / ignore all data if it is not a device request, we do not expect any input!
-            nextByteIsData = 1'b0;
-        end else if (!byteIsData && epInHandshake) begin
-            /*
-            // make PID checks (i.e. correct DATA toggle value)!
-            if (EP_IN_data_i[0] != pidData1Expected) begin
-                // ignore this packet as we already received it
-                nextEp0State = NO_OUTPUT_EXPECTED;
-            end else begin
-                // The pid has the correct toggle bit -> lets continue
-                // Once we have skipped the PID we have data bytes!
-                nextByteIsData = 1'b1;
-            end
-            */
-            // For simplicity and as it should not matter for EP0, lets make no data toggle checks!
-            // Once we have skipped the PID we have data bytes!
-            nextByteIsData = 1'b1;
-        end
-    end
-
-    always_ff @(posedge clk12_i) begin
-        byteIsData <= nextByteIsData;
-    end
-
     localparam EP0_ROM_SIZE = usb_ep_pkg::requiredROMSize(USB_DEV_EP_CONF);
     localparam ROM_IDX_WID = $clog2(EP0_ROM_SIZE);
 
@@ -208,7 +181,7 @@ module usb_endpoint_0 #(
         .rst_i(packetBufRst),
 
         .data_i(EP_IN_data_i),
-        .dataValid_i(EP_IN_dataValid_i && byteIsData),
+        .dataValid_i(EP_IN_dataValid_i && byteIsData_i),
 
         .buffer_o(packetBuf),
         .isFull_o(packetBufFull)

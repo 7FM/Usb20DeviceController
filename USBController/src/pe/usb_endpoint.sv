@@ -9,6 +9,11 @@ module usb_endpoint #(
     input logic gotTransStartPacket_i,
     input logic isHostIn_i,
     input logic [1:0] transStartTokenID_i,
+    // Status bit that indicated whether the next byte is the PID or actual data
+    // This information can be simply obtained by watching gotTransStartPacket_i
+    // but as this is likely needed for IN endpoints, the logic was centralized
+    // to safe resources!
+    input logic byteIsData_i,
     input logic [USB_DEV_CONF_WID-1:0] deviceConf_i,
     input logic resetDataToggle_i,
 
@@ -57,6 +62,7 @@ module usb_endpoint #(
 
         .gotTransStartPacket_i(gotTransStartPacket_i && !isHostIn_i),
         .transStartTokenID_i(transStartTokenID_i),
+        .byteIsData_i(byteIsData_i),
         .deviceConf_i(deviceConf_i),
         .resetDataToggle_i(resetDataToggle_i),
 

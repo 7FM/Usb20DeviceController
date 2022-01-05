@@ -60,6 +60,11 @@ module usb_pe #(
     logic [1:0] upperTransStartPID;
     logic gotTransStartPacket;
     logic isHostIn;
+    // Status bit that indicated whether the next byte is the PID or actual data
+    // This information can be simply obtained by watching gotTransStartPacket_i
+    // but as this is likely needed for IN endpoints, the logic was centralized
+    // to safe resources!
+    logic byteIsData, nextByteIsData;
 
     // Used for received data
     logic fillTransDone;
@@ -90,6 +95,24 @@ module usb_pe #(
     // If epRespHandshakePID == 1'b1 then epRespPacketID is expected to be for a handshake, otherwise a DATA pid is expected
     logic [ENDPOINTS-1:0] EP_respHandshakePID;
     logic [2*ENDPOINTS - 1:0] EP_respPacketID;
+
+    always_comb begin
+        // Set this bit as soon as we have a handshake -> we skipped PID
+        nextByteIsData = byteIsData;
+
+        // A new transaction started
+        if (gotTransStartPacket) begin
+            // Ignore the first byte which is the PID / ignore all data if it is not a device request, we do not expect any input!
+            nextByteIsData = 1'b0;
+        end else if (!byteIsData && EP_WRITE_EN) begin
+            // TODO EP_WRITE_EN is basically the signal for an handshake... but might change in the future!
+            // Once we have skipped the PID we have data bytes!
+            nextByteIsData = 1'b1;
+        end
+    end
+    always_ff @(posedge clk12_i) begin
+        byteIsData <= nextByteIsData;
+    end
 
     vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(8)) rDataMux (
         .dataSelect_i(epSelect),
@@ -133,6 +156,7 @@ module usb_pe #(
             .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),    \
             .isHostIn_i(isHostIn),                                          \
             .transStartTokenID_i(upperTransStartPID),                       \
+            .byteIsData_i(byteIsData),                                      \
             .deviceConf_i(deviceConf),                                      \
             .resetDataToggle_i(resetDataToggle),                            \
                                                                             \
@@ -190,6 +214,7 @@ module usb_pe #(
 
             .transStartTokenID_i(upperTransStartPID),
             .gotTransStartPacket_i(gotTransStartPacket && isEp0Selected),
+            .byteIsData_i(byteIsData),
 
             // Device IN interface
             .EP_IN_fillTransDone_i(fillTransDone),

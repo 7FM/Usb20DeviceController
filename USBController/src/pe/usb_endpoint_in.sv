@@ -11,6 +11,11 @@ module usb_endpoint_in #(
 
     input logic gotTransStartPacket_i,
     input logic [1:0] transStartTokenID_i,
+    // Status bit that indicated whether the next byte is the PID or actual data
+    // This information can be simply obtained by watching gotTransStartPacket_i
+    // but as this is likely needed for IN endpoints, the logic was centralized
+    // to safe resources!
+    input logic byteIsData_i,
 `MUTE_LINT(UNUSED)
     input logic [USB_DEV_CONF_WID-1:0] deviceConf_i, // unused
 `UNMUTE_LINT(UNUSED)
@@ -67,7 +72,7 @@ endgenerate
 
         .fillTransDone_i(EP_IN_fillTransDone_i),
         .fillTransSuccess_i(EP_IN_fillTransSuccess_i),
-        .dataValid_i(EP_IN_dataValid_i && !ignorePacket),
+        .dataValid_i(EP_IN_dataValid_i && !ignorePacket && byteIsData_i),
         .data_i(EP_IN_data_i),
         .full_o(EP_IN_full_o),
 
