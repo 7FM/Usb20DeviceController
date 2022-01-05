@@ -122,7 +122,7 @@ void fillFIFO(T *top, FIFOFillState<EPs> &s) {
                 setValue(top->EP_OUT_data_i, i * 8, ep.data[ep.writePointer]);
 
                 if (!getBit(top->EP_OUT_full_o, i)) {
-                  ++ep.writePointer;
+                    ++ep.writePointer;
                 }
             }
         }
