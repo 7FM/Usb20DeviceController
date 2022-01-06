@@ -270,17 +270,23 @@ int main(int argc, char **argv) {
     {
         std::cout << "Sending data to EP1" << std::endl;
         std::vector<uint8_t> ep1Data;
-        for (uint8_t i = 0; i < 42 + 1; ++i)
+
+        int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
+        // Send more data than possible with a single packet -> tests whether data toggle works!
+        int upperBound = maxPacketSize + 5;
+        // Ensure that we do not exceed our buffer capabilities!
+        upperBound = upperBound > 512 ? 512 : upperBound;
+        for (int i = 0; i < upperBound; ++i)
             ep1Data.push_back(i);
 
         // send data to EP1
-        int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
         bool dataToggleState = false;
         if (maxPacketSize == 0) {
             failed = true;
             std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
             goto exitAndCleanup;
         }
+
         failed = sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
         if (failed) {
             goto exitAndCleanup;
