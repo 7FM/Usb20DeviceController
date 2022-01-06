@@ -52,7 +52,7 @@ generate
 
         always_ff @(posedge clk12_i) begin
             // Ignore the packet if we expect a different data toggle bit -> packet is repeated
-            ignorePacket <= gotTransStartPacket_i ? transStartTokenID_i[usb_packet_pkg::DATA_0_1_TOGGLE_OFFSET-2] != expectedDataToggleBit : ignorePacket;
+            ignorePacket <= byteIsData_i ? ignorePacket : EP_IN_data_i[usb_packet_pkg::DATA_0_1_TOGGLE_OFFSET] != expectedDataToggleBit;
 
             // Update the data toggle bit upon successful transaction that was not ignored
             expectedDataToggleBit <= resetDataToggle_i ? 1'b0 : ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) ^ expectedDataToggleBit);
