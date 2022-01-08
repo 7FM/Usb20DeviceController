@@ -18,12 +18,10 @@ package usb_ep_pkg;
         EndpointType epTypeDevIn;
         EndpointType epTypeDevOut;
         logic [10:0] maxPacketSize;
-        //TODO
     } NonControlEndpointConfig;
 
     typedef struct packed {
         usb_desc_pkg::EP0_MaxPacketSize maxPacketSize;
-        //TODO
     } ControlEndpointConfig;
 
     typedef union packed {
@@ -117,23 +115,24 @@ package usb_ep_pkg;
 
 
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointINDescriptor = '{
-        bEndpointAddress: {1'b0, 3'b0 , 4'd1}, // Address Zero is reserved
-        bmAttributes: {2'b0, 2'b0, 2'b0, BULK[1:0]},
-        wMaxPacketSize: {3'b0, 2'b0, DefaultNonControlEpConfig.maxPacketSize[10:0]},
+        bEndpointAddress: {1'b0 /* Dir */, 3'b0 /* Reserved */, 4'd1 /* EP addr */}, // Address Zero is reserved
+        bmAttributes: {2'b0 /* Reserved */, 2'b0 /* Usage Type */, 2'b0 /* Sync type */, BULK[1:0]},
+        wMaxPacketSize: {3'b0 /* Reserved */, 2'b0 /* Trans/Microframe -1 */, DefaultNonControlEpConfig.maxPacketSize[10:0]},
         bInterval: 1
     };
 
     localparam usb_desc_pkg::EndpointDescriptor DefaultEndpointOUTDescriptor = '{
-        bEndpointAddress: {1'b1, 3'b0 , 4'd1}, // Address Zero is reserved
-        bmAttributes: {2'b0, 2'b0, 2'b0, BULK[1:0]},
-        wMaxPacketSize: {3'b0, 2'b0, DefaultNonControlEpConfig.maxPacketSize[10:0]},
+        bEndpointAddress: {1'b1 /* Dir */, 3'b0 /* Reserved */, 4'd1 /* EP addr */}, // Address Zero is reserved
+        bmAttributes: {2'b0 /* Reserved */, 2'b0 /* Usage Type */, 2'b0 /* Sync type */, BULK[1:0]},
+        wMaxPacketSize: {3'b0 /* Reserved */, 2'b0 /* Trans/Microframe -1 */, DefaultNonControlEpConfig.maxPacketSize[10:0]},
         bInterval: 1
     };
 
     localparam usb_desc_pkg::InterfaceDescriptor DefaultInterfaceDescriptor = '{
         bInterfaceNumber: 0, // Default interface 0
         bAlternateSetting: 0,
-        bNumEndpoints: 2, // TODO currently we are limited to endpoints that do both input & output
+        // Number of endpoints. Note that both EP IN as well as EP OUT count independently.
+        bNumEndpoints: 2,
         bInterfaceClass: 0, //TODO
         bInterfaceSubClass: 0, //TODO
         bInterfaceProtocol: 0, //TODO
