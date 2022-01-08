@@ -143,8 +143,6 @@ module usb_endpoint_0 #(
     //===============================================================================================================
     // Device Request Handling
 
-    logic epInHandshake;
-    assign epInHandshake = EP_IN_dataValid_i && !EP_IN_full_o;
     logic epOutHandshake;
     assign epOutHandshake = EP_OUT_popData_i && EP_OUT_dataAvailable_o;
 
