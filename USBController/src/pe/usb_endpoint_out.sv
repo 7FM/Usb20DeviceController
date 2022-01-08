@@ -34,9 +34,12 @@ module usb_endpoint_out #(
     output logic [1:0] respPacketID_o
 );
 
-    logic dataToggleState;
 generate
-    if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevIn == usb_ep_pkg::ISOCHRONOUS) begin
+if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg::NONE) begin
+
+    logic dataToggleState;
+
+    if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut == usb_ep_pkg::ISOCHRONOUS) begin
         // For isochronous endpoints the data toggle bits are dont cares -> always set to 0
         assign dataToggleState = 1'b0;
     end else begin
@@ -47,7 +50,6 @@ generate
             dataToggleState <= resetDataToggle_i ? 1'b0 : ((EP_OUT_popTransDone_i && EP_OUT_fillTransSuccess_i) ^ dataToggleState);
         end
     end
-endgenerate
 
     logic dataAvailable;
     logic epOutHandshake;
@@ -79,7 +81,8 @@ endgenerate
 
         .popTransDone_i(EP_OUT_popTransDone_i),
         .popTransSuccess_i(EP_OUT_popTransSuccess_i),
-        .popData_i(EP_OUT_popData_i && !awaitBRAMData), //TODO avoid multiple pops when waiting for BRAM! Effectively half the read speed!
+        // this avoids multiple pops when waiting for BRAM! Effectively half the read speed!
+        .popData_i(EP_OUT_popData_i && !awaitBRAMData),
         .dataAvailable_o(dataAvailable),
         .isLast_o(EP_OUT_isLastPacketByte_o),
         .data_o(EP_OUT_data_o)
@@ -99,5 +102,19 @@ endgenerate
     assign respHandshakePID_o = noDataAvailable;
     // NAK is 2'b10 -> we can merge the DATAx and NAK cases
     assign respPacketID_o = {noDataAvailable || dataToggleState, 1'b0};
+
+end else begin
+    // Control EP or NONE type -> react with a STALL
+    assign respValid_o = 1'b1;
+    assign respHandshakePID_o = 1'b1;
+    assign respPacketID_o = usb_packet_pkg::RES_STALL;    
+
+    // Dummy signals
+    assign EP_OUT_data_o = 8'b0;
+    assign EP_OUT_dataAvailable_o = 1'b0;
+    assign EP_OUT_isLastPacketByte_o = 1'b0;    
+    assign EP_OUT_full_o = 1'b1;
+end
+endgenerate
 
 endmodule

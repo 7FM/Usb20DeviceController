@@ -38,8 +38,11 @@ module usb_endpoint_in #(
     output logic [1:0] respPacketID_o
 );
 
-    logic ignorePacket;
 generate
+if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevIn != usb_ep_pkg::NONE) begin
+
+    logic ignorePacket;
+
     if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevIn == usb_ep_pkg::ISOCHRONOUS) begin
         // For isochronous endpoints the data toggle bits are dont cares -> never ignore the packet due to DATA0 or DATA1 PID!
         assign ignorePacket = 1'b0;
@@ -57,7 +60,6 @@ generate
             expectedDataToggleBit <= resetDataToggle_i ? 1'b0 : ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) ^ expectedDataToggleBit);
         end
     end
-endgenerate
 
     localparam EP_ADDR_WID = 9;
     localparam EP_DATA_WID = 8;
@@ -83,9 +85,21 @@ endgenerate
         .data_o(EP_IN_data_o)
     );
 
+    assign respPacketID_o = usb_packet_pkg::RES_ACK;
+
+end else begin
+    // Control EP or NONE type -> react with a STALL
+    assign respPacketID_o = usb_packet_pkg::RES_STALL;
+
+    // Dummy signals
+    assign EP_IN_data_o = 8'b0; 
+    assign EP_IN_dataAvailable_o = 1'b0; 
+    assign EP_IN_full_o = 1'b1; 
+end
+endgenerate
+
     // If this is polled, then receiving was successfull & and a handshake is expected
     assign respValid_o = 1'b1;
     assign respHandshakePID_o = 1'b1;
-    assign respPacketID_o = usb_packet_pkg::RES_ACK;
 
 endmodule
