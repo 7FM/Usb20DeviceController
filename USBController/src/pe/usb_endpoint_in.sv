@@ -8,17 +8,16 @@ module usb_endpoint_in #(
     localparam USB_DEV_CONF_WID = 8
 )(
     input logic clk12_i,
-
+`MUTE_LINT(UNUSED)
     input logic gotTransStartPacket_i,
     input logic [1:0] transStartTokenID_i,
+    input logic [USB_DEV_CONF_WID-1:0] deviceConf_i, // unused
+`UNMUTE_LINT(UNUSED)
     // Status bit that indicated whether the next byte is the PID or actual data
     // This information can be simply obtained by watching gotTransStartPacket_i
     // but as this is likely needed for IN endpoints, the logic was centralized
     // to safe resources!
     input logic byteIsData_i,
-`MUTE_LINT(UNUSED)
-    input logic [USB_DEV_CONF_WID-1:0] deviceConf_i, // unused
-`UNMUTE_LINT(UNUSED)
     input logic resetDataToggle_i,
 
     // Device IN interface
