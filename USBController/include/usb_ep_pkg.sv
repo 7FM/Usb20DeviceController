@@ -162,7 +162,7 @@ package usb_ep_pkg;
         bConfigurationValue: 1, // This is the only configuration
         // iConfiguration: 0, // No string descriptor
         iConfiguration: 4, // string descriptor idx 4
-        bmAttributes: 0, //TODO
+        bmAttributes: {1'b1 /*must be set*/, 1'b0 /*Self-powered*/, 1'b0 /*Remote Wakeup*/, 5'b0 /*must be cleared*/},
         // 500mA
         bMaxPower: 250
     };
