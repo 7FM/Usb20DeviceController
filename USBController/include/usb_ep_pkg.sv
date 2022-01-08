@@ -52,7 +52,6 @@ package usb_ep_pkg;
     typedef struct packed {
         int unsigned endpointCount; // Exclusive EP0
         EndpointConfig [14:0] epConfs; // There can be at most 16 endpoints and one is already reserved for control!
-        //TODO
         usb_desc_pkg::DeviceDescriptor deviceDesc;
         // At least a single configuration is required!
         ConfigurationDescCollection [config_pkg::MAX_CONFIG_DESCRIPTORS-1:0] devConfigs;
@@ -91,8 +90,8 @@ package usb_ep_pkg;
         idProduct: 0, //TODO
         bcdDevice: 16'h0010, //TODO
         iManufact: 1, // string descriptor idx 1
-        iProduct: 2, //string descriptor idx 2
-        iSerialNumber: 3, //string descriptor idx 3
+        iProduct: 2, // string descriptor idx 2
+        iSerialNumber: 3, // string descriptor idx 3
         bNumConfigurations: 1
     };
 
