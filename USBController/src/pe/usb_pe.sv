@@ -375,7 +375,7 @@ module usb_pe #(
     end
     //TODO check why the simulation triggers these error conditions & refine conditions / fix issues
     always_ff @(posedge clk12_i) begin
-        LED_R <= LED_R || rxFailCondition;
+        LED_R <= LED_R || (receiveDone && !receiveSuccess);
         LED_G <= LED_G || usbResetDetected_i;
         LED_B <= LED_B || packetWaitTimeout_i;
     end
