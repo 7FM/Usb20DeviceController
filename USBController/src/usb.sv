@@ -1,9 +1,6 @@
 `include "config_pkg.sv"
 `include "usb_ep_pkg.sv"
 
-//TODO remove
-`include "util_macros.sv"
-
 module usb#(
     parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
@@ -66,8 +63,6 @@ module usb#(
     logic txIsLastByte;
     logic [7:0] txData;
     logic txAcceptNewData;
-
-    //TODO add additional layers for USB protocol and proper interfaces, some might be very very timing & latency sensitive
 
     usb_sie #() serialInterfaceEngine (
         .clk48_i(clk48_i),

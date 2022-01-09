@@ -42,7 +42,6 @@ module usb_sie (
     input logic txIsLastByte_i, // Indicates that the applied txData_i is the last byte to send (is read during handshake: txDataValid_i && txAcceptNewData_o)
     input logic [7:0] txData_i, // Data to be send: First byte should be PID, followed by the user data bytes, CRC is calculated and send automagically
     output logic txAcceptNewData_o // indicates that the send buffer can be filled
-    //TODO port to indicate that the packet was sent!
 );
 
     // Source: https://beyondlogic.org/usbnutshell/usb2.shtml
