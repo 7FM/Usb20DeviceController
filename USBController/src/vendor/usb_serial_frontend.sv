@@ -10,6 +10,7 @@ module usb_serial_frontend(
     input logic pinN,
     output logic pinN_o,
 `else
+    // On downstream facing ports, RPD resistors (15 kΩ ±5%) must be connected from D+ and D- to ground
     inout logic pinP,
     inout logic pinN,
 `endif
@@ -85,6 +86,7 @@ module usb_serial_frontend(
 `ifndef FALLBACK_DEVICE
 `ifdef LATTICE_ICE_40
     SB_IO #(
+        .PULLUP(1'b0),
 `ifndef DP_REGISTERED_INPUT
         .PIN_TYPE(6'b1010_01) // tristatable output and normal input
 `else
@@ -105,6 +107,7 @@ module usb_serial_frontend(
     );
 
     SB_IO #(
+        .PULLUP(1'b0),
 `ifndef DP_REGISTERED_INPUT
         .PIN_TYPE(6'b1010_01) // tristatable output and normal input
 `else

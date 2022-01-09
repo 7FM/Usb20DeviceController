@@ -47,11 +47,20 @@ module usb_sie (
     // Source: https://beyondlogic.org/usbnutshell/usb2.shtml
     // Pin connected to USB_DP with 1.5K Ohm resistor -> indicate to be a full speed device: 12 Mbit/s
     assign USB_PULLUP_o = 1'b1; //TODO this can be used to force trigger a reattach without power cycling
+    // On downstream facing ports, RPD resistors (15 kΩ ±5%) must be connected from D+ and D- to ground
+    // -> manually add pull down resistors for USB_DP & USB_DN
+    /*  Additional manual connections required at PMOD1 when looking from the side to the FPGA (PMOD1 to the left of the micro USB port)
+                                 PMOD1                             Micro-USB Port
+        top row left -> 1     2    3  4  5  6 <- top right
+                        3.3V  GND          USB_DP
+                              ^---15k Ohm---^
+                        7     8    9 10 11 12
+                        3.3V  GND          USB_DP
+                              ^---15k Ohm---^
+    */
 
     logic isValidDPSignal;
-
     logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge;
-
     logic txIsSending;
 
     logic eopDetected;
