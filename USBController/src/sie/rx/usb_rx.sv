@@ -6,20 +6,20 @@ module usb_rx#()(
     input logic clk12_i,
     input logic rxClk12_i,
 
-    // CRC interface
+    // CRC interface: rxClk12_i
     output logic rxCRCReset_o,
     output logic rxUseCRC16_o,
     output logic rxCRCInput_o,
     output logic rxCRCInputValid_o,
     input logic isValidCRC_i,
 
-    // Bit stuffing interface
+    // Bit stuffing interface: rxClk12_i
     output logic rxBitStuffRst_o,
     output logic rxBitStuffData_o,
     input logic expectNonBitStuffedInput_i,
     input logic rxBitStuffError_i,
 
-    // Serial frontend input
+    // Serial frontend input: rxClk12_i
     input logic dataInP_i,
     input logic isValidDPSignal_i,
     input logic eopDetected_i,
@@ -32,51 +32,81 @@ module usb_rx#()(
     output logic [7:0] rxData_o, // data to be retrieved
     output logic keepPacket_o // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
 );
-
-    typedef enum logic [1:0] {
-        RX_WAIT_FOR_SYNC = 0,
-        RX_GET_PID,
-        RX_WAIT_FOR_EOP,
-        RX_RST_PHASE
-    } RxStates;
-
-    // Error handling relevant signals
-    logic pidValid;
-
-    // State variables
-    RxStates rxState;
-    logic lastByteValidCRC; // Save current valid CRC flag after each received byte to ensure no difficulties with EOP detection!
-    logic dropPacket; // Drop reason might be i.e. receive errors!
-
-    logic needCRC16Handling, nextNeedCRC16Handling; // Rarely updated, can be assumed stable
-
-    // Current signals
-    logic nrziDecodedInput;
     logic [7:0] inputBuf;
-    logic inputBufFull;
+    logic rxGotNewInput;
+    logic gotEopDetect;
+    logic dropPacket;
+    logic needCRC16Handling;
 
-    assign rxBitStuffData_o = nrziDecodedInput;
-    //TODO is a RST even needed? sync signal should automagically cause the required resets
-    assign rxBitStuffRst_o = 1'b0;
+    usb_rx_interface rx_iface (
+        .clk12_i(clk12_i),
+        .rxAcceptNewData_i(rxAcceptNewData_i),
+        .rxIsLastByte_o(rxIsLastByte_o),
+        .rxDataValid_o(rxDataValid_o),
+        .rxData_o(rxData_o),
+        .keepPacket_o(keepPacket_o),
+
+        // rxClk12_i signals
+        .inputBuf(inputBuf),
+        .rxGotNewInput(rxGotNewInput),
+        .gotEopDetect(gotEopDetect),
+        .dropPacket_i(dropPacket),
+        .needCRC16Handling(needCRC16Handling)
+    );
+
+    usb_rx_internal rx_internal (
+        .rxClk12_i(rxClk12_i),
+
+        // CRC interface: rxClk12_i
+        .rxCRCReset_o(rxCRCReset_o),
+        .rxUseCRC16_o(rxUseCRC16_o),
+        .rxCRCInput_o(rxCRCInput_o),
+        .rxCRCInputValid_o(rxCRCInputValid_o),
+        .isValidCRC_i(isValidCRC_i),
+
+        // Bit stuffing interface: rxClk12_i
+        .rxBitStuffRst_o(rxBitStuffRst_o),
+        .rxBitStuffData_o(rxBitStuffData_o),
+        .expectNonBitStuffedInput_i(expectNonBitStuffedInput_i),
+        .rxBitStuffError_i(rxBitStuffError_i),
+
+        // Serial frontend input: rxClk12_i
+        .dataInP_i(dataInP_i),
+        .isValidDPSignal_i(isValidDPSignal_i),
+        .eopDetected_i(eopDetected_i),
+        .ackEOP_o(ackEOP_o),
+
+        // Rx interface signals
+        .inputBuf_o(inputBuf),
+        .rxGotNewInput(rxGotNewInput),
+        .gotEopDetect(gotEopDetect),
+        .dropPacket(dropPacket),
+        .needCRC16Handling(needCRC16Handling)
+    );
+
+endmodule
+
+module usb_rx_interface(
+    input logic clk12_i,
+
+    // Data output interface: synced with clk12_i!
+    input logic rxAcceptNewData_i, // Backend indicates that it is able to retrieve the next data byte
+    output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
+    output logic rxDataValid_o, // rxData_o contains valid & new data
+    output logic [7:0] rxData_o, // data to be retrieved
+    output logic keepPacket_o, // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+
+    // Rx interface signals: rxClk12_i
+    input logic [7:0] inputBuf,
+    input logic rxGotNewInput,
+    input logic gotEopDetect,
+    input logic dropPacket_i,
+    input logic needCRC16Handling
+);
 
 //=========================================================================================
 //=====================================Interface Start=====================================
 //=========================================================================================
-
-    logic isByteData;
-    logic isRxWaitForEop;
-    logic awaitsPID;
-    assign awaitsPID = rxState == RX_GET_PID;
-    assign isRxWaitForEop = rxState == RX_WAIT_FOR_EOP;
-    assign isByteData = awaitsPID || isRxWaitForEop;
-
-    logic rxGotNewInput;
-    // Propagate the pipeline when inputBufFull is set
-    assign rxGotNewInput = (isByteData && inputBufFull);
-
-    // Requires explicit RST to clear eop flag again
-    // If waiting for EOP -> we need the detection -> clear RST flag
-    assign ackEOP_o = ~isRxWaitForEop;
 
     //========================================================
     // Sync between rxClk12_i and clk12_i clock domain signals
@@ -84,28 +114,18 @@ module usb_rx#()(
 
     // Rarely updated registers, that are assumed stable once
     // rxGotNewInputCDC signal arrives!
-    logic [7:0] inputBufCDC;
-    always_ff @(posedge rxClk12_i) begin
-        inputBufCDC <= rxGotNewInput ? inputBuf : inputBufCDC;
-    end
 
     logic rxGotNewInputCDC;
-    cdc_sync gotNewInputSync (
-        .clk(clk12_i),
-        .in(rxGotNewInput),
-        .out(rxGotNewInputCDC)
-    );
-
-    logic gotEopDetect;
-    always_ff @(posedge rxClk12_i) begin
-        gotEopDetect <= (gotEopDetect || eopDetected_i) && !awaitsPID;
-    end
-
     logic gotEopDetectCDC;
-    cdc_sync gotEopDetectSync (
+    logic dropPacketCDC;
+    logic needCRC16HandlingCDC;
+    cdc_sync #(
+        .WID(4),
+        .INIT_VALUE(4'b0)
+    ) cdcBridge (
         .clk(clk12_i),
-        .in(gotEopDetect),
-        .out(gotEopDetectCDC)
+        .in({rxGotNewInput, gotEopDetect, dropPacket_i, needCRC16Handling}),
+        .out({rxGotNewInputCDC, gotEopDetectCDC, dropPacketCDC, needCRC16HandlingCDC})
     );
 
     //======================================
@@ -151,7 +171,7 @@ module usb_rx#()(
 
         // Apply patching isData when we received the EndOfPacket signal
         if (gotEopDetectCDC) begin
-            if (needCRC16Handling) begin
+            if (needCRC16HandlingCDC) begin
                 // When CRC16 is used then the last two crc bytes in the pipeline are no user data
                 // -> the thrid byte in the delay queue is the last byte
                 next_isDataShiftReg[1:0] = 2'b0;
@@ -190,7 +210,7 @@ module usb_rx#()(
         rxQueueAddr <= rxQueueAddr + rxPropagatePipeline;
 
         if (rxPropagatePipeline) begin
-            rxQueue[rxQueueAddr] <= inputBufCDC;
+            rxQueue[rxQueueAddr] <= inputBuf;
         end
     end
 
@@ -198,12 +218,89 @@ module usb_rx#()(
     assign rxIsLastByte_o = isDataShiftReg[3] && !isDataShiftReg[2];
     assign rxDataValid_o = isDataShiftReg[3];
     assign rxData_o = rxQueue[rxQueueAddr];
-    // dropPacket won't be changed until a new packet will be received, hence it is assumed to be stable to read!
-    assign keepPacket_o = ~(dropPacket || byteWasNotReceived);
+    assign keepPacket_o = ~(dropPacketCDC || byteWasNotReceived);
 
 //=========================================================================================
 //======================================Interface End======================================
 //=========================================================================================
+
+endmodule
+
+module usb_rx_internal(
+    input logic rxClk12_i,
+
+    // CRC interface
+    output logic rxCRCReset_o,
+    output logic rxUseCRC16_o,
+    output logic rxCRCInput_o,
+    output logic rxCRCInputValid_o,
+    input logic isValidCRC_i,
+
+    // Bit stuffing interface
+    output logic rxBitStuffRst_o,
+    output logic rxBitStuffData_o,
+    input logic expectNonBitStuffedInput_i,
+    input logic rxBitStuffError_i,
+
+    // Serial frontend input
+    input logic dataInP_i,
+    input logic isValidDPSignal_i,
+    input logic eopDetected_i,
+    output logic ackEOP_o,
+
+    // Rx interface signals
+    output logic [7:0] inputBuf_o,
+    output logic rxGotNewInput,
+    output logic gotEopDetect,
+    output logic dropPacket, // Drop reason might be i.e. receive errors!
+    output logic needCRC16Handling
+);
+
+    typedef enum logic [1:0] {
+        RX_WAIT_FOR_SYNC = 0,
+        RX_GET_PID,
+        RX_WAIT_FOR_EOP,
+        RX_RST_PHASE
+    } RxStates;
+
+    // Error handling relevant signals
+    logic pidValid;
+
+    // State variables
+    RxStates rxState;
+    logic lastByteValidCRC; // Save current valid CRC flag after each received byte to ensure no difficulties with EOP detection!
+
+    logic nextNeedCRC16Handling;
+
+    // Current signals
+    logic nrziDecodedInput;
+    logic [7:0] inputBuf;
+    logic inputBufFull;
+
+    assign rxBitStuffData_o = nrziDecodedInput;
+    //TODO is a RST even needed? sync signal should automagically cause the required resets
+    assign rxBitStuffRst_o = 1'b0;
+
+    logic isByteData;
+    logic isRxWaitForEop;
+    logic awaitsPID;
+    assign awaitsPID = rxState == RX_GET_PID;
+    assign isRxWaitForEop = rxState == RX_WAIT_FOR_EOP;
+    assign isByteData = awaitsPID || isRxWaitForEop;
+
+    // Propagate the pipeline when inputBufFull is set
+    assign rxGotNewInput = (isByteData && inputBufFull);
+
+    // Requires explicit RST to clear eop flag again
+    // If waiting for EOP -> we need the detection -> clear RST flag
+    assign ackEOP_o = ~isRxWaitForEop;
+
+    always_ff @(posedge rxClk12_i) begin
+        inputBuf_o <= rxGotNewInput ? inputBuf : inputBuf_o;
+    end
+    always_ff @(posedge rxClk12_i) begin
+        gotEopDetect <= (gotEopDetect || eopDetected_i) && !awaitsPID;
+    end
 
     // Detections
     logic syncDetect;
