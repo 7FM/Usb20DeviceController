@@ -3,6 +3,7 @@
 
 package config_pkg;
 
+`define DEBUG_LEDS
 
 // General Settings
 // enable by IO block provided registered inputs for the differential input pins

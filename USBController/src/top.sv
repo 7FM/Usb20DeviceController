@@ -7,6 +7,12 @@ module top #(
 )(
     input logic CLK,
 
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+
 `ifdef RUN_SIM
     input logic USB_DP,
     input logic USB_DN,
@@ -85,6 +91,13 @@ module top #(
 
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
+
+`ifdef DEBUG_LEDS
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`endif
+
 `ifdef RUN_SIM
         .USB_DN_o(USB_DN_OUT),
         .USB_DP_o(USB_DP_OUT),

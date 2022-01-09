@@ -7,6 +7,12 @@ module usb#(
 )(
     input logic clk48_i,
 
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+
     // Raw USB interface
 `ifdef RUN_SIM
     input logic USB_DP,
@@ -114,6 +120,12 @@ module usb#(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) usbProtocolEngine(
         .clk12_i(clk12),
+
+`ifdef DEBUG_LEDS
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`endif
 
         // Serial Engine Services:
         .usbResetDetected_i(usbResetDetected),

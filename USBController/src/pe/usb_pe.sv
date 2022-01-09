@@ -10,6 +10,12 @@ module usb_pe #(
 )(
     input logic clk12_i,
 
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+
     input logic usbResetDetected_i,
     output logic ackUsbResetDetect_o,
 
@@ -360,6 +366,21 @@ module usb_pe #(
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
     //TODO !keepPacket can also have multiple reasons: byte was not received (similar to rxBufFull), CRC error, DP signal error
     assign rxFailCondition = rxBufFull || !keepPacket_i;
+
+`ifdef DEBUG_LEDS
+    initial begin
+        LED_R = 1'b0;
+        LED_G = 1'b0;
+        LED_B = 1'b0;
+    end
+    //TODO check why the simulation triggers these error conditions & refine conditions / fix issues
+    always_ff @(posedge clk12_i) begin
+        LED_R <= LED_R || rxFailCondition;
+        LED_G <= LED_G || usbResetDetected_i;
+        LED_B <= LED_B || packetWaitTimeout_i;
+    end
+`endif
+
 
     always_ff @(posedge clk12_i) begin
         // Will only be asserted on receiveDone -> we dont have to specifically check whether be received a byte & if it was the last byte

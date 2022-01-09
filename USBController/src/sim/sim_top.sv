@@ -14,6 +14,12 @@ module sim_top #(
     `UNMUTE_LINT(UNUSED)
     input logic rxRST,
 
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+
     // Data send interface: synced with txCLK12!
     input logic txReqSendPacket,
     output logic txAcceptNewData,
@@ -64,6 +70,11 @@ module sim_top #(
         .USB_DN_OUT(USB_DN_OUT),
         `MUTE_PIN_CONNECT_EMPTY(USB_PULLUP),
 
+`ifdef DEBUG_LEDS
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`endif
         // Endpoint interfaces
         .clk12_o(EP_CLK12),
         .EP_IN_popData_i(EP_IN_popData_i),
