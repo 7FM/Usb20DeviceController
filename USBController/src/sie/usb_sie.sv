@@ -90,8 +90,15 @@ module usb_sie (
     end
 
     logic prevTxIsSending;
-    always_ff @(posedge clk12_i) begin //TODO this is a different clock domain than the sampled signals!
-        prevTxIsSending <= txIsSending;
+    logic txIsSendingCDC;
+    cdc_sync isSendingSync(
+        .clk(clk12_i),
+        .in(txIsSending),
+        .out(txIsSendingCDC)
+    );
+
+    always_ff @(posedge clk12_i) begin
+        prevTxIsSending <= txIsSendingCDC;
     end
     initial begin
         // Start in receiving mode
@@ -100,7 +107,7 @@ module usb_sie (
     end
 
     // TX module is done sending when a negedge of txIsSending was noticeable
-    assign txDoneSending_o = prevTxIsSending && !txIsSending;
+    assign txDoneSending_o = prevTxIsSending && !txIsSendingCDC;
 
     logic rxClkGenRST;
     // Reset on switch to receive mode!

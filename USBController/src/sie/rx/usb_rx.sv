@@ -229,26 +229,26 @@ endmodule
 module usb_rx_internal(
     input logic rxClk12_i,
 
-    // CRC interface
+    // CRC interface: rxClk12_i
     output logic rxCRCReset_o,
     output logic rxUseCRC16_o,
     output logic rxCRCInput_o,
     output logic rxCRCInputValid_o,
     input logic isValidCRC_i,
 
-    // Bit stuffing interface
+    // Bit stuffing interface: rxClk12_i
     output logic rxBitStuffRst_o,
     output logic rxBitStuffData_o,
     input logic expectNonBitStuffedInput_i,
     input logic rxBitStuffError_i,
 
-    // Serial frontend input
+    // Serial frontend input: clk48_i
     input logic dataInP_i,
     input logic isValidDPSignal_i,
     input logic eopDetected_i,
     output logic ackEOP_o,
 
-    // Rx interface signals
+    // Rx interface signals: rxClk12_i
     output logic [7:0] inputBuf_o,
     output logic rxGotNewInput,
     output logic gotEopDetect,
