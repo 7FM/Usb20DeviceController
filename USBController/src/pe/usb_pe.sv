@@ -486,7 +486,7 @@ Device Transaction State Machine Hierarchy Overview:
 
     always_comb begin
         nextTransState = transState;
-        readTimerRst_o = 1'b0;
+        readTimerRst_o = 1'b1;
         nextIsSendingPhase = isSendingPhase_o;
         transactionDone = 1'b0;
 
@@ -528,13 +528,13 @@ Device Transaction State Machine Hierarchy Overview:
                         nextTransState = isEpIsochronous ? IsochO_HANDLE_PACKET : BCINTO_HANDLE_PACKET;
                     end
                 end
-
-                // Just always reset the read timeout watchdog in this state!
-                readTimerRst_o = 1'b1;
             end
 
             // New transaction types
             IsochO_HANDLE_PACKET: begin
+                // We are waiting a limited time for the packet to come!
+                readTimerRst_o = 1'b0;
+
                 fillTransSuccess = receiveSuccess;
                 fillTransDone = receiveDone;
 
@@ -546,6 +546,9 @@ Device Transaction State Machine Hierarchy Overview:
 
             // New transaction types
             BCINTO_HANDLE_PACKET: begin
+                // We are waiting a limited time for the packet to come!
+                readTimerRst_o = 1'b0;
+
                 fillTransSuccess = receiveSuccess;
                 fillTransDone = receiveDone;
 
@@ -610,9 +613,6 @@ Device Transaction State Machine Hierarchy Overview:
             end
 
             BCINTI_WAIT_PACKET_SENT: begin
-                // Just always reset the read timeout watchdog in this state!
-                readTimerRst_o = 1'b1;
-
                 if (txDoneSending_i) begin
                     // We are done here
                     nextTransState = BCINTI_AWAIT_RESPONSE;
@@ -620,6 +620,9 @@ Device Transaction State Machine Hierarchy Overview:
                 end
             end
             BCINTI_AWAIT_RESPONSE: begin
+                // We are waiting a limited time for the packet to come!
+                readTimerRst_o = 1'b0;
+
                 // We expect to receive the response in our internal transaction buffer and not to pass it to the EPs!
                 forceInternalBuf = 1'b1;
                 // Success only when we received an ACK!
