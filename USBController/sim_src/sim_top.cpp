@@ -153,6 +153,22 @@ int main(int argc, char **argv) {
     uint8_t ep0MaxPacketSize = 0;
     uint8_t addr = 0;
 
+    failed |= sendSOF(sim, 0);
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
+    // Execute a few more cycles to give the logic some time between the packages
+    sim.template run<true, false>(2);
+
+    failed |= sendSOF(sim, 0xFFFF);
+    if (failed) {
+        goto exitAndCleanup;
+    }
+
+    // Execute a few more cycles to give the logic some time between the packages
+    sim.template run<true, false>(2);
+
     // Read the device descriptor
     // First, only read 8 bytes to determine the ep0MaxPacketSize
     // Afterwards read it all!

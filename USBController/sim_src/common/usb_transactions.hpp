@@ -61,6 +61,21 @@ bool receiveStuff(Sim &sim, const char *errMsg) {
     return getForceStop();
 }
 
+template <class Sim>
+static bool sendSOF(Sim &sim, uint16_t frameNumber) {
+
+    std::cout << "Sending start of frame " << frameNumber << " packet!" << std::endl;
+
+    TokenPacket SOF;
+    SOF.token = PID_SOF_TOKEN;
+    SOF.addr = frameNumber & 0x07F;
+    SOF.endpoint = (frameNumber >> 7) & 0x0F;
+
+    return sendStuff(sim, [&] {
+        fillVector(sim.txState.dataToSend, SOF);
+    });
+}
+
 template <typename Sim>
 class InTransaction {
     /*
