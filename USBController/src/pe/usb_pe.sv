@@ -354,11 +354,15 @@ module usb_pe #(
     assign packetPID = usb_packet_pkg::PID_Types'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS / 2]);
     assign upperTransStartPID = packetPID[3:2];
 
+    // Start of Frame (SOF)
+    logic isSOF;
+    assign isSOF = upperTransStartPID == usb_packet_pkg::PID_SOF_TOKEN[3:2];
+
     logic isTokenPID;
     assign isTokenPID = packetPID[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
 
     logic isValidTransStartPacket;
-    assign isValidTransStartPacket = receiveDone && receiveSuccess && isTokenPID && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
+    assign isValidTransStartPacket = receiveDone && receiveSuccess && isTokenPID && !isSOF && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
 
     logic rxFailCondition;
     // treat full buffer as error -> not all data could be stored!
