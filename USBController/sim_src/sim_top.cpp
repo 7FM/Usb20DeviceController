@@ -196,6 +196,7 @@ int main(int argc, char **argv) {
         // TODO check content
 
         const char *stringDescName[] = {
+            "String Desc 0:",
             "Manufacturer Name:",
             "Product Name:",
             "Serial Number:",
@@ -204,7 +205,7 @@ int main(int argc, char **argv) {
         };
         for (int i = 0; !failed && i < sizeof(stringDescName) / sizeof(stringDescName[0]); ++i) {
             sim.issueDummySignal();
-            failed |= readDescriptor(result, sim, DESC_STRING, i + 1, ep0MaxPacketSize, addr, 2);
+            failed |= readDescriptor(result, sim, DESC_STRING, i, ep0MaxPacketSize, addr, 2);
             std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
             prettyPrintDescriptors(result);
             // TODO check content
