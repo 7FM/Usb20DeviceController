@@ -89,6 +89,9 @@ SIM_DEFS += --trace-fst
 CCFLAGS += -DDUMP_FST
 endif
 
+# Randomize initialization values
+SIM_DEFS += --x-initial unique --x-assign unique
+
 .PHONY: all clean genBitstream sanityChecks sim
 
 all: genBitstream sanityChecks

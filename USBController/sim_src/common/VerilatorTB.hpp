@@ -41,12 +41,10 @@ class VerilatorTB {
     bool run(uint64_t limit);
 
   private:
-    bool initialized = false;
-
     VerilatedContext *const simContext;
 
   protected:
-    TOP *const top;
+    TOP * top;
 
   private:
     VERILATOR_DUMPFILE_CLASS *traceFile = nullptr;
