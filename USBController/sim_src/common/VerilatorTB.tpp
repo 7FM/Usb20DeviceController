@@ -71,7 +71,6 @@ bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
     std::string seedSetting = seedSettingStream.str();
 
     std::cout << "Using Seed: " << seed << std::endl;
-    std::cout << "Seed setting: " << seedSetting << std::endl;
 
     const char *fixedVerilatorArgs[] = {
         // Random initialization
