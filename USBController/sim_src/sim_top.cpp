@@ -55,6 +55,9 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
         tx_clk12_counter = 0;
         rx_clk12_counter = clk12Offset;
+
+        // Finally run the us reset procedure
+        usbReset();
     }
 
     bool stopCondition() {
@@ -93,6 +96,13 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         top->dummyPin = 1;
         run<true, false, false, false, false>(1);
         top->dummyPin = 0;
+    }
+
+    void usbReset() {
+        top->forceSE0 = 1;
+        // Run with the reset signal for some time //TODO how many cycles exactly???
+        run<true, false>(200);
+        top->forceSE0 = 0;
     }
 
     bool customInit(int opt) { return false; }

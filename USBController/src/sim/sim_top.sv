@@ -7,6 +7,7 @@ module sim_top #(
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic CLK,
+    input logic forceSE0,
     input logic rxCLK12,
     input logic txCLK12,
     `MUTE_LINT(UNUSED)
@@ -58,8 +59,12 @@ module sim_top #(
 );
 
     logic USB_DP;
+    logic USB_DP_tx;
+    assign USB_DP = forceSE0 ? 1'b0 : USB_DP_tx;
     logic USB_DP_OUT;
     logic USB_DN;
+    logic USB_DN_tx;
+    assign USB_DN = forceSE0 ? 1'b0 : USB_DN_tx;
     logic USB_DN_OUT;
 
     top uut(
@@ -92,8 +97,8 @@ module sim_top #(
 
     sim_usb_tx_connection hostTxImitator(
         .txClk12(txCLK12),
-        .USB_DP(USB_DP),
-        .USB_DN(USB_DN),
+        .USB_DP(USB_DP_tx),
+        .USB_DN(USB_DN_tx),
 
         // Data send interface: synced with clk48!
         .txReqSendPacket(txReqSendPacket),
