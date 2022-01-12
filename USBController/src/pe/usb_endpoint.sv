@@ -93,7 +93,7 @@ module usb_endpoint #(
     ) epXout (
         .clk12_i(clk12_i),
 
-        .gotTransStartPacket_i(gotTransStartPacket_i && !isHostIn_i),
+        .gotTransStartPacket_i(gotTransStartPacket_i && isHostIn_i),
         .transStartTokenID_i(transStartTokenID_i),
         .deviceConf_i(deviceConf_i),
         .resetDataToggle_i(resetDataToggle_i),
