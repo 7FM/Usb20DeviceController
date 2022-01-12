@@ -42,12 +42,6 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         top->rxCLK12 = 0;
         top->txCLK12 = 0;
 
-        top->rxRST = 1;
-        // Give modules some time to settle
-        constexpr int resetCycles = 10;
-        run<false, false, false, false, false>(resetCycles);
-        top->rxRST = 0;
-
         rxState.reset();
         txState.reset();
         fifoFillState.reset(top);
@@ -55,6 +49,12 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
         tx_clk12_counter = 0;
         rx_clk12_counter = clk12Offset;
+
+        top->rxRST = 1;
+        // Give modules some time to settle
+        constexpr int resetCycles = 10;
+        run<true, false, false, false, false>(resetCycles);
+        top->rxRST = 0;
 
         // Finally run the us reset procedure
         usbReset();
