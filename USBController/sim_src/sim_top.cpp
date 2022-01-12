@@ -50,8 +50,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
         rxState.reset();
         txState.reset();
-        fifoFillState.reset();
-        fifoEmptyState.reset();
+        fifoFillState.reset(top);
+        fifoEmptyState.reset(top);
 
         tx_clk12_counter = 0;
         rx_clk12_counter = clk12Offset;

@@ -31,17 +31,14 @@ V getValue(const T &data, unsigned int offset) {
 template <unsigned int EPs, class Impl, class EpState>
 class BaseFIFOState {
   public:
-    BaseFIFOState() {
-        reset();
-    }
-
-    void reset() {
+    template <class T>
+    void reset(T *top) {
         for (auto &s : epState) {
             s.reset();
         }
         prevCLK12 = false;
         disable();
-        static_cast<Impl *>(this)->do_reset();
+        static_cast<Impl *>(this)->do_reset(top);
     }
 
     void enable() {
@@ -100,7 +97,13 @@ struct EpFillState {
 template <unsigned int EPs>
 class FIFOFillState : public BaseFIFOState<EPs, FIFOFillState<EPs>, EpFillState> {
   public:
-    void do_reset() {
+    template <class T>
+    void do_reset(T *top) {
+        for (unsigned int i = 0; i < EPs; ++i) {
+            setBit(top->EP_OUT_fillTransDone_i, i, false);
+            setBit(top->EP_OUT_fillTransSuccess_i, i, false);
+            setBit(top->EP_OUT_dataValid_i, i, false);
+        }
     }
 };
 
@@ -150,7 +153,13 @@ struct EpEmptyState {
 template <unsigned int EPs>
 class FIFOEmptyState : public BaseFIFOState<EPs, FIFOEmptyState<EPs>, EpEmptyState> {
   public:
-    void do_reset() {
+    template <class T>
+    void do_reset(T *top) {
+        for (unsigned int i = 0; i < EPs; ++i) {
+            setBit(top->EP_IN_popTransDone_i, i, false);
+            setBit(top->EP_IN_popTransSuccess_i, i, false);
+            setBit(top->EP_IN_popData_i, i, false);
+        }
     }
 };
 
