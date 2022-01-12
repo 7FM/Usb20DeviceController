@@ -49,6 +49,7 @@ module cdc_2phase_sync #(
     initial begin
         meta_ack = 1'b0;
         ack_sync = 1'b0;
+        req = 1'b0;
     end
 
     always_ff @(posedge clk1) begin
