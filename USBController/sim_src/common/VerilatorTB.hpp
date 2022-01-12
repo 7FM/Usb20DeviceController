@@ -33,18 +33,21 @@ class VerilatorTB {
         return simContext->gotFinish();
     }
     void reset() {
-        static_cast<Impl*>(this)->simReset();
+        static_cast<Impl *>(this)->simReset();
     }
 
     bool init(int argc, char **argv);
     template <bool dump, bool checkStopCondition = true, bool runSanityChecks = true, bool runOnRisingEdge = true, bool runOnFallingEdge = true>
     bool run(uint64_t limit);
 
+    unsigned getSeed() const { return seed; }
+
   private:
     VerilatedContext *const simContext;
+    unsigned seed;
 
   protected:
-    TOP * top;
+    TOP *top;
 
   private:
     VERILATOR_DUMPFILE_CLASS *traceFile = nullptr;

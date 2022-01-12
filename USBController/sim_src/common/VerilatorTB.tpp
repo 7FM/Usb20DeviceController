@@ -59,7 +59,7 @@ bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
         }
     }
 
-    unsigned seed = time(0);
+    seed = time(0);
 
     if (seedStr) {
         seed = std::atol(seedStr);
