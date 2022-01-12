@@ -91,7 +91,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg
     // If this is polled, then receiving was successfull & and a handshake is expected
     logic noDataAvailable;
     always_ff @(posedge clk12_i) begin
-        noDataAvailable <= gotTransStartPacket_i ? dataAvailable : noDataAvailable;
+        noDataAvailable <= gotTransStartPacket_i ? !dataAvailable : noDataAvailable;
     end
 
     assign respValid_o = noDataAvailable || !awaitBRAMData;
