@@ -130,7 +130,7 @@ else
 $(syn_target): $(srcs)
 	@mkdir -p $(BUILDDIR)
 # Uses patched yosys version to allow specifying include dirs before all files are read
-	$(SYN) -T -Q -r "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
+	$(SYN) -T -Q -Z "verilog_defaults -add -I $(INCLUDE_DIR)" -p "synth_$(TARGET) -json $@ -top $(TOP_MODULE)" $^ > $(LOG) 2>&1
 endif
 	@echo "============================================================================================"
 

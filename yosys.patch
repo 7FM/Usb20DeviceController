@@ -17,7 +17,7 @@ index b55f0283..05987113 100644
 -		printf("        execute the commands\n");
 +		printf("        execute the commands after input file processing\n");
 +		printf("\n");
-+		printf("    -r command\n");
++		printf("    -Z command\n");
 +		printf("        execute the commands before input file processing\n");
  		printf("\n");
  		printf("    -m module_file\n");
@@ -26,21 +26,23 @@ index b55f0283..05987113 100644
  	}
  
  	int opt;
--	while ((opt = getopt(argc, argv, "MXAQTVSgm:f:Hh:b:o:p:l:L:qv:tds:c:W:w:e:D:P:E:x:")) != -1)
-+	while ((opt = getopt(argc, argv, "MXAQTVSgm:f:Hh:b:o:p:r:l:L:qv:tds:c:W:w:e:D:P:E:x:")) != -1)
+-	while ((opt = getopt(argc, argv, "MXAQTVSgm:f:Hh:b:o:p:l:L:qv:tds:c:W:w:e:r:D:P:E:x:")) != -1)
++	while ((opt = getopt(argc, argv, "MXAQTVSgm:f:Hh:b:o:p:Z:l:L:qv:tds:c:W:w:e:r:D:P:E:x:")) != -1)
  	{
  		switch (opt)
  		{
-@@ -388,6 +392,9 @@ int main(int argc, char **argv)
+@@ -388,7 +392,11 @@ int main(int argc, char **argv)
  		case 'p':
  			passes_commands.push_back(optarg);
+ 			run_shell = false;
  			break;
-+		case 'r':
++		case 'Z':
 +			passes_commands_before.push_back(optarg);
++                       run_shell = false;
 +			break;
  		case 'o':
  			output_filename = optarg;
- 			got_output_filename = true;
+ 			run_shell = false;
 @@ -519,6 +526,9 @@ int main(int argc, char **argv)
  		run_pass(vdef_cmd);
  	}
@@ -49,5 +51,5 @@ index b55f0283..05987113 100644
 +		run_pass(cmd);
 +
  	while (optind < argc)
- 		run_frontend(argv[optind++], frontend_command, output_filename == "-" ? &backend_command : NULL);
- 
+ 		if (run_frontend(argv[optind++], frontend_command))
+ 			run_shell = false;
