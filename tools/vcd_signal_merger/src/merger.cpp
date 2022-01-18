@@ -100,57 +100,57 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
             // Expected format: `$var` <type> <bitWidth> <vcdAlias> <signalName> `$end`
             auto typeStart = line.find_first_not_of(" ", 4);
             if (typeStart == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
             auto typeEnd = line.find(" ", typeStart);
             if (typeEnd == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
 
             auto bitWidthStart = line.find_first_not_of(" ", typeEnd);
             if (bitWidthStart == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
             auto bitWidthEnd = line.find(" ", bitWidthStart);
             if (bitWidthEnd == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
             if (line[bitWidthStart] != '1' || bitWidthStart + 1 != bitWidthEnd) {
-                std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
-                out << line << std::endl;
+                // std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
+                // out << line << std::endl;
                 continue;
             }
 
             auto vcdAliasStart = line.find_first_not_of(" ", bitWidthEnd);
             if (vcdAliasStart == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
             auto vcdAliasEnd = line.find(" ", vcdAliasStart);
             if (vcdAliasEnd == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
 
             auto signalNameStart = line.find_first_not_of(" ", vcdAliasEnd);
             if (signalNameStart == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
             auto signalNameEnd = line.find(" ", signalNameStart);
             if (signalNameEnd == std::string::npos) {
-                std::cout << "Invalid $var define!" << std::endl;
+                std::cout << "ERROR: Invalid $var define!" << std::endl;
                 out << line << std::endl;
                 continue;
             }
@@ -158,10 +158,9 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
             std::string vcdAlias(line.substr(vcdAliasStart, vcdAliasEnd - vcdAliasStart));
             std::string signalName(line.substr(signalNameStart, signalNameEnd - signalNameStart));
 
-            std::cout << "Info: found variable: '" << signalName << "' with alias '" << vcdAlias << "'" << std::endl;
-
             auto it = signalNameToState.find(signalName);
             if (it != signalNameToState.end()) {
+                std::cout << "Info: found variable: '" << signalName << "' with alias '" << vcdAlias << "'" << std::endl;
                 // Add the new alias
                 vcdAliases.insert({vcdAlias, it->second});
                 auto &vcdSymbol = it->second.second->outputVcdSymbol;
@@ -192,6 +191,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
     }
 
     // Handle the actual dump data!
+    bool showedMultibitWarning = false;
     while (in.good()) {
         std::getline(in, line);
 
@@ -208,8 +208,13 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
 
             if (line[0] == 'b') {
                 // Multibit value: currently we can not handle this
-                std::cout << "Warning: multibit values are unsupported!" << std::endl;
-                out << line << std::endl;
+                if (!showedMultibitWarning) {
+                    showedMultibitWarning = true;
+                    std::cout << "Warning: multibit values are unsupported!" << std::endl;
+                }
+                if (!truncate) {
+                    out << line << std::endl;
+                }
                 continue;
             } else {
                 // Single bit value
