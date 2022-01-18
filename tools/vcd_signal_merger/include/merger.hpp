@@ -10,4 +10,4 @@ struct MergeSignals
     bool mergeViaAND; // Else merges with OR
 };
 
-int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, const std::vector<MergeSignals> &mergeSignals);
+int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, const std::vector<MergeSignals> &mergeSignals, bool truncate);

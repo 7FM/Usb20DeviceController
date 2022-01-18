@@ -60,7 +60,7 @@ struct SignalMergeState {
     }
 };
 
-int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, const std::vector<MergeSignals> &mergeSignals) {
+int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, const std::vector<MergeSignals> &mergeSignals, bool truncate) {
     std::ifstream in(inputFile);
     std::ofstream out(outputFile);
 
@@ -171,7 +171,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
                     out << line << std::endl;
                     vcdSymbol = vcdAlias;
                 }
-            } else {
+            } else if (!truncate) {
                 std::cout << "Warning: no entry found for signal: " << signalName << std::endl;
                 // We still want to keep this signal!
                 out << line << std::endl;
@@ -216,7 +216,9 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
                 char valueChar = line[0];
                 if (valueChar != '0' && valueChar != '1') {
                     std::cout << "Warning: unsupported value: " << valueChar << std::endl;
-                    out << line << std::endl;
+                    if (!truncate) {
+                        out << line << std::endl;
+                    }
                     continue;
                 }
                 value = valueChar == '1';
@@ -226,7 +228,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
             auto it = vcdAliases.find(vcdAlias);
             if (it != vcdAliases.end()) {
                 it->second.second->mergeSignal(it->second.first, value);
-            } else {
+            } else if (!truncate) {
                 std::cout << "Warning: no entry found for vcd alias: " << vcdAlias << std::endl;
                 std::cout << "    raw line: " << line << std::endl;
                 // We still want to keep this signal!

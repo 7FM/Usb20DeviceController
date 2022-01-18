@@ -32,8 +32,10 @@ int main(int argc, char **argv) {
     std::string outputFile;
     std::vector<MergeSignals> mergeSignals;
 
+    bool truncate = false;
+
     int opt;
-    while ((opt = getopt(argc, argv, "Hhi:o:A:O:")) != -1) {
+    while ((opt = getopt(argc, argv, "Hhi:o:A:O:t")) != -1) {
         switch (opt) {
             case 'i': {
                 inputFile = optarg;
@@ -41,6 +43,10 @@ int main(int argc, char **argv) {
             }
             case 'o': {
                 outputFile = optarg;
+                break;
+            }
+            case 't': {
+                truncate = true;
                 break;
             }
             case 'A': {
@@ -75,5 +81,5 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    return mergeVcdFiles(inputFile, outputFile, mergeSignals);
+    return mergeVcdFiles(inputFile, outputFile, mergeSignals, truncate);
 }
