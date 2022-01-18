@@ -2,8 +2,8 @@
 
 #include <fstream>
 #include <map>
-#include <utility>
 #include <memory>
+#include <utility>
 
 #include <iostream>
 
@@ -17,8 +17,15 @@ struct SignalMergeState {
     bool initialized = false;
     const bool mergeViaAND;
 
+  private:
     const size_t size;
-    std::unique_ptr<bool[]> values;
+    const std::unique_ptr<bool[]> values;
+
+  public:
+    SignalMergeState(const SignalMergeState &) = delete;
+    SignalMergeState &operator=(const SignalMergeState &) = delete;
+    SignalMergeState &operator=(SignalMergeState &&other) = delete;
+    SignalMergeState(SignalMergeState &&other) = delete;
 
     SignalMergeState(bool mergeViaAND, size_t size) : mergeViaAND(mergeViaAND), size(size), values(new bool[size]) {}
 
@@ -66,14 +73,13 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
         return 3;
     }
 
-    std::vector<SignalMergeState> states;
+    std::vector<std::unique_ptr<SignalMergeState>> states;
     std::map<std::string, std::pair<size_t, SignalMergeState *>> signalNameToState;
     for (const auto &s : mergeSignals) {
-        auto &ref = states.emplace_back(s.mergeViaAND, s.signalNames.size());
-
+        const auto &ref = states.emplace_back(std::make_unique<SignalMergeState>(s.mergeViaAND, s.signalNames.size()));
         size_t i = 0;
         for (const auto &e : s.signalNames) {
-            signalNameToState.insert({e, std::make_pair(i, &ref)});
+            signalNameToState.insert({e, std::make_pair(i, ref.get())});
             ++i;
         }
     }
@@ -158,11 +164,12 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
             if (it != signalNameToState.end()) {
                 // Add the new alias
                 vcdAliases.insert({vcdAlias, it->second});
-                if (it->second.second->outputVcdSymbol.empty()) {
+                auto &vcdSymbol = it->second.second->outputVcdSymbol;
+                if (vcdSymbol.empty()) {
                     // This is the first alias for this signal group!
                     // -> keep this signal definition & set it as outputVcdSymbol
                     out << line << std::endl;
-                    it->second.second->outputVcdSymbol = vcdAlias;
+                    vcdSymbol = vcdAlias;
                 }
             } else {
                 std::cout << "Warning: no entry found for signal: " << signalName << std::endl;
@@ -228,7 +235,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
         } else if (isTimestampEnd) {
             // Iterate over all signal groups to dump updated values
             for (auto &s : states) {
-                s.handleTimestepEnd(out);
+                s->handleTimestepEnd(out);
             }
             // Also print this line that signaled the end of an timestamp
             out << line << std::endl;
@@ -241,7 +248,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
 
     // One final dump for updated values
     for (auto &s : states) {
-        s.handleTimestepEnd(out);
+        s->handleTimestepEnd(out);
     }
 
     return 0;
