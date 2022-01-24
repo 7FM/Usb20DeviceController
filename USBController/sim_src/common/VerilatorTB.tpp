@@ -1,7 +1,7 @@
 #include <cstring>
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 #include <time.h>
 
 template <class Impl, class TOP>
@@ -64,6 +64,9 @@ bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
     if (seedStr) {
         seed = std::atol(seedStr);
     }
+
+    // Seed our internal PRNG
+    std::srand(seed);
 
     std::stringstream seedSettingStream;
     seedSettingStream << "+verilator+seed+" << seed;

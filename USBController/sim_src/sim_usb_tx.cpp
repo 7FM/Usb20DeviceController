@@ -78,7 +78,7 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
             top->rxCLK12 = !top->rxCLK12;
             negedge = !(posedge = top->rxCLK12);
         }
-        receiveDeserializedInput(top, rxState, posedge, negedge);
+        receiveDeserializedInput(*this, top, rxState, posedge, negedge);
     }
 
     bool customInit(int opt) { return false; }

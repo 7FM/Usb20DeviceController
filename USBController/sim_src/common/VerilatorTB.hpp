@@ -11,6 +11,8 @@
 #define VERILATOR_DUMPFILE_CLASS VerilatedVcdC
 #endif
 
+#include <cstdlib> // rand & srand
+
 template <class Impl, class TOP>
 class VerilatorTB {
   private:
@@ -41,6 +43,10 @@ class VerilatorTB {
     bool run(uint64_t limit);
 
     unsigned getSeed() const { return seed; }
+
+    int getRand() const {
+        return std::rand();
+    }
 
   private:
     VerilatedContext *const simContext;

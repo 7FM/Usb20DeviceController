@@ -308,8 +308,8 @@ struct UsbReceiveState {
     bool receivedLastByte = false;
     bool keepPacket = false;
     uint8_t delayedDataAccept = 0;
-    const uint8_t acceptAfterXAvailableCycles = 4;
-    // const uint8_t acceptAfterXAvailableCycles = 0;
+    const uint8_t MAX_ACCEPT_DELAY = 6;
+    uint8_t acceptAfterXAvailableCycles = 4;
 
     bool enableTimeout = false;
     bool timerReset = false;
@@ -337,8 +337,8 @@ struct UsbReceiveState {
     }
 };
 
-template <typename T>
-void receiveDeserializedInput(T *top, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
+template <typename Sim, typename T>
+void receiveDeserializedInput(const Sim& sim, T *top, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
     if (posedge && top->rxAcceptNewData && top->rxDataValid) {
         usbRxState.receivedData.push_back(top->rxData);
 
@@ -353,6 +353,7 @@ void receiveDeserializedInput(T *top, UsbReceiveState &usbRxState, bool posedge,
             usbRxState.receivedLastByte = true;
         }
 
+        usbRxState.acceptAfterXAvailableCycles = sim.getRand() % (usbRxState.MAX_ACCEPT_DELAY + 1);
         usbRxState.delayedDataAccept = 0;
     } else if (negedge) {
         if (top->rxAcceptNewData) {
