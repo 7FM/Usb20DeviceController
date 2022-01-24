@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
         std::cout << "ABORTED!" << std::endl;
         std::cerr << "The user requested a forced stop!" << std::endl;
     } else if (testFailed) {
-        std::cout << "FAILED!" << std::endl;
+        std::cout << "FAILED! Seed: " << sim.getSeed() << std::endl;
     } else {
         std::cout << "PASSED!" << std::endl;
     }
