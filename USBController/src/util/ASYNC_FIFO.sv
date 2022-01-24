@@ -42,13 +42,13 @@ module ASYNC_FIFO #(
     end
 
     gray_code_encoder #(
-        .WID(ADDR_WID)
+        .WID(ADDR_WID + 1)
     ) readAddressGrayCodeEncoder(
         .in(rAddr),
         .out(rAddrGrayCode)
     );
     gray_code_encoder #(
-        .WID(ADDR_WID)
+        .WID(ADDR_WID + 1)
     ) writeAddressGrayCodeEncoder(
         .in(wAddr),
         .out(wAddrGrayCode)
@@ -58,16 +58,16 @@ module ASYNC_FIFO #(
     logic [ADDR_WID:0] rAddrGrayCode_synced, wAddrGrayCode_synced;
 
     cdc_sync #(
-        .WID(ADDR_WID),
-        .INIT_VALUE({ADDR_WID{1'b0}})
+        .WID(ADDR_WID + 1),
+        .INIT_VALUE({(ADDR_WID + 1){1'b0}})
     ) readAddressGrayCodeSyncer (
         .clk(w_clk_i),
         .in(rAddrGrayCode),
         .out(rAddrGrayCode_synced)
     );
     cdc_sync #(
-        .WID(ADDR_WID),
-        .INIT_VALUE({ADDR_WID{1'b0}})
+        .WID(ADDR_WID + 1),
+        .INIT_VALUE({(ADDR_WID + 1){1'b0}})
     ) writeAddressGrayCodeSyncer (
         .clk(r_clk_i),
         .in(wAddrGrayCode),
@@ -90,7 +90,7 @@ module ASYNC_FIFO #(
     assign writeHandshake = dataValid_i && !full_o;
 
     always_ff @(posedge w_clk_i) begin
-        wAddr <= wAddr + writeHandshake;
+        wAddr <= wAddr + {{ADDR_WID{1'b0}}, writeHandshake};
     end
     always_ff @(posedge w_clk_i) begin
         if (writeHandshake) begin
@@ -110,7 +110,7 @@ module ASYNC_FIFO #(
     assign readHandshake = popData_i && !empty_o;
 
     always_ff @(posedge r_clk_i) begin
-        rAddr <= rAddr + readHandshake;
+        rAddr <= rAddr + {{ADDR_WID{1'b0}}, readHandshake};
     end
 generate
     if (USE_DRAM) begin
