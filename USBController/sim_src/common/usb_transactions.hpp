@@ -143,7 +143,8 @@ class OutTransaction {
         })) return true;
 
         // Execute a few more cycles to give the logic some time between the packages
-        sim.template run<true, false>(10);
+        int waitCycles = 5 + sim.getRand() % 6;
+        sim.template run<true, false>(waitCycles);
 
         //=========================================================================
         // 2. Send Data packet

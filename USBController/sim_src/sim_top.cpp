@@ -86,7 +86,7 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
             top->rxCLK12 = !top->rxCLK12;
             negedge = !(posedge = top->rxCLK12);
         }
-        receiveDeserializedInput(top, rxState, posedge, negedge);
+        receiveDeserializedInput(*this, top, rxState, posedge, negedge);
 
         fillFIFO(top, fifoFillState);
         emptyFIFO(top, fifoEmptyState);

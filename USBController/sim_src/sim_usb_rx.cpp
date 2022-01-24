@@ -78,7 +78,7 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
             top->CLK12 = !top->CLK12;
             negedge = !(posedge = top->CLK12);
         }
-        receiveDeserializedInput(top, rxState, posedge, negedge);
+        receiveDeserializedInput(*this, top, rxState, posedge, negedge);
 
 #if APPLY_USB_SIGNAL_ON_RISING_EDGE
         applyUsbSignal(signalToReceive.data(), signalToReceive.size());
