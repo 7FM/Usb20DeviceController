@@ -40,7 +40,7 @@ bool sendStuff(Sim &sim, std::function<void()> fillSendData) {
 }
 
 template <typename Sim>
-bool receiveStuff(Sim &sim, const char *errMsg) {
+bool receiveStuff(Sim &sim, const char* errMsg, const char *timeoutMsg) {
     // Enable timeout for receiving a response
     sim.rxState.reset();
     sim.rxState.enableTimeout = true;
@@ -53,6 +53,10 @@ bool receiveStuff(Sim &sim, const char *errMsg) {
     }
 
     if (sim.rxState.timedOut) {
+        std::cerr << timeoutMsg << std::endl;
+        return true;
+    }
+    if (!sim.rxState.keepPacket) {
         std::cerr << errMsg << std::endl;
         return true;
     }
@@ -101,7 +105,7 @@ class InTransaction {
         // 2. Receive Data packet / Timeout
         std::cout << "Receive IN data!" << std::endl;
 
-        if (receiveStuff(sim, "Timeout waiting for input data!"))
+        if (receiveStuff(sim, "ERROR: received data has keepPacket set low!", "Timeout waiting for input data!"))
             return true;
 
         //=========================================================================
@@ -155,7 +159,7 @@ class OutTransaction {
         // 3. Receive Handshake / Timeout
         std::cout << "Wait for response!" << std::endl;
 
-        if (receiveStuff(sim, "Timeout waiting for a response!"))
+        if (receiveStuff(sim, "ERROR: response has keepPacket set low!", "Timeout waiting for a response!"))
             return true;
 
         return false;
