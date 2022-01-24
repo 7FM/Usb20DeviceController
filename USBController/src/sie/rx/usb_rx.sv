@@ -317,6 +317,7 @@ module usb_rx_internal(
 
     initial begin
         gotEopDetect = 1'b0;
+        eopDetected_delayed = 1'b0;
     end
 
     // Detections
