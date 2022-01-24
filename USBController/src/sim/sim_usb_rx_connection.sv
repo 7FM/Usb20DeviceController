@@ -27,7 +27,7 @@ module sim_usb_rx_connection (
 
     logic isValidDPSignal;
     logic eopDetected;
-    logic ACK_EOP;
+    logic ackEOP;
 
     usb_serial_frontend uut_input(
         .clk48_i(CLK),
@@ -43,7 +43,7 @@ module sim_usb_rx_connection (
         // Service signals
         .isValidDPSignal_o(isValidDPSignal),
         .eopDetected_o(eopDetected),
-        .ackEOP_i(ACK_EOP),
+        .ackEOP_i(ackEOP),
         `MUTE_PIN_CONNECT_EMPTY(usbResetDetected_o),
         `MUTE_PIN_CONNECT_EMPTY(ackUsbRst_i)
     );
@@ -88,7 +88,7 @@ module sim_usb_rx_connection (
     logic isValidCRC;
 
     usb_crc crcEngine (
-        .clk12_i(rxClk12),
+        .clk12_i(CLK12),
         .rst_i(rxCRCReset),
         .valid_i(rxCRCInputValid),
         .useCRC16_i(rxUseCRC16),
@@ -103,7 +103,7 @@ module sim_usb_rx_connection (
     logic rxBitStuffDataIn;
 
     usb_bit_stuffing_wrapper bitStuffWrap (
-        .clk12_i(rxClk12),
+        .clk12_i(CLK12),
         .rst_i(rxBitStuffRst),
         .isSendingPhase_i(1'b0),
         .data_i(rxBitStuffDataIn),
@@ -133,7 +133,7 @@ module sim_usb_rx_connection (
         .dataInP_i(dataInP),
         .isValidDPSignal_i(isValidDPSignal),
         .eopDetected_i(eopDetected),
-        .ackEOP_o(ACK_EOP),
+        .ackEOP_o(ackEOP),
 
         // Data output interface: synced with clk48_i!
         .rxAcceptNewData_i(rxAcceptNewData), // Backend indicates that it is able to retrieve the next data byte

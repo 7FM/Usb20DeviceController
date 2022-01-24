@@ -19,17 +19,18 @@ module usb_sie (
     output logic USB_PULLUP_o,
 
     // Serial Engine Services:
-    // General signals that are important for upper protocol layers: synced with clk48_i!
+    // General signals that are important for upper protocol layers: synced with clk12_i!
     output logic usbResetDetected_o, // Indicate that a usb reset detect signal was retrieved!
     input logic ackUsbResetDetect_i, // Acknowledge that usb reset was seen and handled!
 
-    // State information
+    // State information: synced with clk12_i
     output logic txDoneSending_o,
-    output logic rxDPPLGotSignal_o,
     input logic isSendingPhase_i,
+    // State information: synced with clk48_i
+    output logic rxDPPLGotSignal_o,
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
-    // Data Receive Interface: synced with clk48_i!
+    // Data Receive Interface: synced with clk12_i!
     input logic rxAcceptNewData_i, // Caller indicates to be able to retrieve the next data byte
     output logic [7:0] rxData_o, // data to be retrieved
     output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
@@ -60,11 +61,32 @@ module usb_sie (
     */
 
     logic isValidDPSignal;
-    logic dataOutN_reg, dataOutP_reg, dataInP, dataInP_negedge;
+    logic dataOutN_reg, dataOutP_reg;
+    logic dataInP, dataInP_negedge;
     logic txIsSending;
 
     logic eopDetected;
+
     logic ackEOP;
+    logic ackEOP_CDC;
+    cdc_sync ackEopSync(
+        .clk(clk48_i),
+        .in(ackEOP),
+        .out(ackEOP_CDC)
+    );
+    logic ackUsbResetDetect_CDC;
+    cdc_sync ackUsbRstSync(
+        .clk(clk48_i),
+        .in(ackUsbResetDetect_i),
+        .out(ackUsbResetDetect_CDC)
+    );
+
+    logic usbResetDetect;
+    cdc_sync usbRstSync(
+        .clk(clk12_i),
+        .in(usbResetDetect),
+        .out(usbResetDetected_o)
+    );
 
     // Serial frontend which handles the differential input and detects differential encoding errors, EOP and USB resets
     usb_serial_frontend usbSerialFrontend (
@@ -75,27 +97,31 @@ module usb_sie (
         .pinP_o(USB_DP_o),
         .pinN_o(USB_DN_o),
 `endif
-        .dataOutEn_i(txIsSending),
-        .dataOutP_i(dataOutP_reg),
-        .dataOutN_i(dataOutN_reg),
+        .dataOutEn_i(txIsSending), // clk12
+        .dataOutP_i(dataOutP_reg), // clk12
+        .dataOutN_i(dataOutN_reg), // clk12
         .dataInP_o(dataInP),
         .dataInP_negedge_o(dataInP_negedge),
 
         // Service signals for usb_rx
-        //TODO use rxCLK12 for proper syncing!
-        .isValidDPSignal_o(isValidDPSignal), //TODO different clock domain
-        .eopDetected_o(eopDetected), //TODO different clock domain
-        .ackEOP_i(ackEOP), //TODO different clock domain
+        .isValidDPSignal_o(isValidDPSignal),
+        .eopDetected_o(eopDetected),
+        .ackEOP_i(ackEOP_CDC), // rxClk12 -> clk48_i
 
         // Service signals for usb_pe: ep0
-        //TODO use clk12 for proper syncing!
-        .usbResetDetected_o(usbResetDetected_o), //TODO different clock domain
-        .ackUsbRst_i(ackUsbResetDetect_i) //TODO different clock domain
+        .usbResetDetected_o(usbResetDetect),  // clk48_i -> clk12
+        .ackUsbRst_i(ackUsbResetDetect_CDC)  // clk12 -> clk48_i
     );
 
+    logic isSendingPhaseCDC;
+    cdc_sync isSendingPhaseSync(
+        .clk(clk48_i),
+        .in(isSendingPhase_i),
+        .out(isSendingPhaseCDC)
+    );
     logic prevIsSendingPhase;
-    always_ff @(posedge clk48_i) begin //TODO this is a different clock domain than the sampled signals!
-        prevIsSendingPhase <= isSendingPhase_i;
+    always_ff @(posedge clk48_i) begin
+        prevIsSendingPhase <= isSendingPhaseCDC;
     end
 
     logic prevTxIsSending;
@@ -122,10 +148,9 @@ module usb_sie (
     // Reset on switch to receive mode!
     // -> this allows us to reuse the clk signal for transmission too!
     // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
-    assign rxClkGenRST = prevIsSendingPhase && !isSendingPhase_i;
+    assign rxClkGenRST = prevIsSendingPhase && !isSendingPhaseCDC;
 
     logic rxClk12;
-    logic txClk12;
 
     DPPL #() asyncRxCLK (
         .clk48_i(clk48_i),
@@ -135,8 +160,6 @@ module usb_sie (
         .readCLK12_o(rxClk12),
         .DPPLGotSignal_o(rxDPPLGotSignal_o)
     );
-
-    assign txClk12 = rxClk12;
 
     logic crcReset;
     logic rxCRCReset;
@@ -158,7 +181,7 @@ module usb_sie (
     logic [15:0] crc;
 
     usb_crc crcEngine (
-        .clk12_i(rxClk12),
+        .clk12_i(clk12_i),
         .rst_i(crcReset),
         .valid_i(crcInputValid),
         .useCRC16_i(useCRC16),
@@ -185,14 +208,14 @@ module usb_sie (
 
     logic txBitStuffDataOut;
 
-    assign {useCRC16, crcReset,crcInput, crcInputValid ,bitStuffRst ,bitStuffDataIn} = 
+    assign {useCRC16, crcReset, crcInput, crcInputValid, bitStuffRst, bitStuffDataIn} = 
         isSendingPhase_i ? 
             {txUseCRC16, txCRCReset, txCRCInput, txCRCInputValid, txBitStuffRst, txBitStuffDataIn}
         :
             {rxUseCRC16, rxCRCReset, rxCRCInput, rxCRCInputValid, rxBitStuffRst, rxBitStuffDataIn};
 
     usb_bit_stuffing_wrapper bitStuffWrap (
-        .clk12_i(rxClk12),
+        .clk12_i(clk12_i),
         .rst_i(bitStuffRst),
         .isSendingPhase_i(isSendingPhase_i),
         .data_i(bitStuffDataIn),
@@ -228,7 +251,7 @@ module usb_sie (
         .eopDetected_i(eopDetected),
         .ackEOP_o(ackEOP),
 
-        // Data output interface: synced with clk48_i!
+        // Data output interface: synced with clk12_i!
         .rxAcceptNewData_i(rxAcceptNewData_i), // Backend indicates that it is able to retrieve the next data byte
         .rxIsLastByte_o(rxIsLastByte_o), // indicates that the current byte at rxData_o is the last one
         .rxDataValid_o(rxDataValid_o), // rxData_o contains valid & new data
@@ -240,15 +263,9 @@ module usb_sie (
     // TRANSMIT Modules
     // =====================================================================================================
 
-    logic txReqSendPacket_o;
-    logic txDataValid_o;
-    logic txIsLastByte_o;
-    logic [7:0] txData_o;
-    logic txAcceptNewData_i;
-
     usb_tx#() usbTxModules (
         // Inputs
-        .clk12_i(txClk12),
+        .clk12_i(clk12_i),
 
         // CRC interface
         .txCRCReset_o(txCRCReset),
@@ -269,28 +286,12 @@ module usb_sie (
         .dataOutP_reg_o(dataOutP_reg),
 
         // Data interface
-        .txReqSendPacket_i(txReqSendPacket_o), // Trigger sending a new packet
-        .txIsLastByte_i(txIsLastByte_o), // Indicates that the applied sendData is the last byte to send
-        .txDataValid_i(txDataValid_o), // Indicates that sendData contains valid & new data
-        .txData_i(txData_o), // Data to be send: First byte should be PID, followed by the user data bytes
+        .txReqSendPacket_i(txReqSendPacket_i), // Trigger sending a new packet
+        .txIsLastByte_i(txIsLastByte_i), // Indicates that the applied sendData is the last byte to send
+        .txDataValid_i(txDataValid_i), // Indicates that sendData contains valid & new data
+        .txData_i(txData_i), // Data to be send: First byte should be PID, followed by the user data bytes
         // interface output signals
-        .txAcceptNewData_o(txAcceptNewData_i) // indicates that the send buffer can be filled
-    );
-
-    cdc_tx txInterfaceClockDomainCrosser (
-        .clk1(clk12_i),
-        .txReqSendPacket_i(txReqSendPacket_i),
-        .txDataValid_i(txDataValid_i),
-        .txIsLastByte_i(txIsLastByte_i),
-        .txData_i(txData_i),
-        .txAcceptNewData_o(txAcceptNewData_o),
-
-        .clk2(txClk12),
-        .txReqSendPacket_o(txReqSendPacket_o),
-        .txDataValid_o(txDataValid_o),
-        .txIsLastByte_o(txIsLastByte_o),
-        .txData_o(txData_o),
-        .txAcceptNewData_i(txAcceptNewData_i)
+        .txAcceptNewData_o(txAcceptNewData_o) // indicates that the send buffer can be filled
     );
 
 endmodule
