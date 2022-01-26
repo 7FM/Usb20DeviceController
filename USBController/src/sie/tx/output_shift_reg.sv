@@ -14,7 +14,8 @@ module output_shift_reg#(
 );
 
     localparam CNT_WID = $clog2(LENGTH) - 1;
-    logic [CNT_WID:0] bitsLeft;
+    logic [CNT_WID:0] bitsLeft, defaultNextBitsLeft;
+    assign defaultNextBitsLeft = bitsLeft - {{CNT_WID-1{1'b0}}, (!bufferEmpty_o && en_i)};
 
     logic [LENGTH-1:0] dataBuf;
 
@@ -37,10 +38,14 @@ module output_shift_reg#(
         always_ff @(posedge clk12_i) begin
             if (dataValid_i) begin
                 dataBuf <= data_i;
-                //TODO construct edge case where crc5Patch_i & !en_i is true!
-                bitsLeft <= (crc5Patch_i ? bitsLeft - {{CNT_WID-1{1'b0}}, en_i} : (LENGTH[CNT_WID:0] - 1));
+                // As the crc5PatchNow_o condition contains en_i we know that
+                // if crc5Patch_i is set then en_i will be set too, we also know that
+                // !bufferEmpty_o is true -> Hence we can use the default bitsLeft update value!
+                // Otherwise on an normal dataBuf update we simply set the new bits left to LENGTH - 1
+                //TODO test edge case where dataValid_i && !en_i is set in the middle of an packet!
+                bitsLeft <= (crc5Patch_i ? defaultNextBitsLeft : (LENGTH[CNT_WID:0] - 1));
             end else begin
-                bitsLeft <= bitsLeft - {{CNT_WID-1{1'b0}}, (!bufferEmpty_o && en_i)};
+                bitsLeft <= defaultNextBitsLeft;
 
                 if (en_i) begin
                     if (LSB_FIRST) begin
