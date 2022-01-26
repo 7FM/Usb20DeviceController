@@ -24,8 +24,9 @@ module output_shift_reg#(
         bitsLeft = 0;
     end
 
-    assign bufferEmpty_o = bitsLeft == 0;
-    // Signal when crc5 patching should happen, this has to consider bitstuffing (en_i)
+    // The buffer is empty (single cycle tick) if the bitsLeft are 0 (last bit will be send next) and en_i is set (last bit will be send THIS cycle)
+    assign bufferEmpty_o = bitsLeft == 0 && en_i;
+    // Signal when crc5 patching should happen, this has to consider bitstuffing (en_i), similar to bufferEmpty_o
     assign crc5PatchNow_o = bitsLeft == 5 && en_i;
 
     generate
@@ -42,7 +43,6 @@ module output_shift_reg#(
                 // if crc5Patch_i is set then en_i will be set too, we also know that
                 // !bufferEmpty_o is true -> Hence we can use the default bitsLeft update value!
                 // Otherwise on an normal dataBuf update we simply set the new bits left to LENGTH - 1
-                //TODO test edge case where dataValid_i && !en_i is set in the middle of an packet!
                 bitsLeft <= (crc5Patch_i ? defaultNextBitsLeft : (LENGTH[CNT_WID:0] - 1));
             end else begin
                 bitsLeft <= defaultNextBitsLeft;
