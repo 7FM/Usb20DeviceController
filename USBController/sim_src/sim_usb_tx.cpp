@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
     sim.init(argc, argv);
 
     for (sim.clk12Offset = 0; sim.clk12Offset < 4 && testFailed == 0 && !forceStop; ++sim.clk12Offset) {
-        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
+        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl << std::endl;
 
         // start things going
         for (int it = 0; !forceStop; ++it) {
@@ -352,7 +352,13 @@ int main(int argc, char **argv) {
             std::cout << std::endl;
         }
     exitInnerLoop:
-        std::cout << "Tests PASSED for CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
+        std::cout << "Tests ";
+        if (testFailed != 0) {
+            std::cout << "FAILED";
+        } else {
+            std::cout << "PASSED";
+        }
+        std::cout << " for CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
     }
 
 exitAndCleanup:
