@@ -10,6 +10,6 @@ i=0
 N=$THREADS
 while [ $j -le $RUNS ]; do
     ((i=i%N)); ((i++==0)) && wait
-    $TEST_PATH 2>&1 | grep "FAILED" &
+    $TEST_PATH 2>&1 -s $RANDOM | grep "FAILED" &
     j=$(( j + 1 ))
 done
