@@ -13,7 +13,7 @@ module output_shift_reg#(
     output logic crc5PatchNow_o
 );
 
-    localparam CNT_WID = $clog2(LENGTH+1) - 1;
+    localparam CNT_WID = $clog2(LENGTH) - 1;
     logic [CNT_WID:0] bitsLeft;
 
     logic [LENGTH-1:0] dataBuf;
@@ -37,7 +37,8 @@ module output_shift_reg#(
         always_ff @(posedge clk12_i) begin
             if (dataValid_i) begin
                 dataBuf <= data_i;
-                bitsLeft <= (crc5Patch_i ? bitsLeft : LENGTH[CNT_WID:0]) - {{CNT_WID-1{1'b0}}, en_i};
+                //TODO construct edge case where crc5Patch_i & !en_i is true!
+                bitsLeft <= (crc5Patch_i ? bitsLeft - {{CNT_WID-1{1'b0}}, en_i} : (LENGTH[CNT_WID:0] - 1));
             end else begin
                 bitsLeft <= bitsLeft - {{CNT_WID-1{1'b0}}, (!bufferEmpty_o && en_i)};
 
