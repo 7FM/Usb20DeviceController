@@ -278,6 +278,55 @@ int main(int argc, char **argv) {
                     break;
                 }
 
+                case 13:
+                /*
+                case 14:
+                case 15:
+                case 16:
+                case 17:
+                case 18:
+                case 19:
+                case 20:
+                case 21:
+                case 22:
+                case 23:
+                case 24:
+                case 25:
+                case 26:
+                case 27:
+                case 28:
+                case 29:
+                case 30:
+                case 31:
+                case 32:
+                case 33:
+                case 34:
+                case 35:
+                case 36:
+                case 37:
+                case 38:
+                case 39:
+                case 40:*/ {
+                    // Token packet with random addr & endpoint!
+                    TokenPacket tokenPacket;
+                    tokenPacket.token = PID_SETUP_TOKEN;
+                    tokenPacket.addr = sim.getRand();
+                    tokenPacket.endpoint = sim.getRand();
+                    tokenPacket.crc = 0b1'1111; // Should be a dont care!
+
+                    const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&tokenPacket);
+                    for (int i = 0; i < sizeof(tokenPacket); ++i) {
+                        sim.txState.dataToSend.push_back(*rawPtr);
+                        ++rawPtr;
+                    }
+
+                    crc5Patching = true;
+
+                    std::cout << "Test sending a setup token packet with random addr & ep" << std::endl;
+
+                    break;
+                }
+
                 default: {
                     std::cout << "No more test packets left" << std::endl;
                     goto exitInnerLoop;
