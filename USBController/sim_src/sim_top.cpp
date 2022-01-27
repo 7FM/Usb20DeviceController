@@ -44,6 +44,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
         rxState.reset();
         txState.reset();
+        rxState.actAsNop();
+        txState.actAsNop();
         fifoFillState.reset(top);
         fifoEmptyState.reset(top);
 
@@ -153,6 +155,8 @@ int main(int argc, char **argv) {
 
     // start things going
     sim.reset();
+
+    sim.issueDummySignal();
 
     bool failed = false;
 
