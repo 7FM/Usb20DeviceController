@@ -271,8 +271,11 @@ generate
                 end
             end
             SETUP_STAGE: begin
-                //TODO how to handle failed transactions: for now lets stay in the state!
-                if (EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) begin
+                //TODO how to handle failed transactions: for now lets go to the init state!
+                // Even if the transaction failed, we want to return to our initial state!
+                if (EP_IN_fillTransDone_i && !EP_IN_fillTransSuccess_i) begin
+                    nextCtrlTransState = IDLE;
+                end else if (EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) begin
                     nextCtrlTransState = hasNoDataStage ? STATUS_STAGE : SETUP_STAGE_RESOLVE_ROM_ADDR_ROM_DELAY;
                     // on the state transition from SETUP_STAGE to DATA_STAGE we need to patch prevDataDir such that the DATA_STAGE wont be skipped immediately!
                     patchPrevDataDir = 1'b1;
@@ -445,10 +448,14 @@ generate
             STATUS_STAGE: begin
                 //TODO use requestError to signal status as specified in page 227
 
-                //TODO how to handle failed transactions: for now lets stay in the state!
-                if ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) || (EP_OUT_popTransDone_i && EP_OUT_popTransSuccess_i)) begin
+                //TODO how to handle failed transactions: for now lets go to the init state!
+                // Even if the transaction failed, we want to return to our initial state!
+                if (EP_IN_fillTransDone_i || EP_OUT_popTransDone_i) begin
                     nextCtrlTransState = IDLE;
+                end
 
+                // Only update the address on a successful transaction!
+                if ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) || (EP_OUT_popTransDone_i && EP_OUT_popTransSuccess_i)) begin
                     // Handle SET_ADDRESS edge case: update is only done after the status stage: aka zero length data packet
                     // Check if the previous setup transaction was set address & we had no error before
                     if (!requestError && setupDataPacket.bRequest == usb_dev_req_pkg::SET_ADDRESS) begin
