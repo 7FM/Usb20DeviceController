@@ -491,7 +491,7 @@ endgenerate
 
     always_ff @(posedge clk12_i) begin
         awaitROMData <= gotNewROMReq;
-        ctrlTransState <= nextCtrlTransState;
+        ctrlTransState <= usbResetDetected_i ? IDLE : nextCtrlTransState;
 
         requestError <= nextRequestError;
         requestedBytesLeft <= nextRequestedBytesLeft;
