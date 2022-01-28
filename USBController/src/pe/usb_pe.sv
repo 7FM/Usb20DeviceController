@@ -528,9 +528,6 @@ Device Transaction State Machine Hierarchy Overview:
 
         unique case (transState)
             PE_RST_RX_CLK: begin
-                // Ensure that the we start with a new transaction
-                fillTransDone = 1'b1;
-                popTransDone = 1'b1;
                 // Next we are receiving data to from the device
                 nextIsSendingPhase = 1'b0;
                 transactionDone = 1'b1;
@@ -560,8 +557,8 @@ Device Transaction State Machine Hierarchy Overview:
                 // We are waiting a limited time for the packet to come!
                 readTimerRst_o = 1'b0;
 
-                fillTransSuccess = receiveSuccess;
-                fillTransDone = receiveDone;
+                fillTransSuccess = receiveDone && receiveSuccess;
+                fillTransDone = packetWaitTimeout_i || receiveDone;
 
                 if (packetWaitTimeout_i || receiveDone) begin
                     // We are done after receiving!
@@ -574,8 +571,8 @@ Device Transaction State Machine Hierarchy Overview:
                 // We are waiting a limited time for the packet to come!
                 readTimerRst_o = 1'b0;
 
-                fillTransSuccess = receiveSuccess;
-                fillTransDone = receiveDone;
+                fillTransSuccess = receiveDone && receiveSuccess;
+                fillTransDone = packetWaitTimeout_i || receiveDone;
 
                 if (packetWaitTimeout_i) begin
                     nextTransState = PE_RST_RX_CLK;
@@ -651,8 +648,8 @@ Device Transaction State Machine Hierarchy Overview:
                 // We expect to receive the response in our internal transaction buffer and not to pass it to the EPs!
                 forceInternalBuf = 1'b1;
                 // Success only when we received an ACK!
-                popTransSuccess = receiveSuccess && packetPID == usb_packet_pkg::PID_HANDSHAKE_ACK;
-                popTransDone = receiveDone;
+                popTransSuccess = receiveDone && receiveSuccess && packetPID == usb_packet_pkg::PID_HANDSHAKE_ACK;
+                popTransDone = receiveDone || packetWaitTimeout_i;
 
                 if (packetWaitTimeout_i || receiveDone) begin
                     // We are done after receiving the handshake or a timeout!
