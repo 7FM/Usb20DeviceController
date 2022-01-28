@@ -408,8 +408,8 @@ module usb_pe #(
     // This counter is used to ensure that we do not send more than max. packet size many bytes!
     logic [10:0] maxBytesLeft;
 
-    logic nextIsSendingPhase;
-    assign txReqSendPacket_o = !isSendingPhase_o && nextIsSendingPhase;
+    logic prevIsSendingPhase;
+    assign txReqSendPacket_o = !prevIsSendingPhase && isSendingPhase_o;
     logic sendPID, nextSendPID;
     logic sendHandshake;
     logic nextIsPidLast;
@@ -501,9 +501,11 @@ Device Transaction State Machine Hierarchy Overview:
 
     TransactionState transState, nextTransState;
 
+    logic nextIsSendingPhase;
     initial begin
         transState = PE_WAIT_FOR_TRANSACTION;
         isSendingPhase_o = 1'b0;
+        prevIsSendingPhase = 1'b0;
     end
 
     assign isHostIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
@@ -664,6 +666,7 @@ Device Transaction State Machine Hierarchy Overview:
     always_ff @(posedge clk12_i) begin
         transState <= nextTransState;
         isSendingPhase_o <= nextIsSendingPhase;
+        prevIsSendingPhase <= isSendingPhase_o;
     end
 
 //====================================================================================
