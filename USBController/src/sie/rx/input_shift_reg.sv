@@ -6,6 +6,7 @@ module input_shift_reg#(
     input logic clk12_i,
     input logic en_i,
     input logic rst_i,
+    input logic clear_i,
     input logic dataBit_i,
     output logic [LENGTH-1:0] data_o,
     output logic bufferFull_o
@@ -31,7 +32,9 @@ module input_shift_reg#(
                 validEntryCounter <= validEntryCounter + {{CNT_WID{1'b0}}, en_i};
             end
 
-            if (en_i) begin
+            if (clear_i) begin
+                data_o <= {LENGTH{INIT_BIT_VALUE[0]}};
+            end else if (en_i) begin
                 if (LSb_FIRST) begin
                     data_o <= {dataBit_i, data_o[LENGTH-1:1]};
                 end else begin
