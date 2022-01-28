@@ -41,27 +41,28 @@ module usb_rx#()(
     assign dataP = emptyFifo ? 1'b1 : dataP_cdc;
     assign validSignal = emptyFifo ? 1'b0 : validSignal_cdc;
 
+    logic eopDetectedRxCDC;
+    logic eopDetectedCDC;
+    cdc_sync eopDetectSync(
+        .clk(rxClk12_i),
+        .in(eopDetected_i),
+        .out(eopDetectedRxCDC)
+    );
+
     ASYNC_FIFO #(
         .ADDR_WID(3),
-        .DATA_WID(2),
+        .DATA_WID(3),
         .USE_DRAM(1) // Use normal regs as we do not need much data!
     ) bitSyncer(
         .w_clk_i(rxClk12_i),
         .dataValid_i(1'b1),
-        .data_i({dataInP_i, isValidDPSignal_i}),
+        .data_i({dataInP_i, isValidDPSignal_i, eopDetectedRxCDC}),
         `MUTE_PIN_CONNECT_EMPTY(full_o),
 
         .r_clk_i(clk12_i),
         .popData_i(1'b1),
         .empty_o(emptyFifo),
-        .data_o({dataP_cdc, validSignal_cdc})
-    );
-
-    logic eopDetectedCDC;
-    cdc_sync eopDetectSync(
-        .clk(clk12_i),
-        .in(eopDetected_i),
-        .out(eopDetectedCDC)
+        .data_o({dataP_cdc, validSignal_cdc, eopDetectedCDC})
     );
 
     logic [7:0] inputBuf;
@@ -308,16 +309,12 @@ module usb_rx_internal(
     // If waiting for EOP -> we need the detection -> clear RST flag
     assign ackEOP_o = isRxWaitForEop && eopDetected_i;
 
-    //TODO the eopDetected_i signal comes to fast... delay it twice :o
-    logic eopDetected_delayed;
     always_ff @(posedge clk12_i) begin
-        eopDetected_delayed <= eopDetected_i;
-        gotEopDetect <= (gotEopDetect || eopDetected_delayed) && !awaitsPID;
+        gotEopDetect <= (gotEopDetect || eopDetected_i) && !awaitsPID;
     end
 
     initial begin
         gotEopDetect = 1'b0;
-        eopDetected_delayed = 1'b0;
     end
 
     // Detections
@@ -406,9 +403,9 @@ module usb_rx_internal(
             RX_WAIT_FOR_EOP: begin
                 // After Sync was detected, we always need valid bit stuffing!
                 // Sanity check: does the CRC match?
-                next_dropPacket = defaultNextDropPacket || (gotEopDetect && !lastByteValidCRC);
+                next_dropPacket = defaultNextDropPacket || (eopDetected_i && !lastByteValidCRC);
 
-                if (gotEopDetect) begin
+                if (eopDetected_i) begin
                     // Go to next state
                     next_rxState = rxStateAdd1;
                 end else if (inputBufFull) begin
