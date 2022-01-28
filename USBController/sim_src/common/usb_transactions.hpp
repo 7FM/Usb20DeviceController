@@ -160,7 +160,7 @@ class OutTransaction {
         // 3. Receive Handshake / Timeout
         std::cout << "Wait for response!" << std::endl;
 
-        if (receiveStuff(sim, "ERROR: response has keepPacket set low!", "Timeout waiting for a response!"))
+        if (receiveStuff(sim, "ERROR: response has keepPacket set low!", "Timeout waiting for a handshake response!"))
             return true;
 
         return false;
@@ -260,8 +260,12 @@ bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Si
 }
 
 bool expectHandshake(std::vector<uint8_t> &response, PID_Types expectedResponse) {
-    if (response.size() != 1) {
+    if (response.size() > 1) {
         std::cerr << "Expected only a Handshake as response but got multiple bytes!" << std::endl;
+        return true;
+    }
+    if (response.size() == 0) {
+        std::cerr << "Expected a handshake as response but got an timeout!" << std::endl;
         return true;
     }
 
