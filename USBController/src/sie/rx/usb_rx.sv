@@ -326,6 +326,7 @@ module usb_rx_internal(
 
     // Reset signals
     logic rxInputShiftRegReset;
+    logic rxInputShiftRegClear;
     logic rxNRZiDecodeReset;
 
     logic byteGotSignalError;
@@ -360,6 +361,7 @@ module usb_rx_internal(
 
     always_comb begin
         rxInputShiftRegReset = 1'b0;
+        rxInputShiftRegClear = 1'b0;
         rxNRZiDecodeReset = 1'b0;
         rxCRCReset_o = 1'b0;
 
@@ -422,6 +424,9 @@ module usb_rx_internal(
                 // TODO is a RST needed for the NRZI decoder?
                 rxNRZiDecodeReset = 1'b1;
 
+                // We need to clear the content to ensure that the currently stored data won't be detected as sync
+                rxInputShiftRegClear = 1'b1;
+
                 // ensure that CRC flag is set to valid again to allow for simple HANDSHAKE packets without payload -> no CRC is used
                 next_lastByteValidCRC = 1'b1;
             end
@@ -461,6 +466,7 @@ module usb_rx_internal(
     input_shift_reg #() inputDeserializer(
         .clk12_i(clk12_i),
         .rst_i(rxInputShiftRegReset),
+        .clear_i(rxInputShiftRegClear),
         .en_i(expectNonBitStuffedInput_i),
         .dataBit_i(nrziDecodedInput),
         .data_o(inputBuf),
