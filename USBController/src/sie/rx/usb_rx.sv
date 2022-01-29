@@ -293,7 +293,7 @@ module usb_rx_internal(
 
     // Requires explicit RST to clear eop flag again
     // If waiting for EOP -> we need the detection -> clear RST flag
-    assign ackEOP_o = ~isRxWaitForEop;
+    assign ackEOP_o = isRxWaitForEop && eopDetected_i;
 
     always_ff @(posedge rxClk12_i) begin
         inputBuf_o <= rxGotNewInput ? inputBuf : inputBuf_o;
