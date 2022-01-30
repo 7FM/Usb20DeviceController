@@ -42,10 +42,8 @@ localparam MAX_STRING_DESCRIPTORS = 10;
 
 // Allow overwriting usb endpoint modules to use if specific functionality is desired
 `ifndef EP_0_MODULE
-`define EP_0_MODULE(USB_DEV_ADDR_WID, USB_DEV_CONF_WID, USB_DEV_EP_CONF) \
+`define EP_0_MODULE(USB_DEV_EP_CONF) \
         usb_endpoint_0 #(                                                \
-            .USB_DEV_ADDR_WID(USB_DEV_ADDR_WID),                         \
-            .USB_DEV_CONF_WID(USB_DEV_CONF_WID),                         \
             .USB_DEV_EP_CONF(USB_DEV_EP_CONF)                            \
         )
 `endif

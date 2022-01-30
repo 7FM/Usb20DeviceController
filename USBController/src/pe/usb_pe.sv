@@ -1,5 +1,6 @@
 `include "config_pkg.sv"
 `include "usb_packet_pkg.sv"
+`include "usb_dev_req_pkg.sv"
 `include "usb_ep_pkg.sv"
 `include "util_macros.sv"
 
@@ -66,11 +67,6 @@ module usb_pe #(
     logic [1:0] upperTransStartPID;
     logic gotTransStartPacket;
     logic isHostIn;
-    // Status bit that indicated whether the next byte is the PID or actual data
-    // This information can be simply obtained by watching gotTransStartPacket_i
-    // but as this is likely needed for IN endpoints, the logic was centralized
-    // to safe resources!
-    logic byteIsData, nextByteIsData;
 
     // Used for received data
     logic fillTransDone;
@@ -89,207 +85,63 @@ module usb_pe #(
     logic epResponseValid;
     logic epResponseIsHandshakePID;
     logic [1:0] epResponsePacketID;
-    logic resetDataToggle;
 
-    logic [ENDPOINTS-1:0] EP_IN_full;
+    logic [usb_packet_pkg::USB_DEV_ADDR_WID-1:0] deviceAddr;
+    logic [10:0] maxPacketSize;
+    logic isEpIsochronous;
 
-    logic [ENDPOINTS-1:0] EP_OUT_dataAvailable;
-    logic [ENDPOINTS-1:0] EP_OUT_isLastPacketByte;
-    logic [8*ENDPOINTS - 1:0] EP_OUT_dataOut;
+    usb_endpoint_arbiter #(
+        .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
+    ) epArbiter (
+        .clk12_i(clk12_i),
 
-    logic [ENDPOINTS-1:0] EP_respValid;
-    // If epRespHandshakePID == 1'b1 then epRespPacketID is expected to be for a handshake, otherwise a DATA pid is expected
-    logic [ENDPOINTS-1:0] EP_respHandshakePID;
-    logic [2*ENDPOINTS - 1:0] EP_respPacketID;
+        // Serial interface
+        .usbResetDetected_i(usbResetDetected_i),
+        .ackUsbResetDetect_o(ackUsbResetDetect_o),
 
-    always_comb begin
-        // Set this bit as soon as we have a handshake -> we skipped PID
-        nextByteIsData = byteIsData;
+        // Index used to select the endpoint
+        .epSelect(epSelect),
+        .upperTransStartPID(upperTransStartPID),
+        .gotTransStartPacket(gotTransStartPacket),
+        .isHostIn(isHostIn),
 
-        // A new transaction started
-        if (gotTransStartPacket) begin
-            // Ignore the first byte which is the PID / ignore all data if it is not a device request, we do not expect any input!
-            nextByteIsData = 1'b0;
-        end else if (!byteIsData && EP_WRITE_EN) begin
-            // TODO EP_WRITE_EN is basically the signal for an handshake... but might change in the future!
-            // Once we have skipped the PID we have data bytes!
-            nextByteIsData = 1'b1;
-        end
-    end
-    always_ff @(posedge clk12_i) begin
-        byteIsData <= nextByteIsData;
-    end
+        // Used for received data
+        .fillTransSuccess(fillTransSuccess),
+        .fillTransDone(fillTransDone),
+        .EP_WRITE_EN(EP_WRITE_EN),
+        .wData(wData),
+        .writeFifoFull(writeFifoFull),
 
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(8)) rDataMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_OUT_dataOut),
-        .data_o(rData)
+        // Used for data to be output
+        .popTransDone(popTransDone),
+        .popTransSuccess(popTransSuccess),
+        .EP_READ_EN(EP_READ_EN),
+        .readDataAvailable(readDataAvailable),
+        .readIsLastPacketByte(readIsLastPacketByte),
+        .rData(rData),
+        .epResponseValid(epResponseValid),
+        .epResponseIsHandshakePID(epResponseIsHandshakePID),
+        .epResponsePacketID(epResponsePacketID),
+
+        // Device state output
+        .deviceAddr(deviceAddr),
+        .maxPacketSize(maxPacketSize),
+        .isEpIsochronous(isEpIsochronous),
+
+        // External endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
+        // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
+        .EP_IN_popTransDone_i(EP_IN_popTransDone_i),
+        .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i),
+        .EP_IN_popData_i(EP_IN_popData_i),
+        .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o),
+        .EP_IN_data_o(EP_IN_data_o),
+
+        .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i),
+        .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i),
+        .EP_OUT_dataValid_i(EP_OUT_dataValid_i),
+        .EP_OUT_data_i(EP_OUT_data_i),
+        .EP_OUT_full_o(EP_OUT_full_o)
     );
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) fifoFullMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_IN_full),
-        .data_o(writeFifoFull)
-    );
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) readDataAvailableMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_OUT_dataAvailable),
-        .data_o(readDataAvailable)
-    );
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) readIsLastPacketByteMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_OUT_isLastPacketByte),
-        .data_o(readIsLastPacketByte)
-    );
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) responseValidMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_respValid),
-        .data_o(epResponseValid)
-    );
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(1)) responseIsHandshakePIDMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_respHandshakePID),
-        .data_o(epResponseIsHandshakePID)
-    );
-    vector_mux#(.ELEMENTS(ENDPOINTS), .DATA_WID(2)) responsePacketIDMux (
-        .dataSelect_i(epSelect),
-        .dataVec_i(EP_respPacketID),
-        .data_o(epResponsePacketID)
-    );
-
-    `define CREATE_EP_CASE(x)                                               \
-        x: `EP_``x``_MODULE(epConfig) epX (                                 \
-            .clk12_i(clk12_i),                                              \
-            .gotTransStartPacket_i(gotTransStartPacket && isEpSelected),    \
-            .isHostIn_i(isHostIn),                                          \
-            .transStartTokenID_i(upperTransStartPID),                       \
-            .byteIsData_i(byteIsData),                                      \
-            .deviceConf_i(deviceConf),                                      \
-            .resetDataToggle_i(resetDataToggle),                            \
-                                                                            \
-            /* Device IN interface */                                       \
-            .EP_IN_fillTransDone_i(fillTransDone),                          \
-            .EP_IN_fillTransSuccess_i(fillTransSuccess),                    \
-            .EP_IN_dataValid_i(EP_WRITE_EN && isEpSelected),                \
-            .EP_IN_data_i(wData),                                           \
-            .EP_IN_full_o(EP_IN_full[x]),                                   \
-                                                                            \
-            .EP_IN_popTransDone_i(EP_IN_popTransDone_i[x-1]),               \
-            .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[x-1]),         \
-            .EP_IN_popData_i(EP_IN_popData_i[x-1]),                         \
-            .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[x-1]),             \
-            .EP_IN_data_o(EP_IN_data_o[(x-1) * 8 +: 8]),                    \
-                                                                            \
-            /* Device OUT interface */                                      \
-            .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[x-1]),           \
-            .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[x-1]),     \
-            .EP_OUT_dataValid_i(EP_OUT_dataValid_i[x-1]),                   \
-            .EP_OUT_data_i(EP_OUT_data_i[(x-1) * 8 +: 8]),                  \
-            .EP_OUT_full_o(EP_OUT_full_o[x-1]),                             \
-                                                                            \
-            .EP_OUT_popTransDone_i(popTransDone),                           \
-            .EP_OUT_popTransSuccess_i(popTransSuccess),                     \
-            .EP_OUT_popData_i(EP_READ_EN && isEpSelected),                  \
-            .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[x]),               \
-            .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[x]),         \
-            .EP_OUT_data_o(EP_OUT_dataOut[x * 8 +: 8]),                     \
-                                                                            \
-            .respValid_o(EP_respValid[x]),                                  \
-            .respHandshakePID_o(EP_respHandshakePID[x]),                    \
-            .respPacketID_o(EP_respPacketID[x * 2 +: 2])                    \
-        )
-
-
-    localparam USB_DEV_ADDR_WID = 7;
-    logic [USB_DEV_ADDR_WID-1:0] deviceAddr;
-    localparam USB_DEV_CONF_WID = 8;
-    logic [USB_DEV_CONF_WID-1:0] deviceConf;
-    generate
-
-        // Endpoint 0 has its own implementation as it has to handle some unique requests!
-        logic isEp0Selected;
-        assign isEp0Selected = epSelect == 0;
-        `EP_0_MODULE(USB_DEV_ADDR_WID, USB_DEV_CONF_WID, USB_DEV_EP_CONF) ep0 (
-            .clk12_i(clk12_i),
-
-            // Endpoint 0 handles the decice state!
-            .usbResetDetected_i(usbResetDetected_i),
-            .ackUsbResetDetect_o(ackUsbResetDetect_o),
-            .deviceAddr_o(deviceAddr),
-            .deviceConf_o(deviceConf),
-            .resetDataToggle_o(resetDataToggle),
-
-            .transStartTokenID_i(upperTransStartPID),
-            .gotTransStartPacket_i(gotTransStartPacket && isEp0Selected),
-            .byteIsData_i(byteIsData),
-
-            // Device IN interface
-            .EP_IN_fillTransDone_i(fillTransDone),
-            .EP_IN_fillTransSuccess_i(fillTransSuccess),
-            .EP_IN_dataValid_i(EP_WRITE_EN && isEp0Selected),
-            .EP_IN_data_i(wData),
-            .EP_IN_full_o(EP_IN_full[0]),
-
-            /*
-            .EP_IN_popTransDone_i(EP_IN_popTransDone_i[0]),
-            .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i[0]),
-            .EP_IN_popData_i(EP_IN_popData_i[0]),
-            .EP_IN_dataAvailable_o(EP_IN_dataAvailable_o[0]),
-            .EP_IN_data_o(EP_IN_data_o[0 * 8 +: 8]),
-            */
-
-            // Device OUT interface
-            /*
-            .EP_OUT_fillTransDone_i(EP_OUT_fillTransDone_i[0]),
-            .EP_OUT_fillTransSuccess_i(EP_OUT_fillTransSuccess_i[0]),
-            .EP_OUT_dataValid_i(EP_OUT_dataValid_i[0]),
-            .EP_OUT_data_i(EP_OUT_data_i[0 * 8 +: 8]),
-            .EP_OUT_full_o(EP_OUT_full_o[0]),
-            */
-
-            .EP_OUT_popTransDone_i(popTransDone),
-            .EP_OUT_popTransSuccess_i(popTransSuccess),
-            .EP_OUT_popData_i(EP_READ_EN && isEp0Selected),
-            .EP_OUT_dataAvailable_o(EP_OUT_dataAvailable[0]),
-            .EP_OUT_isLastPacketByte_o(EP_OUT_isLastPacketByte[0]),
-            .EP_OUT_data_o(EP_OUT_dataOut[0 * 8 +: 8]),
-            .respValid_o(EP_respValid[0]),
-            .respHandshakePID_o(EP_respHandshakePID[0]),
-            .respPacketID_o(EP_respPacketID[0 +: 2])
-        );
-
-        genvar i;
-        for (i = 1; i < ENDPOINTS; i = i + 1) begin
-
-            localparam usb_ep_pkg::EndpointConfig epConfig = USB_DEV_EP_CONF.epConfs[i-1];
-
-            if (!epConfig.isControlEP && epConfig.conf.nonControlEp.epTypeDevIn == usb_ep_pkg::NONE && epConfig.conf.nonControlEp.epTypeDevOut == usb_ep_pkg::NONE) begin
-                $fatal("Wrong number of endpoints specified! Got endpoint type NONE for ep%i", i);
-            end
-
-            logic isEpSelected;
-            assign isEpSelected = i == epSelect;
-
-            case (i)
-                `CREATE_EP_CASE(1);
-                `CREATE_EP_CASE(2);
-                `CREATE_EP_CASE(3);
-                `CREATE_EP_CASE(4);
-                `CREATE_EP_CASE(5);
-                `CREATE_EP_CASE(6);
-                `CREATE_EP_CASE(7);
-                `CREATE_EP_CASE(8);
-                `CREATE_EP_CASE(9);
-                `CREATE_EP_CASE(10);
-                `CREATE_EP_CASE(11);
-                `CREATE_EP_CASE(12);
-                `CREATE_EP_CASE(13);
-                `CREATE_EP_CASE(14);
-                `CREATE_EP_CASE(15);
-                default:
-                    $fatal("Invalid Endpoint count!");
-            endcase
-        end
-    endgenerate
 
 //====================================================================================
 //====================================RX Interface====================================
@@ -409,7 +261,6 @@ module usb_pe #(
 //====================================TX Interface====================================
 //====================================================================================
 
-    logic [10:0] maxPacketSize;
     // This counter is used to ensure that we do not send more than max. packet size many bytes!
     logic [10:0] maxBytesLeft;
 
@@ -513,7 +364,6 @@ Device Transaction State Machine Hierarchy Overview:
     end
 
     assign isHostIn = upperTransStartPID == usb_packet_pkg::PID_IN_TOKEN[3:2];
-    logic isEpIsochronous;
 
     always_comb begin
         nextTransState = transState;
@@ -672,48 +522,5 @@ Device Transaction State Machine Hierarchy Overview:
         isSendingPhase_o <= nextIsSendingPhase;
         prevIsSendingPhase <= isSendingPhase_o;
     end
-
-//====================================================================================
-//===================================LUT Generation===================================
-//====================================================================================
-
-genvar epIdx;
-generate
-    logic [11*ENDPOINTS - 1:0] maxPacketSizeOutLut;
-
-    assign maxPacketSizeOutLut[0 * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.deviceDesc.bMaxPacketSize0};
-
-    for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
-        if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
-            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = {3'b0, USB_DEV_EP_CONF.epConfs[epIdx].conf.controlEpConf.maxPacketSize};
-        end else begin
-            assign maxPacketSizeOutLut[(epIdx + 1) * 11 +: 11] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.maxPacketSize;
-        end
-    end
-
-    assign maxPacketSize = maxPacketSizeOutLut[epSelect * 11 +: 11];
-endgenerate
-
-generate
-    if (USB_DEV_EP_CONF.endpointCount > 0) begin
-        logic [USB_DEV_EP_CONF.endpointCount-1:0] isEpInIsochronousLUT;
-        logic [USB_DEV_EP_CONF.endpointCount-1:0] isEpOutIsochronousLUT;
-
-        for (epIdx = 0; epIdx < USB_DEV_EP_CONF.endpointCount; epIdx++) begin
-            if (USB_DEV_EP_CONF.epConfs[epIdx].isControlEP) begin
-                assign isEpInIsochronousLUT[epIdx] = 1'b0;
-                assign isEpOutIsochronousLUT[epIdx] = 1'b0;
-            end else begin
-                assign isEpInIsochronousLUT[epIdx] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.epTypeDevIn == usb_ep_pkg::ISOCHRONOUS;
-                assign isEpOutIsochronousLUT[epIdx] = USB_DEV_EP_CONF.epConfs[epIdx].conf.nonControlEp.epTypeDevOut == usb_ep_pkg::ISOCHRONOUS;
-            end
-        end
-
-        // assign isEpIsochronous = {(isHostIn ? isEpOutIsochronousLUT : isEpInIsochronousLUT), 1'b0}[epSelect];
-        assign isEpIsochronous = (|epSelect) && (isHostIn ? isEpOutIsochronousLUT[epSelect-1] : isEpInIsochronousLUT[epSelect-1]);
-    end else begin
-        assign isEpIsochronous = 1'b0;
-    end
-endgenerate
 
 endmodule

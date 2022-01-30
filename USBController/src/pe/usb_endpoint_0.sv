@@ -5,9 +5,9 @@
 
 // AKA control endpoint with address 0
 module usb_endpoint_0 #(
-    parameter USB_DEV_ADDR_WID = 7,
-    parameter USB_DEV_CONF_WID = 8,
-    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF
+    parameter usb_ep_pkg::UsbDeviceEpConfig USB_DEV_EP_CONF,
+    localparam USB_DEV_ADDR_WID = usb_packet_pkg::USB_DEV_ADDR_WID,
+    localparam USB_DEV_CONF_WID = usb_dev_req_pkg::USB_DEV_CONF_WID
 )(
     input logic clk12_i,
 

@@ -106,11 +106,13 @@ package usb_packet_pkg;
         PID_Types pid;
     } PacketHeader;
 
+    localparam USB_DEV_ADDR_WID = 7;
+
     localparam TOKEN_PACKET_OFFSET = 8;
     localparam TOKEN_PACKET_BITS = 7 + 4;
     typedef struct packed {
         logic [3:0] endptSel; // There can be at most 16 endpoints
-        logic [6:0] devAddr;
+        logic [USB_DEV_ADDR_WID-1:0] devAddr;
     } TokenPacket;
     localparam _TOKEN_LENGTH = PACKET_HEADER_BITS + TOKEN_PACKET_BITS;
 

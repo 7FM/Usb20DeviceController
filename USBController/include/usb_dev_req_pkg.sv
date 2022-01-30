@@ -403,6 +403,8 @@ package usb_dev_req_pkg;
 
     localparam SETUP_DATA_PACKET_BYTE_COUNT = 8;
 
+    localparam USB_DEV_CONF_WID = 8;
+
 endpackage
 
 `endif
