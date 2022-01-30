@@ -63,8 +63,8 @@ generate
         assign next_transReadCounter = transReadCounter[ADDR_WID-1:0] == MAX_IDX[ADDR_WID-1:0] ? {!transReadCounter[ADDR_WID], {ADDR_WID{1'b0}}} : transReadCounter + 1;
     end
 
-    // Reduce the combinatorial path by adding an additional counter that stores how many elements are left
-    assign full_o = transDataCounter[ADDR_WID] != readCounter[ADDR_WID] && transDataCounter[ADDR_WID-1:0] == readCounter[ADDR_WID-1:0];
+    assign full_o = transDataCounter[ADDR_WID] != readCounter[ADDR_WID]
+                 && transDataCounter[ADDR_WID-1:0] == readCounter[ADDR_WID-1:0];
 
     initial begin
         dataCounter = 0;
