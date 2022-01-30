@@ -65,7 +65,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevIn != usb_ep_pkg:
     localparam EP_DATA_WID = 8;
 
     //TODO configure size?
-    BRAM_FIFO #(
+    TRANS_BRAM_FIFO #(
         .ADDR_WID(EP_ADDR_WID),
         .DATA_WID(EP_DATA_WID)
     ) fifoXIn(

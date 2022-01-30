@@ -1,6 +1,7 @@
 `include "util_macros.sv"
 
-module FIFO #(
+// transaction based FIFO
+module TRANS_FIFO #(
     parameter ADDR_WID = 9,
     parameter DATA_WID = 8,
     parameter ENTRIES = 0

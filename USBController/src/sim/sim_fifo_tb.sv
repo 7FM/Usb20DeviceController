@@ -20,7 +20,7 @@ module sim_fifo_tb (
     localparam EP_ADDR_WID = 9;
     localparam EP_DATA_WID = 8;
 
-    BRAM_FIFO #(
+    TRANS_BRAM_FIFO #(
         .ADDR_WID(EP_ADDR_WID),
         .DATA_WID(EP_DATA_WID),
         // .ENTRIES(2**EP_ADDR_WID)

@@ -1,4 +1,4 @@
-module BRAM_FIFO #(
+module TRANS_BRAM_FIFO #(
     parameter ADDR_WID = 9,
     parameter DATA_WID = 8,
     parameter ENTRIES = 0
@@ -37,7 +37,7 @@ module BRAM_FIFO #(
         .rData_o(rData)
     );
 
-    FIFO #(
+    TRANS_FIFO #(
         .ADDR_WID(ADDR_WID),
         .DATA_WID(DATA_WID),
         .ENTRIES(ENTRIES == 0 ? 2**ADDR_WID : ENTRIES)
