@@ -325,6 +325,12 @@ module usb_pe #(
         .isFull_o(transStartPacketBufFull)
     );
 
+    usb_packet_pkg::TokenPacket tokenPacketPart;
+    assign tokenPacketPart = usb_packet_pkg::TokenPacket'(transStartPacketBuf[usb_packet_pkg::TOKEN_PACKET_OFFSET +: usb_packet_pkg::TOKEN_PACKET_BITS]);
+    usb_packet_pkg::PID_Types packetPID;
+    assign packetPID = usb_packet_pkg::PID_Types'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS / 2]);
+    assign upperTransStartPID = packetPID[3:2];
+
     // Endpoint FIFO connections
     logic receiveDone;
     logic receiveSuccess;
@@ -347,28 +353,21 @@ module usb_pe #(
     logic rxHandshake;
     assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
 
-    usb_packet_pkg::TokenPacket tokenPacketPart;
-    assign tokenPacketPart = usb_packet_pkg::TokenPacket'(transStartPacketBuf[usb_packet_pkg::TOKEN_PACKET_OFFSET +: usb_packet_pkg::TOKEN_PACKET_BITS]);
-
-    usb_packet_pkg::PID_Types packetPID;
-    assign packetPID = usb_packet_pkg::PID_Types'(transStartPacketBuf[usb_packet_pkg::PACKET_HEADER_OFFSET +: usb_packet_pkg::PACKET_HEADER_BITS / 2]);
-    assign upperTransStartPID = packetPID[3:2];
-
     // Start of Frame (SOF)
     logic isSOF;
     assign isSOF = upperTransStartPID == usb_packet_pkg::PID_SOF_TOKEN[3:2];
-
     logic isTokenPID;
     assign isTokenPID = packetPID[usb_packet_pkg::PACKET_TYPE_MASK_OFFSET +: usb_packet_pkg::PACKET_TYPE_MASK_LENGTH] == usb_packet_pkg::TOKEN_PACKET_MASK_VAL;
 
     logic isValidTransStartPacket;
-    assign isValidTransStartPacket = receiveDone && receiveSuccess && isTokenPID && !isSOF && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
+    assign isValidTransStartPacket = receiveDone && receiveSuccess && isTokenPID && !isSOF
+         && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
 
-    logic rxFailCondition;
     // treat full buffer as error -> not all data could be stored!
     // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
     //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
     //TODO !keepPacket can also have multiple reasons: byte was not received (similar to rxBufFull), CRC error, DP signal error
+    logic rxFailCondition;
     assign rxFailCondition = rxBufFull || !keepPacket_i;
 
 `ifdef DEBUG_LEDS
@@ -391,7 +390,6 @@ module usb_pe #(
     assign LED_G = !inv_LED_G;
     assign LED_B = !inv_LED_B;
 `endif
-
 
     always_ff @(posedge clk12_i) begin
         // Will only be asserted on receiveDone -> we dont have to specifically check whether be received a byte & if it was the last byte
@@ -545,7 +543,7 @@ Device Transaction State Machine Hierarchy Overview:
                 nextTransState = PE_WAIT_FOR_TRANSACTION;
             end
             PE_WAIT_FOR_TRANSACTION: begin
-                if (transactionStarted) begin
+                if (gotTransStartPacket) begin
                     if (isHostIn) begin
                         // We are sending data to the host
                         nextIsSendingPhase = 1'b1;
