@@ -372,17 +372,24 @@ module usb_pe #(
     assign rxFailCondition = rxBufFull || !keepPacket_i;
 
 `ifdef DEBUG_LEDS
+    logic inv_LED_R;
+    logic inv_LED_G;
+    logic inv_LED_B;
     initial begin
-        LED_R = 1'b0;
-        LED_G = 1'b0;
-        LED_B = 1'b0;
+        inv_LED_R = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_G = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_B = 1'b0; // a value of 1 turns the LEDs off!
     end
     //TODO check why the simulation triggers these error conditions & refine conditions / fix issues
     always_ff @(posedge clk12_i) begin
-        LED_R <= LED_R || (receiveDone && !receiveSuccess);
-        LED_G <= LED_G || usbResetDetected_i;
-        LED_B <= LED_B || packetWaitTimeout_i;
+        inv_LED_R <= inv_LED_R || (receiveDone && !receiveSuccess);
+        inv_LED_G <= inv_LED_G || usbResetDetected_i;
+        inv_LED_B <= inv_LED_B || packetWaitTimeout_i;
     end
+
+    assign LED_R = !inv_LED_R;
+    assign LED_G = !inv_LED_G;
+    assign LED_B = !inv_LED_B;
 `endif
 
 
