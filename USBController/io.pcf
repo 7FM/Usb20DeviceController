@@ -13,12 +13,6 @@ set_io   CLK           35
 set_frequency clk12 12
 set_frequency clk12_i 12
 set_frequency clk12_o 12
-set_frequency readCLK12 12
-set_frequency readCLK12_i 12
-set_frequency readCLK12_o 12
-set_frequency receiveCLK 12
-set_frequency receiveCLK_i 12
-set_frequency receiveCLK_o 12
 set_frequency rxClk12 12
 set_frequency rxClk12_i 12
 set_frequency rxClk12_o 12

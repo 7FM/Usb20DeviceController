@@ -38,8 +38,8 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
         top->txData = 0;
         // Data receive interface
         top->rxAcceptNewData = 0;
-        top->rxCLK12 = 0;
-        top->txCLK12 = 0;
+        top->rxClk12 = 0;
+        top->txClk12 = 0;
 
         top->rxRST = 1;
         // Give modules some time to settle
@@ -63,8 +63,8 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
         bool posedge = false;
         bool negedge = false;
         if (tx_clk12_counter == 0) {
-            top->txCLK12 = !top->txCLK12;
-            negedge = !(posedge = top->txCLK12);
+            top->txClk12 = !top->txClk12;
+            negedge = !(posedge = top->txClk12);
         }
 
         if (posedge) {
@@ -75,8 +75,8 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
         posedge = false;
         negedge = false;
         if (rx_clk12_counter == 0) {
-            top->rxCLK12 = !top->rxCLK12;
-            negedge = !(posedge = top->rxCLK12);
+            top->rxClk12 = !top->rxClk12;
+            negedge = !(posedge = top->rxClk12);
         }
         receiveDeserializedInput(*this, top, rxState, posedge, negedge);
     }

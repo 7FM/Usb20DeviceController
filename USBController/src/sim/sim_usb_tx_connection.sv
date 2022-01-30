@@ -3,11 +3,11 @@
 
 `ifdef RUN_SIM
 module sim_usb_tx_connection (
-    input logic txClk12,
+    input logic clk12_i,
     output logic USB_DP,
     output logic USB_DN,
 
-    // Data send interface: synced with txClk12!
+    // Data send interface: synced with clk12_i!
     input logic txReqSendPacket,
     output logic txAcceptNewData,
     input logic txIsLastByte,
@@ -26,7 +26,7 @@ module sim_usb_tx_connection (
     logic [15:0] crc;
 
     usb_crc crcEngine (
-        .clk12_i(txClk12),
+        .clk12_i(clk12_i),
         .rst_i(txCRCReset),
         .valid_i(txCRCInputValid),
         .useCRC16_i(txUseCRC16),
@@ -41,7 +41,7 @@ module sim_usb_tx_connection (
     logic txBitStuffDataOut;
 
     usb_bit_stuffing_wrapper bitStuffWrap (
-        .clk12_i(txClk12),
+        .clk12_i(clk12_i),
         .rst_i(txBitStuffRst),
         .isSendingPhase_i(1'b1),
         .data_i(txBitStuffDataIn),
@@ -52,7 +52,7 @@ module sim_usb_tx_connection (
 
 
     usb_tx uut(
-        .clk12_i(txClk12),
+        .clk12_i(clk12_i),
 
         // CRC interface
         .txCRCReset_o(txCRCReset),

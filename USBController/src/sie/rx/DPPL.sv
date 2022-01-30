@@ -8,7 +8,8 @@ module DPPL(
     // However, not all FPGAs have a comparator and in such cases rcv is simply the USB_DP+ signal
     input logic dpPosEdgeSync_i,
     input logic dpNegEdgeSync_i,
-    output logic readCLK12_o,
+    output logic rxClk12_o,
+    // output logic data_o,
     output logic DPPLGotSignal_o
 );
 
@@ -34,7 +35,8 @@ module DPPL(
 
     DPPL_FSM fsmState, nextFsmState, fsmStateNextGrayCode;
 
-    assign readCLK12_o = fsmState[1];
+    assign rxClk12_o = fsmState[1];
+    // assign data_o = fsmState[2];
     // We got a signal if we are within the left cycle -> received a 0
     assign DPPLGotSignal_o = fsmState == STATE_D || fsmState <= STATE_3;
 

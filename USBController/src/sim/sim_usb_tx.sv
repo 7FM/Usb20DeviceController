@@ -4,8 +4,8 @@
 `ifdef RUN_SIM
 module sim_usb_tx (
     input logic CLK,
-    input logic rxCLK12,
-    input logic txCLK12,
+    input logic rxClk12,
+    input logic txClk12,
 
     input logic rxRST,
 
@@ -34,7 +34,7 @@ module sim_usb_tx (
     logic USB_DP, USB_DN;
 
     sim_usb_tx_connection usbSerializer (
-        .txClk12(txCLK12),
+        .clk12_i(txClk12),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
 
@@ -49,8 +49,8 @@ module sim_usb_tx (
     );
 
     sim_usb_rx_connection usbDeserializer(
-        .CLK(CLK),
-        .CLK12(rxCLK12),
+        .clk48_i(CLK),
+        .clk12_i(rxClk12),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
         .rxRST(rxRST),

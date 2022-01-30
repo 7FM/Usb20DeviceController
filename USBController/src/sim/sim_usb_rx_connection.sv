@@ -3,13 +3,13 @@
 
 `ifdef RUN_SIM
 module sim_usb_rx_connection (
-    input logic CLK,
-    input logic CLK12,
+    input logic clk48_i,
+    input logic clk12_i,
     input logic USB_DP,
     input logic USB_DN,
     input logic rxRST,
 
-    // Data output interface: synced with clk12!
+    // Data output interface: synced with clk12_i!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
     output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
     output logic rxDataValid, // rxData contains valid & new data
@@ -30,7 +30,7 @@ module sim_usb_rx_connection (
     logic ackEOP;
 
     usb_serial_frontend uut_input(
-        .clk48_i(CLK),
+        .clk48_i(clk48_i),
         .pinP(USB_DP),
         `MUTE_PIN_CONNECT_EMPTY(pinP_o),
         .pinN(USB_DN),
@@ -51,17 +51,17 @@ module sim_usb_rx_connection (
     logic rxClkGenRST;
     // TODO we could only reset on switch to receive mode!
     // -> this would allow us to reuse the clk signal for transmission too!
-    // -> hence, we have the same CLK domain and can reuse CRC and bit (un-)stuffing modules!
+    // -> hence, we have the same clk48_i domain and can reuse CRC and bit (un-)stuffing modules!
     assign rxClkGenRST = rxRST; //TODO change the rst -> then it can be used for tx as well!
     logic rxClk12;
     logic DPPLGotSignal;
 
     DPPL #() asyncRxCLK (
-        .clk48_i(CLK),
+        .clk48_i(clk48_i),
         .rst_i(rxClkGenRST),
         .dpPosEdgeSync_i(dataInP),
         .dpNegEdgeSync_i(dataInP_negedge),
-        .readCLK12_o(rxClk12),
+        .rxClk12_o(rxClk12),
         .DPPLGotSignal_o(DPPLGotSignal)
     );
 
@@ -69,12 +69,12 @@ module sim_usb_rx_connection (
     clock_gen #(
         .DIVIDE_LOG_2(2)
     ) clk12Generator (
-        .clk_i(CLK),
+        .clk_i(clk48_i),
         .clk_o(timeoutClk12)
     );
 
     usb_timeout usbRxTimeout(
-        .clk48_i(CLK),
+        .clk48_i(clk48_i),
         .clk12_i(timeoutClk12),
         .rst_i(resetTimeout),
         .rxGotSignal_i(DPPLGotSignal),
@@ -88,7 +88,7 @@ module sim_usb_rx_connection (
     logic isValidCRC;
 
     usb_crc crcEngine (
-        .clk12_i(CLK12),
+        .clk12_i(clk12_i),
         .rst_i(rxCRCReset),
         .valid_i(rxCRCInputValid),
         .useCRC16_i(rxUseCRC16),
@@ -103,7 +103,7 @@ module sim_usb_rx_connection (
     logic rxBitStuffDataIn;
 
     usb_bit_stuffing_wrapper bitStuffWrap (
-        .clk12_i(CLK12),
+        .clk12_i(clk12_i),
         .rst_i(rxBitStuffRst),
         .isSendingPhase_i(1'b0),
         .data_i(rxBitStuffDataIn),
@@ -113,7 +113,7 @@ module sim_usb_rx_connection (
     );
 
     usb_rx uut(
-        .clk12_i(CLK12),
+        .clk12_i(clk12_i),
         .rxClk12_i(rxClk12),
 
         // CRC interface

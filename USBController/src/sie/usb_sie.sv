@@ -157,7 +157,7 @@ module usb_sie (
         .rst_i(rxClkGenRST),
         .dpPosEdgeSync_i(dataInP),
         .dpNegEdgeSync_i(dataInP_negedge),
-        .readCLK12_o(rxClk12),
+        .rxClk12_o(rxClk12),
         .DPPLGotSignal_o(rxDPPLGotSignal_o)
     );
 

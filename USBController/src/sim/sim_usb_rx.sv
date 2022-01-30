@@ -22,8 +22,8 @@ module sim_usb_rx (
 );
 
     sim_usb_rx_connection rxCon (
-        .CLK(CLK),
-        .CLK12(CLK12),
+        .clk48_i(CLK),
+        .clk12_i(CLK12),
         .USB_DP(USB_DP),
         .USB_DN(USB_DN),
         .rxRST(rxRST),
