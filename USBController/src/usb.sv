@@ -6,6 +6,7 @@ module usb#(
     localparam ENDPOINTS = USB_DEV_EP_CONF.endpointCount + 1
 )(
     input logic clk48_i,
+    input logic clk12_i,
 
 `ifdef DEBUG_LEDS
     output logic LED_R,
@@ -27,7 +28,6 @@ module usb#(
 
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
     // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
-    output logic clk12_o,
     input logic [ENDPOINTS-2:0] EP_IN_popTransDone_i,
     input logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i,
     input logic [ENDPOINTS-2:0] EP_IN_popData_i,
@@ -41,9 +41,6 @@ module usb#(
     output logic [ENDPOINTS-2:0] EP_OUT_full_o
 );
 
-    logic clk12;
-    assign clk12_o = clk12;
-
 //====================================================================================
 //============================USB Serial Interface Engine=============================
 //====================================================================================
@@ -56,14 +53,14 @@ module usb#(
     logic rxDPPLGotSignal;
 
     // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
-    // Data Receive Interface: synced with clk48_i!
+    // Data Receive Interface: synced with clk12_i!
     logic rxAcceptNewData;
     logic [7:0] rxData;
     logic rxIsLastByte;
     logic rxDataValid;
     logic keepPacket;
 
-    // Data Transmit Interface: synced with clk48_i!
+    // Data Transmit Interface: synced with clk12_i!
     logic txReqSendPacket;
     logic txDataValid;
     logic txIsLastByte;
@@ -72,7 +69,7 @@ module usb#(
 
     usb_sie #() serialInterfaceEngine (
         .clk48_i(clk48_i),
-        .clk12_i(clk12),
+        .clk12_i(clk12_i),
 
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
@@ -88,12 +85,11 @@ module usb#(
 
         // State information
         .txDoneSending_o(txDoneSending),
-        .rxDPPLGotSignal_o(rxDPPLGotSignal),
+        .rxDPPLGotSignal_o(rxDPPLGotSignal), // clk48_i
         .isSendingPhase_i(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
-        // Data Receive Interface: synced with clk48_i!
-        //TODO port for reset receive module, required to reset the receive clock to synchronize with incoming signals!
+        // Data Receive Interface: synced with clk12_i!
         .rxAcceptNewData_i(rxAcceptNewData), // Caller indicates to be able to retrieve the next data byte
         .rxData_o(rxData), // data to be retrieved
         .rxIsLastByte_o(rxIsLastByte), // indicates that the current byte at rxData is the last one
@@ -119,7 +115,7 @@ module usb#(
     usb_pe #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) usbProtocolEngine(
-        .clk12_i(clk12),
+        .clk12_i(clk12_i),
 
 `ifdef DEBUG_LEDS
         .LED_R(LED_R),
@@ -140,14 +136,14 @@ module usb#(
         .isSendingPhase_o(isSendingPhase),
 
         // Data receive and data transmit interfaces may only be used mutually exclusive in time and atomic transactions: sending/receiving a packet!
-        // Data Receive Interface: synced with clk48_i!
+        // Data Receive Interface: synced with clk12_i!
         .rxAcceptNewData_o(rxAcceptNewData),
         .rxData_i(rxData),
         .rxIsLastByte_i(rxIsLastByte),
         .rxDataValid_i(rxDataValid),
         .keepPacket_i(keepPacket),
 
-        // Data Transmit Interface: synced with clk48_i!
+        // Data Transmit Interface: synced with clk12_i!
         .txReqSendPacket_o(txReqSendPacket),
         .txDataValid_o(txDataValid),
         .txIsLastByte_o(txIsLastByte),
@@ -172,16 +168,9 @@ module usb#(
 //===============================USB timeout submodules===============================
 //====================================================================================
 
-    clock_gen #(
-        .DIVIDE_LOG_2(2)
-    ) clk12Generator (
-        .clk_i(clk48_i),
-        .clk_o(clk12)
-    );
-
     usb_timeout readTimer (
         .clk48_i(clk48_i),
-        .clk12_i(clk12),
+        .clk12_i(clk12_i),
         .rst_i(readTimerRst),
         .rxGotSignal_i(rxDPPLGotSignal),
         .rxTimeout_o(packetWaitTimeout)

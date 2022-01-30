@@ -472,7 +472,6 @@ Device Transaction State Machine Hierarchy Overview:
 
 */
 
-    //TODO adjust length as needed!
     typedef enum logic[3:0] {
         PE_RST_RX_CLK = 0,
         PE_WAIT_FOR_TRANSACTION,

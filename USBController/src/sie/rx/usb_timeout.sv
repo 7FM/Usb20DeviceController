@@ -14,8 +14,8 @@ module usb_timeout #(
     input logic clk48_i,
     input logic clk12_i, // Note that this clock has to run all the time, no matter the internal state of the DPPL
     input logic rst_i,
-    input logic rxGotSignal_i,
-    output logic rxTimeout_o
+    input logic rxGotSignal_i, // clk48_i
+    output logic rxTimeout_o // clk12_i
 );
 
     logic [TIMEOUT_CNT_WID-1:0] timeoutCnt, timeoutCntAdd1;

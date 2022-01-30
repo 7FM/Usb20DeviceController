@@ -42,10 +42,11 @@ module top #(
 `endif
 );
     logic clk48;
+    logic clk12;
 
 `ifndef FALLBACK_DEVICE
 `ifdef LATTICE_ICE_40
-    SB_PLL40_PAD #(
+    SB_PLL40_2_PAD #(
         .FEEDBACK_PATH("SIMPLE"),
         .DIVR(config_pkg::PLL_CLK_DIVR),
         .DIVF(config_pkg::PLL_CLK_DIVF),
@@ -55,19 +56,28 @@ module top #(
         .RESETB(config_pkg::PLL_CLK_RESETB),
         .BYPASS(config_pkg::PLL_CLK_BYPASS),
         .PACKAGEPIN(CLK),
-        .PLLOUTCORE(clk48)
+        .PLLOUTGLOBALA(clk12),
+        .PLLOUTGLOBALB(clk48)
     );
 `else
     // Device not supported
 `endif
 `else
     assign clk48 = CLK;
+
+    clock_gen #(
+        .DIVIDE_LOG_2(2)
+    ) clk12Generator (
+        .clk_i(clk48),
+        .clk_o(clk12)
+    );
+
+    assign clk12_o = clk12;
 `endif
 
 `ifndef RUN_SIM
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
     // Also note that there is no access to EP00 -> index 0 is for EP01, index 1 for EP02 and so on
-    logic clk12_o;
     logic [ENDPOINTS-2:0] EP_IN_popTransDone_i;
     logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i;
     logic [ENDPOINTS-2:0] EP_IN_popData_i;
@@ -81,13 +91,11 @@ module top #(
     logic [ENDPOINTS-2:0] EP_OUT_full_o;
 `endif
 
-    logic clk12;
-    assign clk12_o = clk12;
-
     usb #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) usbDeviceController(
         .clk48_i(clk48),
+        .clk12_i(clk12),
 
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
@@ -105,7 +113,6 @@ module top #(
         .USB_PULLUP_o(USB_PULLUP),
 
         // Endpoint interfaces
-        .clk12_o(clk12),
         .EP_IN_popData_i(EP_IN_popData_i),
         .EP_IN_popTransDone_i(EP_IN_popTransDone_i),
         .EP_IN_popTransSuccess_i(EP_IN_popTransSuccess_i),

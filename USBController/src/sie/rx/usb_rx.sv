@@ -35,11 +35,8 @@ module usb_rx#()(
     output logic keepPacket_o // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
 );
 
-    logic emptyFifo; //TODO how to handle cases when the fifo is empty & we get no data???
+    logic emptyFifo;
     logic dataP_cdc, validSignal_cdc;
-    logic dataP, validSignal;
-    assign dataP = emptyFifo ? 1'b1 : dataP_cdc;
-    assign validSignal = emptyFifo ? 1'b0 : validSignal_cdc;
 
     logic eopDetectedRxCDC;
     logic eopDetectedCDC;
@@ -64,6 +61,11 @@ module usb_rx#()(
         .empty_o(emptyFifo),
         .data_o({dataP_cdc, validSignal_cdc, eopDetectedCDC})
     );
+
+    logic dataP, validSignal;
+    // when the fifo is empty then we clear the validSignal flag to ensure a error is detected in case that valid data was expected
+    assign dataP = emptyFifo ? 1'b1 : dataP_cdc;
+    assign validSignal = emptyFifo ? 1'b0 : validSignal_cdc;
 
     logic [7:0] inputBuf;
     logic rxGotNewInput;
