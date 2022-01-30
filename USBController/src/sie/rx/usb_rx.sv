@@ -162,7 +162,7 @@ module usb_rx_interface(
     // Propagate the pipeline when inputBufFull is set
     // -> triggers only once!
     // propagate faster (independent from inputBufFull) after we received the EOP signal
-    assign rxPropagatePipeline = rxGotNewInput || (flushBuffersFast && (rxHandshake || !rxDataValid_o));
+    assign rxPropagatePipeline = rxGotNewInput || (flushBuffersFast && (rxAcceptNewData_i || !rxDataValid_o));
 
     always_comb begin
         // If there is no more data left then we can clear the flag!
@@ -311,13 +311,7 @@ module usb_rx_internal(
     // If waiting for EOP -> we need the detection -> clear RST flag
     assign ackEOP_o = isRxWaitForEop && eopDetected_i;
 
-    always_ff @(posedge clk12_i) begin
-        gotEopDetect <= (gotEopDetect || eopDetected_i) && !awaitsPID;
-    end
-
-    initial begin
-        gotEopDetect = 1'b0;
-    end
+    assign gotEopDetect = eopDetected_i && !awaitsPID;
 
     // Detections
     logic syncDetect;
