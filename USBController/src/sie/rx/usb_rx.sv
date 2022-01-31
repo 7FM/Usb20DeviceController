@@ -297,7 +297,7 @@ module usb_rx_internal(
     // If waiting for EOP -> we need the detection -> clear RST flag
     assign ackEOP_o = isRxWaitForEop && eopDetected_i;
 
-    assign gotEopDetect = eopDetected_i && !awaitsPID;
+    assign gotEopDetect = eopDetected_i && isRxWaitForEop;
 
     // Detections
     logic syncDetect;
