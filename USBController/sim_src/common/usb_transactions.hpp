@@ -34,7 +34,10 @@ bool sendStuff(Sim &sim, std::function<void()> fillSendData) {
     while (!sim.template run<true>(0)) {
     }
 
-    assert(sim.txState.doneSending);
+    if (!sim.txState.doneSending) {
+        std::cerr << "CRITICAL ERROR: sendStuff assertion failed! Did not stop because of doneSending!" << std::endl;
+        return true;
+    }
 
     return getForceStop();
 }
@@ -60,7 +63,11 @@ bool receiveStuff(Sim &sim, const char* errMsg, const char *timeoutMsg) {
         std::cerr << errMsg << std::endl;
         return true;
     }
-    assert(sim.rxState.receivedLastByte);
+
+    if (!sim.rxState.receivedLastByte) {
+        std::cerr << "CRITICAL ERROR: receiveStuff assertion failed! Did not stop because of receiving the last byte!" << std::endl;
+        return true;
+    }
 
     return getForceStop();
 }
