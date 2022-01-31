@@ -20,7 +20,7 @@ module sim_usb_tx (
 
     // Data receive interface: synced with clk48!
     input logic rxAcceptNewData, // Backend indicates that it is able to retrieve the next data byte
-    output logic rxIsLastByte, // indicates that the current byte at rxData is the last one
+    output logic rxDone, // indicates that the current byte at rxData is the last one
     output logic rxDataValid, // rxData contains valid & new data
     output logic [7:0] rxData, // data to be retrieved
 
@@ -57,7 +57,7 @@ module sim_usb_tx (
 
         // Data output interface: synced with clk48!
         .rxAcceptNewData(rxAcceptNewData),
-        .rxIsLastByte(rxIsLastByte),
+        .rxDone(rxDone),
         .rxDataValid(rxDataValid),
         .rxData(rxData),
         .keepPacket(keepPacket),

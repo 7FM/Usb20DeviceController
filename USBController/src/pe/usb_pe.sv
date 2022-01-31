@@ -32,7 +32,7 @@ module usb_pe #(
     // Data Receive Interface: synced with clk12_i!
     output logic rxAcceptNewData_o,
     input logic [7:0] rxData_i,
-    input logic rxIsLastByte_i,
+    input logic rxDone_i,
     input logic rxDataValid_i,
     input logic keepPacket_i,
 
@@ -199,8 +199,7 @@ module usb_pe #(
     logic rxBufFull;
     // Ignore that the buffer is full if we are not yet in an transaction -> fast ignore transactions for other USB devices on the same bus!
     assign rxBufFull = useInternalBuf ? transStartPacketBufFull && transactionStarted : writeFifoFull;
-    // If this is the last byte, always accept
-    assign rxAcceptNewData_o = (!receiveDone && !rxBufFull) || rxIsLastByte_i;
+    assign rxAcceptNewData_o = !receiveDone && !rxBufFull;
 
     logic rxHandshake;
     assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
@@ -247,7 +246,7 @@ module usb_pe #(
         // Will only be asserted on receiveDone -> we dont have to specifically check whether be received a byte & if it was the last byte
         receiveSuccess <= receiveDone || !rxFailCondition;
         // Signal that receiving is done for a single cycle
-        receiveDone <= !receiveDone && rxHandshake && rxIsLastByte_i;
+        receiveDone <= !receiveDone && rxDone_i;
 
         // Only start the transaction if we recieved the packet correctly!
         transactionStarted <= transactionStarted ? !transactionDone : isValidTransStartPacket;

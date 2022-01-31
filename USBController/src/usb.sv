@@ -56,7 +56,7 @@ module usb#(
     // Data Receive Interface: synced with clk12_i!
     logic rxAcceptNewData;
     logic [7:0] rxData;
-    logic rxIsLastByte;
+    logic rxDone;
     logic rxDataValid;
     logic keepPacket;
 
@@ -92,9 +92,9 @@ module usb#(
         // Data Receive Interface: synced with clk12_i!
         .rxAcceptNewData_i(rxAcceptNewData), // Caller indicates to be able to retrieve the next data byte
         .rxData_o(rxData), // data to be retrieved
-        .rxIsLastByte_o(rxIsLastByte), // indicates that the current byte at rxData is the last one
+        .rxDone_o(rxDone), // indicates that the current byte at rxData is the last one
         .rxDataValid_o(rxDataValid), // rxData contains valid & new data
-        .keepPacket_o(keepPacket), // should be tested when rxIsLastByte set to check whether an retrival error occurred
+        .keepPacket_o(keepPacket), // should be tested when rxDone set to check whether an retrival error occurred
 
         // Data Transmit Interface: synced with clk12_i!
         .txReqSendPacket_i(txReqSendPacket), // Caller requests sending a new packet
@@ -139,7 +139,7 @@ module usb#(
         // Data Receive Interface: synced with clk12_i!
         .rxAcceptNewData_o(rxAcceptNewData),
         .rxData_i(rxData),
-        .rxIsLastByte_i(rxIsLastByte),
+        .rxDone_i(rxDone),
         .rxDataValid_i(rxDataValid),
         .keepPacket_i(keepPacket),
 

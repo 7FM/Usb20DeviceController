@@ -33,9 +33,9 @@ module usb_sie (
     // Data Receive Interface: synced with clk12_i!
     input logic rxAcceptNewData_i, // Caller indicates to be able to retrieve the next data byte
     output logic [7:0] rxData_o, // data to be retrieved
-    output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
+    output logic rxDone_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
-    output logic keepPacket_o, // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+    output logic keepPacket_o, // should be tested when rxDone_o set to check whether an retrival error occurred
 
     // Data Transmit Interface: synced with clk12_i!
     input logic txReqSendPacket_i, // Caller requests sending a new packet
@@ -253,10 +253,10 @@ module usb_sie (
 
         // Data output interface: synced with clk12_i!
         .rxAcceptNewData_i(rxAcceptNewData_i), // Backend indicates that it is able to retrieve the next data byte
-        .rxIsLastByte_o(rxIsLastByte_o), // indicates that the current byte at rxData_o is the last one
+        .rxDone_o(rxDone_o), // indicates that the current byte at rxData_o is the last one
         .rxDataValid_o(rxDataValid_o), // rxData_o contains valid & new data
         .rxData_o(rxData_o), // data to be retrieved
-        .keepPacket_o(keepPacket_o) // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+        .keepPacket_o(keepPacket_o) // should be tested when rxDone_o set to check whether an retrival error occurred
     );
 
     // =====================================================================================================

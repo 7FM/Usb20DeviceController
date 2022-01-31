@@ -29,10 +29,10 @@ module usb_rx#()(
 
     // Data output interface: synced with clk12_i!
     input logic rxAcceptNewData_i, // Backend indicates that it is able to retrieve the next data byte
-    output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
+    output logic rxDone_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
     output logic [7:0] rxData_o, // data to be retrieved
-    output logic keepPacket_o // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+    output logic keepPacket_o // should be tested when rxDone_o set to check whether an retrival error occurred
 );
 
     logic emptyFifo;
@@ -76,7 +76,7 @@ module usb_rx#()(
     usb_rx_interface rx_iface (
         .clk12_i(clk12_i),
         .rxAcceptNewData_i(rxAcceptNewData_i),
-        .rxIsLastByte_o(rxIsLastByte_o),
+        .rxDone_o(rxDone_o),
         .rxDataValid_o(rxDataValid_o),
         .rxData_o(rxData_o),
         .keepPacket_o(keepPacket_o),
@@ -126,10 +126,10 @@ module usb_rx_interface(
 
     // Data output interface:
     input logic rxAcceptNewData_i, // Backend indicates that it is able to retrieve the next data byte
-    output logic rxIsLastByte_o, // indicates that the current byte at rxData_o is the last one
+    output logic rxDone_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
     output logic [7:0] rxData_o, // data to be retrieved
-    output logic keepPacket_o, // should be tested when rxIsLastByte_o set to check whether an retrival error occurred
+    output logic keepPacket_o, // should be tested when rxDone_o set to check whether an retrival error occurred
 
     // Rx interface signals:
     input logic [7:0] inputBuf,
@@ -139,105 +139,86 @@ module usb_rx_interface(
     input logic needCRC16Handling
 );
 
-//=========================================================================================
-//=====================================Interface Start=====================================
-//=========================================================================================
+    logic fifoDataAvailable;
+    logic fifoFull;
+    logic fifoAcceptInput;
 
-    //======================================
-    // Start of clk12_i clock domain signals
-    //======================================
+    logic allowFifoPop;
+    logic flushFifo;
 
-    logic [3:0] isDataShiftReg, next_isDataShiftReg;
+    REG_FIFO #(
+        .DATA_WID(8),
+        .ADDR_WID(1),
+        .ENTRIES(2)
+    ) rxDataFifo (
+        .clk_i(clk12_i),
+        .rst_i(flushFifo),
+
+        .dataValid_i(rxGotNewInput),
+        .data_i(inputBuf),
+        .full_o(fifoFull),
+        .acceptInput_o(fifoAcceptInput),
+
+        .popData_i(allowFifoPop && rxAcceptNewData_i),
+        .dataAvailable_o(fifoDataAvailable),
+        `MUTE_PIN_CONNECT_EMPTY(isLast_o),
+        .data_o(rxData_o)
+    );
 
     logic byteWasNotReceived, next_byteWasNotReceived;
-
-    logic rxHandshake;
-    assign rxHandshake = rxDataValid_o && rxAcceptNewData_i;
-
-    logic flushBuffersFast, next_flushBuffersFast;
-    // Start flushing fast when EOP was detected and stop as soon as the buffers are empty / the last byte at the front -> no more propagations required
-    assign next_flushBuffersFast = (flushBuffersFast || gotEopDetect) && |isDataShiftReg[2:0];
-
-    logic rxPropagatePipeline;
-    // Propagate the pipeline when inputBufFull is set
-    // -> triggers only once!
-    // propagate faster (independent from inputBufFull) after we received the EOP signal
-    assign rxPropagatePipeline = rxGotNewInput || (flushBuffersFast && (rxAcceptNewData_i || !rxDataValid_o));
-
-    always_comb begin
-        // If there is no more data left then we can clear the flag!
-        next_byteWasNotReceived = byteWasNotReceived && (isDataShiftReg[3] || isDataShiftReg[2]);
-
-        // Data output pipeline
-        next_isDataShiftReg = isDataShiftReg;
-
-        if (rxPropagatePipeline) begin
-            next_isDataShiftReg = {isDataShiftReg[2:0], !flushBuffersFast};
-
-            // If we want to propagate the pipeline and there was still unread data (isData is set & we have no handshake in the same cycle)
-            // Then the backend missed reading a byte -> error, we need to drop the entire packet!
-            if (!rxHandshake && isDataShiftReg[3]) begin
-                next_byteWasNotReceived = 1'b1;
-            end
-        end else if (rxHandshake) begin
-            // If handshake condition is met -> data was read, clear the data signal
-            next_isDataShiftReg[3] = 1'b0;
-        end
-
-        // Apply patching isData when we received the EndOfPacket signal
-        if (gotEopDetect) begin
-            if (needCRC16Handling) begin
-                // When CRC16 is used then the last two crc bytes in the pipeline are no user data
-                // -> the thrid byte in the delay queue is the last byte
-                next_isDataShiftReg[1:0] = 2'b0;
-            end else begin
-                // Else when CRC5 or no CRC at all is used then the first byte in the queue is the last one
-                // Also no CRC byte has to be invalidated!
-                // -> nothing to do here!
-            end
-        end
-
-    end
-
-    //===================================================
-    // Initialization
-    //===================================================
-    initial begin
-        byteWasNotReceived = 1'b0;
-        flushBuffersFast = 1'b0;
-        isDataShiftReg = 4'b0;
-    end
-
-    always_ff @(posedge clk12_i) begin
-        isDataShiftReg <= next_isDataShiftReg;
-
-        byteWasNotReceived <= next_byteWasNotReceived;
-        flushBuffersFast <= next_flushBuffersFast;
-    end
-
-    logic [7:0] rxQueue [0:3];
-    logic [1:0] rxQueueAddr;
-    initial begin
-        rxQueueAddr = 2'b00;
-    end
-
-    always_ff @(posedge clk12_i) begin
-        rxQueueAddr <= rxQueueAddr + rxPropagatePipeline;
-
-        if (rxPropagatePipeline) begin
-            rxQueue[rxQueueAddr] <= inputBuf;
-        end
-    end
-
-    // This is the last data byte if this currently is a data byte but the next one is not!
-    assign rxIsLastByte_o = isDataShiftReg[3] && !isDataShiftReg[2];
-    assign rxDataValid_o = isDataShiftReg[3];
-    assign rxData_o = rxQueue[rxQueueAddr];
+    assign rxDataValid_o = allowFifoPop && fifoDataAvailable;
     assign keepPacket_o = ~(dropPacket_i || byteWasNotReceived);
 
-//=========================================================================================
-//======================================Interface End======================================
-//=========================================================================================
+    typedef enum logic [0:0] {
+        KEEP_FILLED,
+        WAIT_UNTIL_EMPTY
+    } RxIfaceStates;
+
+    RxIfaceStates rxIfaceState, nextRxIfaceState;
+
+    // For CRC5 packets all bytes contain data -> we do not need to hold any data back!
+    // Else if we are waiting until the FIFO is empty
+    assign allowFifoPop = fifoFull || !needCRC16Handling;
+    // for CRC16 packets flush the entire fifo as the last 2 bytes are the CRC!
+    assign flushFifo = gotEopDetect && needCRC16Handling;
+
+    always_comb begin
+        rxDone_o = 1'b0;
+        nextRxIfaceState = rxIfaceState;
+        next_byteWasNotReceived = byteWasNotReceived;
+
+        if (!fifoAcceptInput && rxGotNewInput) begin
+            // The fifo does not accept our new input -> this byte will be dropped!
+            next_byteWasNotReceived = 1'b1;
+        end
+
+        unique case (rxIfaceState)
+            KEEP_FILLED: begin
+                if (gotEopDetect) begin
+                    nextRxIfaceState = WAIT_UNTIL_EMPTY;
+                end
+            end
+            WAIT_UNTIL_EMPTY: begin
+                if (!fifoDataAvailable) begin
+                    // Signal that all bytes of this packet were received!
+                    rxDone_o = 1'b1;
+                    // We are done for this packet -> clear the error flag
+                    next_byteWasNotReceived = 1'b0;
+                    nextRxIfaceState = KEEP_FILLED;
+                end
+            end
+        endcase
+    end
+
+    initial begin
+        rxIfaceState = KEEP_FILLED;
+        byteWasNotReceived = 1'b0;
+    end
+
+    always_ff @(posedge clk12_i) begin
+        byteWasNotReceived <= next_byteWasNotReceived;
+        rxIfaceState <= nextRxIfaceState;
+    end
 
 endmodule
 

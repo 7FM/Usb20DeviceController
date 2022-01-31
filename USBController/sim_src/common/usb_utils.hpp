@@ -338,13 +338,11 @@ struct UsbReceiveState {
 };
 
 template <typename Sim, typename T>
-void receiveDeserializedInput(const Sim& sim, T *top, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
-    if (posedge && top->rxAcceptNewData && top->rxDataValid) {
-        usbRxState.receivedData.push_back(top->rxData);
-
-        if (top->rxIsLastByte) {
+void receiveDeserializedInput(const Sim &sim, T *top, UsbReceiveState &usbRxState, bool posedge, bool negedge) {
+    if (posedge) {
+        if (top->rxDone) {
             if (usbRxState.receivedLastByte) {
-                std::cerr << "Error: received bytes after last signal was set!" << std::endl;
+                std::cerr << "Error: got rxDone signal multiple times!" << std::endl;
             } else {
                 usbRxState.keepPacket = top->keepPacket;
                 std::cout << "Received last byte! Overall packet size: " << usbRxState.receivedData.size() << std::endl;
@@ -353,8 +351,17 @@ void receiveDeserializedInput(const Sim& sim, T *top, UsbReceiveState &usbRxStat
             usbRxState.receivedLastByte = true;
         }
 
-        usbRxState.acceptAfterXAvailableCycles = sim.getRand() % (usbRxState.MAX_ACCEPT_DELAY + 1);
-        usbRxState.delayedDataAccept = 0;
+        if (top->rxAcceptNewData && top->rxDataValid) {
+
+            usbRxState.receivedData.push_back(top->rxData);
+
+            if (usbRxState.receivedLastByte) {
+                std::cerr << "Error: received bytes after last signal was set!" << std::endl;
+            }
+
+            usbRxState.acceptAfterXAvailableCycles = sim.getRand() % (usbRxState.MAX_ACCEPT_DELAY + 1);
+            usbRxState.delayedDataAccept = 0;
+        }
     } else if (negedge) {
         if (top->rxAcceptNewData) {
             top->rxAcceptNewData = 0;
