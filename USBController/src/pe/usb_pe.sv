@@ -214,13 +214,6 @@ module usb_pe #(
     assign isValidTransStartPacket = receiveDone && receiveSuccess && isTokenPID && !isSOF
          && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
 
-    // treat full buffer as error -> not all data could be stored!
-    // Otherwise if this is the last byte and keepPacket_i is set low there was some transmission error -> receive failed!
-    //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
-    //TODO !keepPacket can also have multiple reasons: byte was not received (similar to rxBufFull), CRC error, DP signal error
-    logic rxFailCondition;
-    assign rxFailCondition = rxBufFull || !keepPacket_i;
-
 `ifdef DEBUG_LEDS
     logic inv_LED_R;
     logic inv_LED_G;
@@ -243,8 +236,11 @@ module usb_pe #(
 `endif
 
     always_ff @(posedge clk12_i) begin
+        //TODO !keepPacket can also have multiple reasons: byte was not received (similar to rxBufFull), CRC error, DP signal error
+        //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
+        //TODO we need to prevent deadlocks if the buffers are full
         // Will only be asserted on receiveDone -> we dont have to specifically check whether be received a byte & if it was the last byte
-        receiveSuccess <= receiveDone || !rxFailCondition;
+        receiveSuccess <= receiveDone || keepPacket_i;
         // Signal that receiving is done for a single cycle
         receiveDone <= !receiveDone && rxDone_i;
 

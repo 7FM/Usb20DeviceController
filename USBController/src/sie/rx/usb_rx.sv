@@ -200,6 +200,10 @@ module usb_rx_interface(
                 end
             end
             WAIT_UNTIL_EMPTY: begin
+                //TODO we need to prevent deadlocks here!
+                //     if we are waiting until the fifo is empty but the receive buffers in usb_pe are full
+                //     then we will wait to long here... add something like a count down and then set byteWasNotReceived
+                //     (fifo needs flushing before), set rxDone one cycle later and go back to KEEP_FILLING
                 if (!fifoDataAvailable) begin
                     // Signal that all bytes of this packet were received!
                     rxDone_o = 1'b1;
