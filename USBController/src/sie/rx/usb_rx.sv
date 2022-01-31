@@ -62,10 +62,11 @@ module usb_rx#()(
         .data_o({dataP_cdc, validSignal_cdc, eopDetectedCDC})
     );
 
-    logic dataP, validSignal;
+    logic dataP, validSignal, eopDetectedSync;
     // when the fifo is empty then we clear the validSignal flag to ensure a error is detected in case that valid data was expected
     assign dataP = emptyFifo ? 1'b1 : dataP_cdc;
     assign validSignal = emptyFifo ? 1'b0 : validSignal_cdc;
+    assign eopDetectedSync = emptyFifo ? 1'b0 : eopDetectedCDC;
 
     logic [7:0] inputBuf;
     logic rxGotNewInput;
@@ -108,7 +109,7 @@ module usb_rx#()(
         // Serial frontend input: clk12_i
         .dataInP_i(dataP),
         .isValidDPSignal_i(validSignal),
-        .eopDetected_i(eopDetectedCDC),
+        .eopDetected_i(eopDetectedSync),
         .ackEOP_o(ackEOP_o),
 
         // Rx interface signals
