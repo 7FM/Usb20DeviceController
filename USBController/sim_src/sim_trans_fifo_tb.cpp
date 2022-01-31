@@ -4,9 +4,9 @@
 #include <cstring>
 #include <functional>
 
-#define TOP_MODULE Vsim_fifo_tb
-#include "Vsim_fifo_tb.h"       // basic Top header
-#include "Vsim_fifo_tb__Syms.h" // all headers to access exposed internal signals
+#define TOP_MODULE Vsim_trans_fifo_tb
+#include "Vsim_trans_fifo_tb.h"       // basic Top header
+#include "Vsim_trans_fifo_tb__Syms.h" // all headers to access exposed internal signals
 
 #include "common/VerilatorTB.hpp"
 #include "common/print_utils.hpp"

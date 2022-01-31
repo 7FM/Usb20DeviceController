@@ -1,4 +1,4 @@
-module sim_fifo_tb (
+module sim_trans_fifo_tb (
     input logic CLK,
 
     // Provide transactional read & write behaviour to allow reseting the values on failures without overwriting/loosing i.e. not yet send data or discarding corrupt packets
