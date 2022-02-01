@@ -179,7 +179,7 @@ module usb_rx_interface(
 
     // For CRC5 packets all bytes contain data -> we do not need to hold any data back!
     // Else if we are waiting until the FIFO is empty
-    assign allowFifoPop = fifoFull || !needCRC16Handling;
+    assign allowFifoPop = (rxGotNewInput && fifoFull) || !needCRC16Handling;
     // for CRC16 packets flush the entire fifo as the last 2 bytes are the CRC!
     assign flushFifo = gotEopDetect && needCRC16Handling;
 

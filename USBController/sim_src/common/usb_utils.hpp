@@ -307,9 +307,6 @@ struct UsbReceiveState {
     std::vector<uint8_t> receivedData;
     bool receivedLastByte = false;
     bool keepPacket = false;
-    uint8_t delayedDataAccept = 0;
-    const uint8_t MAX_ACCEPT_DELAY = 3;
-    uint8_t acceptAfterXAvailableCycles = 2;
 
     bool enableTimeout = false;
     bool timerReset = false;
@@ -319,7 +316,6 @@ struct UsbReceiveState {
         receivedData.clear();
         receivedLastByte = false;
         keepPacket = false;
-        delayedDataAccept = 0;
 
         enableTimeout = false;
         timedOut = false;
@@ -358,20 +354,12 @@ void receiveDeserializedInput(const Sim &sim, T *top, UsbReceiveState &usbRxStat
             if (usbRxState.receivedLastByte) {
                 std::cerr << "Error: received bytes after last signal was set!" << std::endl;
             }
-
-            usbRxState.acceptAfterXAvailableCycles = sim.getRand() % (usbRxState.MAX_ACCEPT_DELAY + 1);
-            usbRxState.delayedDataAccept = 0;
         }
     } else if (negedge) {
         if (top->rxAcceptNewData) {
             top->rxAcceptNewData = 0;
         } else if (top->rxDataValid) {
-            // New data is available but wait for x cycles before accepting!
-            if (usbRxState.acceptAfterXAvailableCycles == usbRxState.delayedDataAccept) {
-                top->rxAcceptNewData = 1;
-            }
-
-            ++usbRxState.delayedDataAccept;
+            top->rxAcceptNewData = 1;
         }
     }
 
