@@ -240,7 +240,7 @@ module usb_pe #(
         //TODO if receive failed because a buffer was full, we should rather respond with an NAK (as described in the spec) for OUT tokens instead of no response at all (which is typically used to indicate transmission errors, i.e. invalid CRC)
         //TODO we need to prevent deadlocks if the buffers are full
         // Will only be asserted on receiveDone -> we dont have to specifically check whether be received a byte & if it was the last byte
-        receiveSuccess <= receiveDone || keepPacket_i;
+        receiveSuccess <= keepPacket_i;
         // Signal that receiving is done for a single cycle
         receiveDone <= !receiveDone && rxDone_i;
 

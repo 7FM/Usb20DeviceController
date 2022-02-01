@@ -44,7 +44,7 @@ constexpr CRC_Type getCRCTypeFromPID(PID_Types pid, bool allowInvalid = false) {
             return NO_CRC;
         case PID_SPECIAL_PRE__ERR:
             // PRE can only be send from host and is a token type
-            //return CRC5;
+            // return CRC5;
             // ERR is a handshake for a Slit transaction
             return NO_CRC;
         case PID_SPECIAL_SPLIT:
