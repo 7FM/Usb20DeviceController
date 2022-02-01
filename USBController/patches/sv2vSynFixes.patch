@@ -2,7 +2,7 @@ diff --git a/build/top.v b/build/top.v
 index d1ffd46..b51fe8c 100644
 --- a/build/top.v
 +++ b/build/top.v
-@@ -410,9 +410,9 @@ module usb_endpoint_0 (
+@@ -412,9 +412,9 @@ module usb_endpoint_0 (
  		input logic [3:0] inp;
  		sv2v_cast_4 = inp;
  	endfunction
@@ -14,7 +14,7 @@ index d1ffd46..b51fe8c 100644
  	logic [2:0] ctrlTransState;
  	logic [2:0] nextCtrlTransState;
  	logic prevDataDir;
-@@ -1660,7 +1660,7 @@ module usb_pe (
+@@ -1839,7 +1839,7 @@ module usb_pe (
  	assign packetPID = sv2v_cast_4(transStartPacketBuf[usb_packet_pkg_PACKET_HEADER_OFFSET+:4]);
  	assign upperTransStartPID = packetPID[3:2];
  	logic isSOF;
@@ -23,16 +23,15 @@ index d1ffd46..b51fe8c 100644
  	logic isTokenPID;
  	localparam usb_packet_pkg_PACKET_TYPE_MASK_LENGTH = 2;
  	localparam usb_packet_pkg_PACKET_TYPE_MASK_OFFSET = 0;
-@@ -1722,7 +1722,7 @@ module usb_pe (
- 		transState = 4'd1;
+@@ -1906,6 +1906,6 @@ module usb_pe (
  		isSendingPhase_o = 1'b0;
+ 		prevIsSendingPhase = 1'b0;
  	end
 -	assign isHostIn = upperTransStartPID == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
 +	assign isHostIn = upperTransStartPID == 2'b10;
- 	logic isEpIsochronous;
  	always_comb begin
  		nextTransState = transState;
-@@ -3065,8 +3065,8 @@ module top (
+@@ -3203,8 +3203,8 @@ module top (
  		input logic [7:0] inp;
  		sv2v_cast_8 = inp;
  	endfunction
