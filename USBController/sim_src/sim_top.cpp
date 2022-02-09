@@ -22,6 +22,65 @@ static void signalHandler(int signal) {
     }
 }
 
+/* Linus USB error codes: https://www.kernel.org/doc/html/latest/driver-api/usb/error-codes.html and https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/errno.h
+0
+    Transfer completed successfully
+
+-ENOENT
+    URB was synchronously unlinked by usb_unlink_urb()
+
+-EINPROGRESS = -115
+    URB still pending, no results yet (That is, if drivers see this it’s a bug.)
+
+-EPROTO = -71
+    bitstuff error
+    no response packet received within the prescribed bus turn-around time
+    unknown USB error
+
+-EILSEQ = -84
+    CRC mismatch
+    no response packet received within the prescribed bus turn-around time
+    unknown USB error
+    Note that often the controller hardware does not distinguish among cases a), b), and c), so a driver cannot tell whether there was a protocol error, a failure to respond (often caused by device disconnect), or some other fault.
+
+-ETIME = -62
+    No response packet received within the prescribed bus turn-around time. This error may instead be reported as -EPROTO or -EILSEQ.
+
+-ETIMEDOUT = -110
+    Synchronous USB message functions use this code to indicate timeout expired before the transfer completed, and no other error was reported by HC.
+
+-EPIPE =
+    Endpoint stalled. For non-control endpoints, reset this status with usb_clear_halt().
+
+-ECOMM = -70
+    During an IN transfer, the host controller received data from an endpoint faster than it could be written to system memory
+
+-ENOSR = -63
+    During an OUT transfer, the host controller could not retrieve data from system memory fast enough to keep up with the USB data rate
+
+-EOVERFLOW = -75
+    The amount of data returned by the endpoint was greater than either the max packet size of the endpoint or the remaining buffer size. “Babble”.
+
+-EREMOTEIO = -121
+    The data read from the endpoint did not fill the specified buffer, and URB_SHORT_NOT_OK was set in urb->transfer_flags.
+
+-ENODEV =
+    Device was removed. Often preceded by a burst of other errors, since the hub driver doesn’t detect device removal events immediately.
+
+-EXDEV =
+    ISO transfer only partially completed (only set in iso_frame_desc[n].status, not urb->status)
+
+-EINVAL =
+    ISO madness, if this happens: Log off and go home
+
+-ECONNRESET = -104
+    URB was asynchronously unlinked by usb_unlink_urb()
+
+-ESHUTDOWN = -108
+    The device or host controller has been disabled due to some problem that could not be worked around, such as a physical disconnect.
+
+*/
+
 /******************************************************************************/
 
 class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
