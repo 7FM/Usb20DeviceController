@@ -262,12 +262,19 @@ generate
         nextRequestError = requestError;
         nextIsRomDataOutSrc = isRomDataOutSrc;
 
+        //TODO use 1'b1 as default value and only preserve and update the bit within the DATA STAGE?
+        //TODO this must probaly be reset for new transactions?
+        nextEpOutDataToggleState = epOutDataToggleState;
+        //nextPidData1Expected = pidData1Expected;
+
         unique case (ctrlTransState)
             IDLE: begin
                 nextRequestError = 1'b0;
 
                 if (gotTransStartPacket_i && isSetupTransStart) begin
                     nextCtrlTransState = SETUP_STAGE;
+                    // Synchronize the data toggle bit upon a setup transaction!
+                    nextEpOutDataToggleState = 1'b1;
                 end
             end
             SETUP_STAGE: begin
@@ -466,10 +473,7 @@ generate
             end
         endcase
 
-        nextEpOutDataToggleState = epOutDataToggleState; //TODO this must probaly be reset for new transactions?
-        //nextPidData1Expected = pidData1Expected;
-
-        if (ctrlTransState == DATA_STAGE || isInStatusStage) begin
+        if (ctrlTransState == DATA_STAGE) begin
             if (epOutHandshake) begin
                 nextRomTransReadIdx = romTransReadIdx + 1;
                 gotNewROMReq = 1'b1;
