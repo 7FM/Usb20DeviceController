@@ -324,6 +324,13 @@ generate
                                         // we have an additional LUT entry for a more homogenous execution flow
                                         nextRomReadIdx = {ROM_IDX_WID{1'b0}};
                                         nextRequestError = 1'b0;
+
+                                        // limit the bytes to send to the descriptor size
+                                        //TODO generalize for all descriptors! (probably in a different cycle to reduce the combinatorial path!)
+                                        //TODO test if it does also work without this clamping!
+                                        if (setupDataPacket.wLength > {8'b0, usb_desc_pkg::DeviceDescriptorHeader.bLength}) begin
+                                            nextRequestedBytesLeft = {8'b0, usb_desc_pkg::DeviceDescriptorHeader.bLength};
+                                        end
                                     end
                                     usb_desc_pkg::DESC_CONFIGURATION: begin
                                         // Depends on the descriptor index!
