@@ -8,6 +8,7 @@
 #include "common/print_utils.hpp"
 #include "common/usb_descriptors.hpp"
 #include "common/usb_packets.hpp"
+#include "print_utils.hpp"
 
 bool getForceStop();
 
@@ -16,6 +17,17 @@ void fillVector(std::vector<uint8_t> &vec, const T &data) {
     const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&data);
     for (int i = 0; i < sizeof(T); ++i) {
         vec.push_back(*rawPtr);
+        ++rawPtr;
+    }
+}
+
+template <class T>
+void printVector(const T &data) {
+    const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&data);
+    IosFlagSaver _(std::cout);
+    std::cout << std::hex;
+    for (int i = 0; i < sizeof(T); ++i) {
+        std::cout << "0x" << static_cast<int>(*rawPtr) << std::endl;
         ++rawPtr;
     }
 }
@@ -322,6 +334,8 @@ OutTransaction<Sim> initDescReadTrans(SetupPacket &packet, DescriptorType descTy
     packet.wLengthLsB = initialReadSize & 0x0FF;
     packet.wLengthMsB = (initialReadSize >> 8) & 0x0FF;
 
+    std::cout << "Setup Packet Content:" << std::endl;
+    printVector(packet);
     updateSetupTrans(setupTrans, packet);
 
     return setupTrans;
