@@ -100,16 +100,19 @@ package usb_ep_pkg;
     localparam usb_desc_pkg::StringDescriptor DefaultManufacturerStringDescriptor = '{
         bLength: 2 + 3,// String length + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
         bString: "7FM"
     };
     localparam usb_desc_pkg::StringDescriptor DefaultProductStringDescriptor = '{
         bLength: 2 + 16,// String length + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
         bString: "dummy USB device"
     };
     localparam usb_desc_pkg::StringDescriptor DefaultSerialNumberStringDescriptor = '{
         bLength: 2 + 16,// String length + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
         bString: "DEADBEEFF457F00D"
     };
 
@@ -143,6 +146,7 @@ package usb_ep_pkg;
     localparam usb_desc_pkg::StringDescriptor DefaultInterfaceStringDescriptor = '{
         bLength: 2 + 15,// String length + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
         bString: "dummy interface"
     };
 
@@ -168,6 +172,7 @@ package usb_ep_pkg;
     localparam usb_desc_pkg::StringDescriptor DefaultConfigurationStringDescriptor = '{
         bLength: 2 + 19,// String length + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
+        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
         bString: "dummy configuration"
     };
 
