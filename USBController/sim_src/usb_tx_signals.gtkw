@@ -1,31 +1,39 @@
 [*]
-[*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
-[*] Sun May 30 17:37:18 2021
+[*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
+[*] Wed Jan 26 22:24:49 2022
 [*]
-[timestart] 1453
-[size] 1862 911
-[pos] -1 -1
-*-6.000000 1611 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[dumpfile] "/home/tm/FPGA-Tools/Usb20DeviceController/USBController/usb_tx.fst"
+[dumpfile_mtime] "Wed Jan 26 21:59:53 2022"
+[dumpfile_size] 91135
+[savefile] "/home/tm/FPGA-Tools/Usb20DeviceController/USBController/sim_src/usb_tx_signals.gtkw"
+[timestart] 9671
+[size] 1280 628
+[pos] -27 -24
+*-6.000000 9837 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.sim_usb_tx.
-[treeopen] TOP.sim_usb_tx.usbDeserializer.
+[treeopen] TOP.sim_usb_tx.usbDeserializer.uut.rx_internal.
+[treeopen] TOP.sim_usb_tx.usbSerializer.
+[treeopen] TOP.sim_usb_tx.usbSerializer.bitStuffWrap.
 [treeopen] TOP.sim_usb_tx.usbSerializer.uut.
 [sst_width] 300
 [signals_width] 316
 [sst_expanded] 1
-[sst_vpaned_height] 443
+[sst_vpaned_height] 316
+@28
+TOP.CLK
+@200
+-Rx Iface
 @28
 TOP.sim_usb_tx.CLK
 TOP.sim_usb_tx.usbDeserializer.uut.dataInP_i
 TOP.sim_usb_tx.usbDeserializer.rxClk12
-TOP.sim_usb_tx.usbDeserializer.uut.syncDetect
 TOP.sim_usb_tx.usbDeserializer.uut.eopDetected_i
 TOP.sim_usb_tx.usbDeserializer.uut.keepPacket_o
 TOP.sim_usb_tx.usbDeserializer.uut.dropPacket
 TOP.sim_usb_tx.usbDeserializer.uut.isValidDPSignal_i
 TOP.sim_usb_tx.usbDeserializer.uut.rxBitStuffError_i
 TOP.sim_usb_tx.usbDeserializer.uut.isValidCRC_i
-TOP.sim_usb_tx.usbDeserializer.uut.lastByteValidCRC
 @200
 -
 @28
@@ -34,6 +42,21 @@ TOP.sim_usb_tx.txDataValid
 TOP.sim_usb_tx.txData[7:0]
 TOP.sim_usb_tx.txIsLastByte
 TOP.sim_usb_tx.txReqSendPacket
+@200
+-
+@28
+TOP.sim_usb_tx.usbSerializer.uut.useCRC16
+@22
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.data_i[7:0]
+@29
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.dataValid_i
+@28
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.crc5Patch_i
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.en_i
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.crc5PatchNow_o
+@24
+TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.bitsLeft[2:0]
+TOP.sim_usb_tx.usbSerializer.bitStuffWrap.unstuffer.oneCounter[2:0]
 @200
 -
 @28
@@ -48,15 +71,12 @@ TOP.sim_usb_tx.usbSerializer.uut.txDataSerializerIn[7:0]
 TOP.sim_usb_tx.usbSerializer.uut.txGotNewData
 TOP.sim_usb_tx.usbSerializer.uut.txReqNewData
 TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.dataBuf[7:0]
-@24
-TOP.sim_usb_tx.usbSerializer.uut.outputSerializer.bitsLeft[3:0]
-@28
 TOP.sim_usb_tx.usbSerializer.uut.txSerializerOut
 TOP.sim_usb_tx.usbSerializer.uut.txNoBitStuffingNeeded_i
 TOP.sim_usb_tx.usbSerializer.uut.txBitStuffDataOut_i
 TOP.sim_usb_tx.usbSerializer.uut.txNRZiEncodedData
 TOP.sim_usb_tx.usbSerializer.uut.txDataOut
-@25
+@24
 TOP.sim_usb_tx.usbSerializer.bitStuffWrap.unstuffer.oneCounter[2:0]
 @28
 TOP.sim_usb_tx.usbSerializer.dataOutP_reg
