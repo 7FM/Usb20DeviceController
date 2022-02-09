@@ -221,7 +221,8 @@ int main(int argc, char **argv) {
     }
 
     sim.issueDummySignal();
-    std::cout << std::endl << "Lets try reading the configuration descriptor!" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Lets try reading the configuration descriptor!" << std::endl;
 
     // Read the default configuration
     failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
@@ -248,7 +249,8 @@ int main(int argc, char **argv) {
 
     sim.issueDummySignal();
     // set configuration value to 1
-    std::cout << std::endl << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
     // This is expected to fail!
     failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr + 1, 0);
 
@@ -257,7 +259,8 @@ int main(int argc, char **argv) {
     }
 
     sim.issueDummySignal();
-    std::cout << std::endl << "Selecting device configuration 1 (correct addr)!" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Selecting device configuration 1 (correct addr)!" << std::endl;
     failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
 
     if (failed) {
@@ -348,7 +351,8 @@ int main(int argc, char **argv) {
 
 exitAndCleanup:
 
-    std::cout << std::endl << "Tests ";
+    std::cout << std::endl;
+    std::cout << "Tests ";
 
     if (forceStop) {
         std::cout << "ABORTED!" << std::endl;

@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
         0xde,
         0xad,
         0xbe,
-        0xef
+        0xef,
     };
 
     int testFailed = 0;
@@ -160,8 +160,8 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::cout << std::endl
-              << "Tests ";
+    std::cout << std::endl;
+    std::cout << "Tests ";
 
     if (forceStop) {
         std::cout << "ABORTED!" << std::endl;

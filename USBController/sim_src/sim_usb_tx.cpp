@@ -103,7 +103,8 @@ int main(int argc, char **argv) {
     sim.init(argc, argv);
 
     for (sim.clk12Offset = 0; sim.clk12Offset < 4 && testFailed == 0 && !forceStop; ++sim.clk12Offset) {
-        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl << std::endl;
+        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
+        std::cout << std::endl;
 
         // start things going
         for (int it = 0; !forceStop; ++it) {

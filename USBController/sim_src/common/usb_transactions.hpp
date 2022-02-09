@@ -43,7 +43,7 @@ bool sendStuff(Sim &sim, std::function<void()> fillSendData) {
 }
 
 template <typename Sim>
-bool receiveStuff(Sim &sim, const char* errMsg, const char *timeoutMsg) {
+bool receiveStuff(Sim &sim, const char *errMsg, const char *timeoutMsg) {
     // Enable timeout for receiving a response
     sim.rxState.reset();
     sim.rxState.enableTimeout = true;
@@ -104,9 +104,11 @@ class InTransaction {
         // 1. Send Token packet
         std::cout << "Send IN token!" << std::endl;
 
-        if(sendStuff(sim, [&]{
-            fillVector(sim.txState.dataToSend, inTokenPacket);
-        })) return true;
+        if (sendStuff(sim, [&] {
+                fillVector(sim.txState.dataToSend, inTokenPacket);
+            })) {
+            return true;
+        }
 
         //=========================================================================
         // 2. Receive Data packet / Timeout
@@ -145,9 +147,11 @@ class OutTransaction {
         // 1. Send Token packet
         std::cout << "Send OUT token!" << std::endl;
 
-        if(sendStuff(sim, [&]{
-            fillVector(sim.txState.dataToSend, outTokenPacket);
-        })) return true;
+        if (sendStuff(sim, [&] {
+                fillVector(sim.txState.dataToSend, outTokenPacket);
+            })) {
+            return true;
+        }
 
         // Execute a few more cycles to give the logic some time between the packages
         int waitCycles = 5 + sim.getRand() % 6;
@@ -157,11 +161,13 @@ class OutTransaction {
         // 2. Send Data packet
         std::cout << "Send OUT data!" << std::endl;
 
-        if(sendStuff(sim, [&]{
-            for (uint8_t data : dataPacket) {
-                sim.txState.dataToSend.push_back(data);
-            }
-        })) return true;
+        if (sendStuff(sim, [&] {
+                for (uint8_t data : dataPacket) {
+                    sim.txState.dataToSend.push_back(data);
+                }
+            })) {
+            return true;
+        }
 
         //=========================================================================
         // 3. Receive Handshake / Timeout
@@ -205,7 +211,8 @@ bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, u
     getDesc.handshakeToken = PID_HANDSHAKE_ACK;
 
     do {
-        std::cout << std::endl << "Send Input transaction packet" << std::endl;
+        std::cout << std::endl;
+        std::cout << "Send Input transaction packet" << std::endl;
         bool failed = getDesc.send(sim);
         printResponse(sim.rxState.receivedData);
 
@@ -242,7 +249,8 @@ bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Si
     int sendSize = dataToSend.size();
     int subpackets = (sendSize + epMaxDescriptorSize - 1) / epMaxDescriptorSize;
     do {
-        std::cout << std::endl << "Send Output transaction packet " << (i / epMaxDescriptorSize + 1) << "/" << subpackets << std::endl;
+        std::cout << std::endl;
+        std::cout << "Send Output transaction packet " << (i / epMaxDescriptorSize + 1) << "/" << subpackets << std::endl;
 
         getDesc.dataPacket.clear();
         getDesc.dataPacket.push_back(dataToggleState ? PID_DATA1 : PID_DATA0);
