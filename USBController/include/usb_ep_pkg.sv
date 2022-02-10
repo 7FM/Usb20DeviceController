@@ -86,7 +86,7 @@ package usb_ep_pkg;
         bMaxPacketSize0: DefaultControlEpConfig.maxPacketSize,
         idVendor: 0, //TODO
         idProduct: 0, //TODO
-        bcdDevice: 16'h0010, //TODO
+        bcdDevice: 16'h0010, // Version 0.1
         iManufact: 1, // string descriptor idx 1
         iProduct: 2, // string descriptor idx 2
         iSerialNumber: 3, // string descriptor idx 3
