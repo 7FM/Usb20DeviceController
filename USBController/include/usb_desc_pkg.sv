@@ -263,6 +263,7 @@ package usb_desc_pkg;
     localparam StringDescriptorZeroBodyBytes = {24'b0, StringDescriptorZeroHeader.bLength} - DESCRIPTOR_HEADER_BYTES;
 
     typedef struct packed {
+        logic isUnicode;
         logic [8 * config_pkg::MAX_STRING_LEN - 1:0] bString;
         logic [7:0] bDescriptorType; // DESC_STRING
         logic [7:0] bLength; // String length + 2

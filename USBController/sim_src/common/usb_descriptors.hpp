@@ -248,9 +248,13 @@ static void prettyPrintStringDescriptor(const uint8_t *data) {
     data += 2;
 
     std::cout << "    Content: ";
-    for (int i = 0; i < descLength; ++i) {
-        std::cout << *reinterpret_cast<const char *>(data);
-        ++data;
+    for (int i = 0; i < descLength - 1; i += 2) {
+        char16_t unicodeChar = 0;
+        unicodeChar = *(data + 1);
+        unicodeChar <<= 8;
+        unicodeChar = *data;
+        std::wcout << static_cast<wchar_t>(unicodeChar);
+        data += 2;
     }
     std::cout << std::endl;
 }

@@ -34,12 +34,26 @@ module ep0_rom #(
 
     `define INIT_ROM_STR(OFFSET, UPPER_BOUND, SRC, SRC_OFFSET)                                                          \
         `MUTE_LINT(WIDTH)                                                                                               \
-        for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin          \
-            initial begin                                                                                               \
-                rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) - 1 - (romIdx - (OFFSET))) * 8 +: 8];  \
+        if (SRC.isUnicode) begin                                                                                        \
+            for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx++) begin                                    \
+                initial begin                                                                                           \
+                    rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) - 1 - (romIdx - (OFFSET))) * 8 +: 8];               \
 `ifdef RUN_SIM                                                                                                          \
-                $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                                \
+                    $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                            \
 `endif                                                                                                                  \
+                end                                                                                                     \
+            end                                                                                                         \
+        end else begin                                                                                                  \
+            /* The string is not yet encoded as UNICODE -> we need to pad every second byte with a 0!*/                 \
+            for (romIdx=(OFFSET); romIdx < (OFFSET) + (UPPER_BOUND); romIdx += 2) begin                                 \
+                initial begin                                                                                           \
+                    rom[romIdx] = SRC[((SRC_OFFSET) + (UPPER_BOUND) / 2 - 1 - (romIdx - (OFFSET)) / 2) * 8 +: 8];       \
+                    rom[romIdx + 1] = 8'h0;                                                                             \
+`ifdef RUN_SIM                                                                                                          \
+                    $display("INIT: rom[%d] = 0x%h '%s'", romIdx, rom[romIdx], rom[romIdx]);                            \
+                    $display("INIT: rom[%d] = 0x%h", romIdx + 1, rom[romIdx + 1]);                                      \
+`endif                                                                                                                  \
+                end                                                                                                     \
             end                                                                                                         \
         end                                                                                                             \
         `UNMUTE_LINT(WIDTH)

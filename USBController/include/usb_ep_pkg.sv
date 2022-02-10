@@ -98,22 +98,22 @@ package usb_ep_pkg;
         wLANGID: {16'h0809}
     };
     localparam usb_desc_pkg::StringDescriptor DefaultManufacturerStringDescriptor = '{
-        bLength: 2 + 3,// String length + 2
+        bLength: 2 + 3 * 2, // String length * 2 + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
-        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
-        bString: "7FM"
+        bString: "7FM",
+        isUnicode: 0
     };
     localparam usb_desc_pkg::StringDescriptor DefaultProductStringDescriptor = '{
-        bLength: 2 + 16,// String length + 2
+        bLength: 2 + 16 * 2, // String length * 2 + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
-        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
-        bString: "dummy USB device"
+        bString: "dummy USB device",
+        isUnicode: 0
     };
     localparam usb_desc_pkg::StringDescriptor DefaultSerialNumberStringDescriptor = '{
-        bLength: 2 + 16,// String length + 2
+        bLength: 2 + 16 * 2, // String length * 2 + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
-        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
-        bString: "DEADBEEFF457F00D"
+        bString: "DEADBEEFF457F00D",
+        isUnicode: 0
     };
 
 
@@ -144,10 +144,10 @@ package usb_ep_pkg;
     };
 
     localparam usb_desc_pkg::StringDescriptor DefaultInterfaceStringDescriptor = '{
-        bLength: 2 + 15,// String length + 2
+        bLength: 2 + 15 * 2, // String length * 2 + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
-        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
-        bString: "dummy interface"
+        bString: "dummy interface",
+        isUnicode: 0
     };
 
     localparam InterfaceDescCollection DefaultInterfaceDescCollection = '{
@@ -170,10 +170,10 @@ package usb_ep_pkg;
     };
 
     localparam usb_desc_pkg::StringDescriptor DefaultConfigurationStringDescriptor = '{
-        bLength: 2 + 19,// String length + 2
+        bLength: 2 + 19 * 2, // String length * 2 + 2
         bDescriptorType: usb_desc_pkg::DESC_STRING, // DESC_STRING
-        //TODO handle utf16 encoding, maybe add a config flag to handle this within EP0_ROM or assume that the string descriptors are already correctly formatted!
-        bString: "dummy configuration"
+        bString: "dummy configuration",
+        isUnicode: 0
     };
 
     localparam ConfigurationDescCollection DefaultConfigurationDescCollection = '{
