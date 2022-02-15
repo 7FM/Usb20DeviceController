@@ -80,12 +80,12 @@ package usb_ep_pkg;
 
     localparam usb_desc_pkg::DeviceDescriptor DefaultDeviceDesc = '{
         bcdUSB: usb_desc_pkg::USB_2_0_0,
-        bDeviceClass: 42, //TODO
+        bDeviceClass: 8'hFF, // vendor specific //TODO
         bDeviceSubClass: 42, //TODO
-        bDeviceProtocol: 42, //TODO
+        bDeviceProtocol: 8'hFF, // vendor specific //TODO
         bMaxPacketSize0: DefaultControlEpConfig.maxPacketSize,
-        idVendor: 0, //TODO
-        idProduct: 0, //TODO
+        idVendor: 105, // #nice //TODO
+        idProduct: 4919, //TODO
         bcdDevice: 16'h0010, // Version 0.1
         iManufact: 1, // string descriptor idx 1
         iProduct: 2, // string descriptor idx 2
