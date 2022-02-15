@@ -330,17 +330,19 @@ int main(int argc, char **argv) {
     sim.txState.actAsNop();
     sim.rxState.actAsNop();
 
-    // fill EP1_OUT fifo / execute fifo filling!
-    std::cout << "Filling EP1 OUT fifo" << std::endl;
-    for (uint8_t i = 0; i < 32; ++i)
-        sim.fifoFillState.epState->data.push_back(sim.getRand());
-    sim.fifoFillState.enable();
-    // Execute till stop condition
-    while (!sim.template run<true>(0)) {
-    }
-    sim.fifoFillState.disable();
-
     {
+        // fill EP1_OUT fifo / execute fifo filling!
+        std::cout << "Filling EP1 OUT fifo" << std::endl;
+        int testSize = 1 + (sim.getRand() & (512 - 1));
+        for (int i = 0; i < testSize; ++i) {
+            sim.fifoFillState.epState->data.push_back(sim.getRand());
+        }
+        sim.fifoFillState.enable();
+        // Execute till stop condition
+        while (!sim.template run<true>(0)) {
+        }
+        sim.fifoFillState.disable();
+
         std::cout << "Requesting data from EP1" << std::endl;
         std::vector<uint8_t> ep1Res;
         failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
@@ -366,12 +368,10 @@ int main(int argc, char **argv) {
         std::vector<uint8_t> ep1Data;
 
         int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
-        // Send more data than possible with a single packet -> tests whether data toggle works!
-        int upperBound = maxPacketSize + 5;
-        // Ensure that we do not exceed our buffer capabilities!
-        upperBound = upperBound > 512 ? 512 : upperBound;
-        for (int i = 0; i < upperBound; ++i)
+        int upperBound = 1 + (sim.getRand() & (512 - 1));
+        for (int i = 0; i < upperBound; ++i) {
             ep1Data.push_back(sim.getRand());
+        }
 
         // send data to EP1
         bool dataToggleState = false;
