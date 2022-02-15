@@ -46,7 +46,9 @@ module REG_FIFO #(
         .wEn_o(wEn_o),
         .wAddr_o(wAddr_o),
         .wData_o(wData_o),
+        `MUTE_PIN_CONNECT_EMPTY(rEn_o), // This pin is only needed for BRAM FIFOs to avoid delayed data for a given address!
         .rAddr_o(rAddr_o),
+        `MUTE_PIN_CONNECT_EMPTY(next_rAddr_o), // This pin is only needed for BRAM FIFOs to avoid delayed data for a given address!
         .rData_i(rData_i),
 
         .dataValid_i(dataValid_i),
@@ -74,7 +76,9 @@ module FIFO #(
     output logic wEn_o,
     output logic [ADDR_WID-1:0] wAddr_o,
     output logic [DATA_WID-1:0] wData_o,
+    output logic rEn_o,
     output logic [ADDR_WID-1:0] rAddr_o,
+    output logic [ADDR_WID-1:0] next_rAddr_o,
     input logic [DATA_WID-1:0] rData_i,
 
     input logic dataValid_i,
@@ -85,7 +89,7 @@ module FIFO #(
     input logic popData_i,
     output logic dataAvailable_o,
     output logic isLast_o,
-    output logic [DATA_WID-1:0] data_o //NOTE: data_o will be delayed by one cycle compared to the rAddr_o signal! (if BRAM is used as memory backend)
+    output logic [DATA_WID-1:0] data_o
 );
 
     logic [ADDR_WID:0] dataCounter, readCounter, next_dataCounter, next_readCounter;
@@ -102,7 +106,9 @@ module FIFO #(
     assign wEn_o = writeHandshake;
     assign wAddr_o = dataCounter[ADDR_WID-1:0];
     assign wData_o = data_i;
+    assign rEn_o = readHandshake;
     assign rAddr_o = readCounter[ADDR_WID-1:0];
+    assign next_rAddr_o = next_readCounter[ADDR_WID-1:0];
     assign data_o = rData_i;
 
     localparam MAX_IDX = ENTRIES - 1;

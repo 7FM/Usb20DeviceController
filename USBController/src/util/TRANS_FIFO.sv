@@ -12,7 +12,9 @@ module TRANS_FIFO #(
     output logic wEn_o,
     output logic [ADDR_WID-1:0] wAddr_o,
     output logic [DATA_WID-1:0] wData_o,
+    output logic rEn_o,
     output logic [ADDR_WID-1:0] rAddr_o,
+    output logic [ADDR_WID-1:0] next_rAddr_o,
     input logic [DATA_WID-1:0] rData_i,
 
     // Provide transactional read & write behaviour to allow reseting the values on failures without overwriting/loosing i.e. not yet send data or discarding corrupt packets
@@ -28,7 +30,7 @@ module TRANS_FIFO #(
     input logic popData_i,
     output logic dataAvailable_o,
     output logic isLast_o,
-    output logic [DATA_WID-1:0] data_o //NOTE: data_o will be delayed by one cycle compared to the rAddr_o signal!
+    output logic [DATA_WID-1:0] data_o
 );
 
     logic [ADDR_WID:0] dataCounter, readCounter;
@@ -46,7 +48,9 @@ module TRANS_FIFO #(
     assign wEn_o = writeHandshake;
     assign wAddr_o = transDataCounter[ADDR_WID-1:0];
     assign wData_o = data_i;
+    assign rEn_o = readHandshake;
     assign rAddr_o = transReadCounter[ADDR_WID-1:0];
+    assign next_rAddr_o = next_transReadCounter[ADDR_WID-1:0];
     assign data_o = rData_i;
 
     localparam MAX_IDX = ENTRIES - 1;

@@ -32,7 +32,7 @@ module top #(
     input logic [ENDPOINTS-2:0] EP_IN_popTransSuccess_i,
     input logic [ENDPOINTS-2:0] EP_IN_popData_i,
     output logic [ENDPOINTS-2:0] EP_IN_dataAvailable_o,
-    output logic [8*(ENDPOINTS-1) - 1:0] EP_IN_data_o, // Note the EP dependent timing conditions compared to the EP_IN_dataAvailable_o flag!
+    output logic [8*(ENDPOINTS-1) - 1:0] EP_IN_data_o,
 
     input logic [ENDPOINTS-2:0] EP_OUT_fillTransDone_i,
     input logic [ENDPOINTS-2:0] EP_OUT_fillTransSuccess_i,

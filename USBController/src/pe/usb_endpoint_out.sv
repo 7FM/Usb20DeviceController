@@ -52,16 +52,6 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg
     end
 
     logic dataAvailable;
-    logic epOutHandshake;
-    assign epOutHandshake = EP_OUT_dataAvailable_o && EP_OUT_popData_i;
-
-    logic awaitBRAMData;
-    always_ff @(posedge clk12_i) begin
-        // wait for bram data after each handshake
-        // also set awaitBRAMData if no data is available -> once data is available, it must be loaded first too!
-        //TODO this is critical if we read the last byte!
-        awaitBRAMData <= (awaitBRAMData ? 1'b0 : epOutHandshake) || !dataAvailable;
-    end
 
     localparam EP_ADDR_WID = 9;
     localparam EP_DATA_WID = 8;
@@ -81,8 +71,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg
 
         .popTransDone_i(EP_OUT_popTransDone_i),
         .popTransSuccess_i(EP_OUT_popTransSuccess_i),
-        // this avoids multiple pops when waiting for BRAM! Effectively half the read speed!
-        .popData_i(EP_OUT_popData_i && !awaitBRAMData),
+        .popData_i(EP_OUT_popData_i),
         .dataAvailable_o(dataAvailable),
         .isLast_o(EP_OUT_isLastPacketByte_o),
         .data_o(EP_OUT_data_o)
@@ -94,9 +83,9 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg
         noDataAvailable <= gotTransStartPacket_i ? !dataAvailable : noDataAvailable;
     end
 
-    assign respValid_o = noDataAvailable || !awaitBRAMData;
+    assign respValid_o = 1'b1;
 
-    assign EP_OUT_dataAvailable_o = !awaitBRAMData && dataAvailable;
+    assign EP_OUT_dataAvailable_o = dataAvailable;
     // anwser with NAK in case we have no data yet! (noDataAvailable is true)
     // Otherwise this is a DATAx PID
     assign respHandshakePID_o = noDataAvailable;

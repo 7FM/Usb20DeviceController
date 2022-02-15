@@ -22,6 +22,8 @@ module TRANS_BRAM_FIFO #(
 );
 
     logic wEn;
+    logic rEn;
+    logic [ADDR_WID-1:0] next_rAddr;
     logic [ADDR_WID-1:0] wAddr, rAddr;
     logic [DATA_WID-1:0] wData, rData;
 
@@ -33,7 +35,7 @@ module TRANS_BRAM_FIFO #(
         .wEn_i(wEn),
         .wAddr_i(wAddr),
         .wData_i(wData),
-        .rAddr_i(rAddr),
+        .rAddr_i(rEn ? next_rAddr : rAddr),
         .rData_o(rData)
     );
 
@@ -46,7 +48,9 @@ module TRANS_BRAM_FIFO #(
         .wEn_o(wEn),
         .wAddr_o(wAddr),
         .wData_o(wData),
+        .rEn_o(rEn),
         .rAddr_o(rAddr),
+        .next_rAddr_o(next_rAddr),
         .rData_i(rData),
         .fillTransDone_i(fillTransDone_i),
         .fillTransSuccess_i(fillTransSuccess_i),

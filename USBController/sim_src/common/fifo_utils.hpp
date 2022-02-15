@@ -137,12 +137,10 @@ void fillFIFO(T *top, FIFOFillState<EPs> &s) {
 struct EpEmptyState {
     std::vector<uint8_t> data;
     bool done;
-    bool waited;
 
     void reset() {
         data.clear();
         done = false;
-        waited = false;
     }
 
     bool isDone() const {
@@ -172,22 +170,14 @@ void emptyFIFO(T *top, FIFOEmptyState<EPs> &s) {
         for (unsigned int i = 0; i < EPs; ++i) {
             auto &ep = s.epState[i];
 
-            bool prevDone = ep.done;
             ep.done = (ep.done || !getBit(top->EP_IN_dataAvailable_o, i));
 
             setBit(top->EP_IN_popTransDone_i, i, ep.done);
             setBit(top->EP_IN_popTransSuccess_i, i, ep.done);
             setBit(top->EP_IN_popData_i, i, !ep.done);
 
-            if (!prevDone && ep.done) {
+            if (!ep.done && getBit(top->EP_IN_dataAvailable_o, i)) {
                 ep.data.push_back(getValue(top->EP_IN_data_o, i * 8));
-            }
-
-            if (!ep.done) {
-                if (ep.waited) {
-                    ep.data.push_back(getValue(top->EP_IN_data_o, i * 8));
-                }
-                ep.waited = getBit(top->EP_IN_dataAvailable_o, i);
             }
         }
     }

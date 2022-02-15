@@ -88,7 +88,6 @@ class FIFOPopper {
 
   private:
     bool enabled = false;
-    bool ignoredFirst = false;
 
   public:
     void reset(TOP_MODULE *top) {
@@ -100,7 +99,6 @@ class FIFOPopper {
         top->popData_i = 0;
 
         clearCommit(top);
-        ignoredFirst = false;
     }
 
     void enable() {
@@ -125,15 +123,7 @@ class FIFOPopper {
         bool popHandshake = top->popData_i && top->dataAvailable_o;
 
         if (popHandshake) {
-            if (ignoredFirst) {
-                poppedData.push_back(top->data_o);
-            } else {
-                ignoredFirst = true;
-            }
-        } else if (ignoredFirst && !top->dataAvailable_o && top->popData_i) {
-            // Get the final delayed data!
             poppedData.push_back(top->data_o);
-            ignoredFirst = false;
         }
     }
 
