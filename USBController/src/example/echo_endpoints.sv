@@ -17,14 +17,14 @@ module echo_endpoints #(
     input logic [ENDPOINTS-2:0] EP_OUT_full_i
 );
 
-    //TODO simulate, test & fix! And probably improve the interface to simplify common tasks!
+    //TODO simulate, test & fix!
 generate
     genvar i;
     for (i = 0; i < ENDPOINTS - 1; i += 1) begin
         assign EP_IN_popData_o[i] = !EP_OUT_full_i[i];
         assign EP_IN_popTransSuccess_o[i] = 1'b1;
         logic transferDone;
-        assign transferDone = !EP_IN_dataAvailable_i[i] || EP_OUT_full_i[i]; //TODO introduce empty condition?
+        assign transferDone = !EP_IN_dataAvailable_i[i] || EP_OUT_full_i[i];
         assign EP_IN_popTransDone_o[i] = transferDone;
 
         assign EP_OUT_dataValid_o[i] = EP_IN_dataAvailable_i[i];
