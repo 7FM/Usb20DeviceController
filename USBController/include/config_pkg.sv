@@ -93,6 +93,11 @@ localparam MAX_STRING_DESCRIPTORS = 10;
 `define EP_15_MODULE(epConfig) usb_endpoint #(.EP_CONF(epConfig))
 `endif
 
+`ifndef TOP_EP_CONSUMER
+// By default add a dummy consumer which echo's the received data to the to be send data of one endpoint index
+`define TOP_EP_CONSUMER(USB_DEV_EP_CONF) echo_endpoints #(.USB_DEV_EP_CONF(USB_DEV_EP_CONF))
+`endif
+
 endpackage
 
 `endif

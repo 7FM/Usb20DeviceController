@@ -89,6 +89,22 @@ module top #(
     logic [ENDPOINTS-2:0] EP_OUT_dataValid_i;
     logic [8*(ENDPOINTS-1) - 1:0] EP_OUT_data_i;
     logic [ENDPOINTS-2:0] EP_OUT_full_o;
+
+    `TOP_EP_CONSUMER(USB_DEV_EP_CONF) epConsumer (
+        .clk12_i(clk12),
+
+        .EP_IN_popTransDone_o(EP_IN_popTransDone_i),
+        .EP_IN_popTransSuccess_o(EP_IN_popTransSuccess_i),
+        .EP_IN_popData_o(EP_IN_popData_i),
+        .EP_IN_dataAvailable_i(EP_IN_dataAvailable_o),
+        .EP_IN_data_i(EP_IN_data_o),
+
+        .EP_OUT_fillTransDone_o(EP_OUT_fillTransDone_i),
+        .EP_OUT_fillTransSuccess_o(EP_OUT_fillTransSuccess_i),
+        .EP_OUT_dataValid_o(EP_OUT_dataValid_i),
+        .EP_OUT_data_o(EP_OUT_data_i),
+        .EP_OUT_full_i(EP_OUT_full_o)
+    );
 `endif
 
     usb #(
