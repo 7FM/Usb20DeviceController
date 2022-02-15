@@ -332,8 +332,8 @@ int main(int argc, char **argv) {
 
     {
         // fill EP1_OUT fifo / execute fifo filling!
-        std::cout << "Filling EP1 OUT fifo" << std::endl;
         int testSize = 1 + (sim.getRand() & (512 - 1));
+        std::cout << "Filling EP1 OUT fifo: " << testSize << std::endl;
         for (int i = 0; i < testSize; ++i) {
             sim.fifoFillState.epState->data.push_back(sim.getRand());
         }
@@ -364,17 +364,17 @@ int main(int argc, char **argv) {
     }
 
     {
-        std::cout << "Sending data to EP1" << std::endl;
+        int testSize = 1 + (sim.getRand() & (512 - 1));
+        std::cout << "Sending data to EP1: " << testSize << std::endl;
         std::vector<uint8_t> ep1Data;
 
-        int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
-        int upperBound = 1 + (sim.getRand() & (512 - 1));
-        for (int i = 0; i < upperBound; ++i) {
+        for (int i = 0; i < testSize; ++i) {
             ep1Data.push_back(sim.getRand());
         }
 
         // send data to EP1
         bool dataToggleState = false;
+        int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
         if (maxPacketSize == 0) {
             failed = true;
             std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
