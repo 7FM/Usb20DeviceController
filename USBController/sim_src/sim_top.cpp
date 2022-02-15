@@ -188,14 +188,15 @@ bool getForceStop() {
 
 static bool compareVec(const std::vector<uint8_t> &expected, const std::vector<uint8_t> &got,
                        const std::string &lengthErrMsg, const std::string &dataErrMsg) {
+    bool failed = false;
     if (got.size() != expected.size()) {
         std::cout << lengthErrMsg << std::endl;
         std::cout << "  Expected: " << expected.size() << " but got: " << got.size() << std::endl;
-        return true;
+        failed = true;
     }
 
-    bool failed = false;
-    for (int i = 0; i < got.size(); ++i) {
+    int minSize = std::min(got.size(), expected.size());
+    for (int i = 0; i < minSize; ++i) {
         if (got[i] != expected[i]) {
             failed = true;
             std::cout << "Fifo fill data vs received data does not match at index: " << i << std::endl;
