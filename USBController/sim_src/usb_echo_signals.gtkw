@@ -1,0 +1,298 @@
+[*]
+[*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
+[*] Fri Jan 28 23:18:40 2022
+[*]
+[dumpfile] "/home/tm/FPGA-Tools/Usb20DeviceController/USBController/failedHard.fst"
+[dumpfile_mtime] "Fri Jan 28 22:59:15 2022"
+[dumpfile_size] 276224
+[savefile] "/home/tm/FPGA-Tools/Usb20DeviceController/USBController/sim_src/usb_top_signals.gtkw"
+[timestart] 2251
+[size] 1280 628
+[pos] -27 -24
+*-7.000000 2331 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.sim_echo.
+[treeopen] TOP.sim_echo.hostRxImitator.
+[treeopen] TOP.sim_echo.hostRxImitator.usbRxTimeout.
+[treeopen] TOP.sim_echo.hostRxImitator.uut.
+[treeopen] TOP.sim_echo.hostTxImitator.
+[treeopen] TOP.sim_echo.hostTxImitator.uut.
+[treeopen] TOP.sim_echo.uut.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.readTimer.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rx_internal.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.
+[treeopen] TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.setupDataPacket.
+[sst_width] 305
+[signals_width] 295
+[sst_expanded] 1
+[sst_vpaned_height] 167
+@28
+TOP.CLK
+TOP.sim_echo.dummyPin
+@200
+-USB_PE Response
+@28
+TOP.rxAcceptNewData
+TOP.rxDataValid
+@22
+TOP.rxData[7:0]
+@28
+TOP.sim_echo.hostRxImitator.uut.rx_internal.dropPacket
+TOP.rxDone
+TOP.keepPacket
+TOP.sim_echo.hostRxImitator.USB_DP
+TOP.sim_echo.hostRxImitator.USB_DN
+@200
+-Fake USB Host Input
+@28
+TOP.sim_echo.resetTimeout
+@22
+TOP.sim_echo.hostRxImitator.asyncRxCLK.fsmState[3:0]
+@28
+TOP.sim_echo.hostRxImitator.USB_DP
+TOP.sim_echo.hostRxImitator.keepPacket
+TOP.sim_echo.hostRxImitator.uut.rx_internal.dropPacket
+@100000028
+TOP.sim_echo.hostRxImitator.uut.rx_internal.rxState[1:0]
+@28
+TOP.sim_echo.hostRxImitator.uut.rx_internal.inputBufFull
+TOP.sim_echo.hostRxImitator.uut.rx_internal.lastByteValidCRC
+TOP.sim_echo.hostRxImitator.uut.rx_internal.gotInvalidDPSignal
+TOP.sim_echo.hostRxImitator.uut.rx_internal.eopDetected_i
+TOP.sim_echo.hostRxImitator.uut.rx_internal.gotEopDetect
+TOP.sim_echo.hostRxImitator.usbRxTimeout.rxTimeout_o
+TOP.sim_echo.hostRxImitator.uut.rx_internal.isValidCRC_i
+TOP.sim_echo.uut.USB_DP
+TOP.sim_echo.uut.USB_DN
+@29
+TOP.sim_echo.uut.USB_DP_OUT
+@28
+TOP.sim_echo.uut.USB_DN_OUT
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.txDoneSending_i
+TOP.dummyPin
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.txReqSendPacket_o
+@100000028
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rx_internal.rxState[1:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rx_internal.syncDetect
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.txHandshake
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxHandshake
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.receiveDone
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.gotTransStartPacket
+@100000028
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.packetPID[3:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transState[3:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.epSelect
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isSOF
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isTokenPID
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isValidTransStartPacket
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.deviceAddr[6:0]
+@100000028
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.deviceState[1:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.ctrlTransState[2:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.setupDataPacket.bRequest[7:0]
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.deviceAddr[6:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.gotTransStartPacket_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.isSetupTransStart
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_fillTransDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_fillTransSuccess_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_popTransDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_popTransSuccess_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.receiveSuccess
+@100000028
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transState[3:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.packetWaitTimeout_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.readTimerRst_o
+@22
+TOP.sim_echo.uut.usbDeviceController.readTimer.timeoutCnt[4:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.clk12_i
+@100000028
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.ctrlTransState[2:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.packetWaitTimeout_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_fillTransDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_popTransDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_fillTransSuccess_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_popTransSuccess_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.deviceState[1:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.gotAddrAssigned
+@24
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.tokenPacketPart.devAddr[6:0]
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.deviceAddr_o[6:0]
+@24
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.tokenPacketPart.endptSel[3:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transactionStarted
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.gotTransStartPacket
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.useInternalBuf
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isTokenPID
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isValidTransStartPacket
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxHandshake
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transBufRst
+@24
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.ctrlTransState[2:0]
+@28
+TOP.sim_echo.gotTimeout
+TOP.txReqSendPacket
+TOP.txAcceptNewData
+TOP.txDataValid
+@22
+TOP.txData[7:0]
+TOP.sim_echo.hostTxImitator.uut.txDataBufNewByte[7:0]
+TOP.sim_echo.hostTxImitator.uut.outputSerializer.data_i[7:0]
+@28
+TOP.sim_echo.hostTxImitator.uut.outputSerializer.bufferEmpty_o
+TOP.sim_echo.hostTxImitator.uut.txFetchedDataIsLast
+TOP.sim_echo.hostTxImitator.uut.txHasDataFetched
+@24
+TOP.sim_echo.hostTxImitator.uut.txState[3:0]
+@22
+TOP.sim_echo.hostTxImitator.uut.outputSerializer.dataBuf[7:0]
+@28
+TOP.txIsLastByte
+TOP.sending
+TOP.sim_echo.hostTxImitator.USB_DP
+TOP.sim_echo.hostTxImitator.txReqSendPacket
+TOP.sim_echo.hostTxImitator.USB_DN
+TOP.sim_echo.hostTxImitator.sending
+TOP.sim_echo.forceSE0
+TOP.sim_echo.dummyPin
+TOP.sim_echo.rxRST
+@200
+-UUT
+@100000028
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rx_internal.rxState[1:0]
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.asyncRxCLK.fsmState[3:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.asyncRxCLK.readCLK12_o
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.asyncRxCLK.dpNegEdgeSync_i
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.asyncRxCLK.dpPosEdgeSync_i
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.prevIsSendingPhase
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.isSendingPhase_i
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.txIsSending
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.asyncRxCLK.rst_i
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rx_internal.dataInP_i
+TOP.sim_echo.uut.usbDeviceController.usbResetDetected
+TOP.sim_echo.uut.usbDeviceController.ackUsbResetDetect
+TOP.sim_echo.uut.usbDeviceController.rxDPPLGotSignal
+TOP.sim_echo.uut.usbDeviceController.isSendingPhase
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.gotTransStartPacket
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isValidTransStartPacket
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isTokenPID
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isSOF
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.deviceAddr[6:0]
+@100000028
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.packetPID[3:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxDataValid_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxHandshake
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isEp0Selected
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isEpIsochronous
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxBufFull
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.receiveSuccess
+@200
+-
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.keepPacket_i
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.dropPacket
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.eopDetected_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transactionStarted
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transactionDone
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.useInternalBuf
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxHandshake
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.receiveDone
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.receiveSuccess
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.txIsLastByte_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.popTransSuccess
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.popTransDone
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.inputBuf[7:0]
+@100000028
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transState[3:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxBitStuffError_i
+@22
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxData_o[7:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxDone_o
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxAcceptNewData_i
+TOP.sim_echo.uut.usbDeviceController.serialInterfaceEngine.usbRxModules.rxDataValid_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxBufFull
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.writeFifoFull
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transStartPacketBufFull
+@24
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transStartBufWrapper.bufIdx[1:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.EP_IN_full[1:0]
+@200
+-EP0
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_full_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.packetBufFull
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.respValid_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.respHandshakePID_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.respPacketID_o[1:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.epOutDataToggleState
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.deviceState[1:0]
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.deviceAddr_o[6:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.gotAddrAssigned
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_fillTransSuccess_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_popTransSuccess_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.isInTransStart
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.transStartTokenID_i[1:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.requestError
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.requestedBytesLeft[15:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.gotTransStartPacket_i
+@200
+-
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.rxDataValid_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.receiveDone
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.isValidTransStartPacket
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transactionStarted
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transactionDone
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.txDoneSending_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.clk12_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.gotTransStartPacket_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_IN_fillTransDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_isLastPacketByte_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.respHandshakePID_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_popTransDone_i
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.epOutHandshake
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.isInStatusStage
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.respHandshakePID_o
+@24
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.requestedBytesLeft[15:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.txReqSendPacket_o
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.EP_OUT_dataAvailable_o
+@24
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.ctrlTransState[2:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.epResponseValid
+@22
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.transState[3:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.deviceAddr[6:0]
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.deviceConf[7:0]
+@28
+TOP.sim_echo.uut.usbDeviceController.usbProtocolEngine.ep0.deviceState[1:0]
+[pattern_trace] 1
+[pattern_trace] 0

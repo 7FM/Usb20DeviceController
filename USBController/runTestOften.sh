@@ -1,7 +1,8 @@
 #!/bin/sh
 #TEST_PATH=./sim_build/top/Vsim_top
+TEST_PATH=./sim_build/echo/Vsim_echo
 #TEST_PATH=./sim_build/usb_rx/Vsim_usb_rx
-TEST_PATH=./sim_build/usb_tx/Vsim_usb_tx
+#TEST_PATH=./sim_build/usb_tx/Vsim_usb_tx
 #TEST_PATH=./sim_build/trans_fifo_tb/Vsim_trans_fifo_tb
 RUNS=10000
 THREADS=$(nproc)
