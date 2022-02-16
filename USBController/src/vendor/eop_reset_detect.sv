@@ -78,7 +78,8 @@ module eop_reset_detect(
 
     always_ff @(posedge clk48_i) begin
 
-        if (ackUsbRst_i) begin
+        // Keep the usb reset signal high until we no longer register an SE0 and we have an ACK for our reset
+        if (!se0 && ackUsbRst_i) begin
             usbRst_o <= 1'b0;
             se0_counter <= {SE0_COUNTER_WID{1'b0}};
         end else begin
