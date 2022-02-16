@@ -94,7 +94,7 @@ module usb_endpoint_0 #(
     logic gotAddrAssigned, gotDevConfig;
 
     // always ack usb resets if we are in the reset state
-    assign ackUsbResetDetect_o = deviceState == DEVICE_RESET;
+    assign ackUsbResetDetect_o = usbResetDetected_i && deviceState == DEVICE_RESET;
 
     always_comb begin
         nextDeviceState = deviceState;
