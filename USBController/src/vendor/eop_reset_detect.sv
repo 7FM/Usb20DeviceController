@@ -87,7 +87,8 @@ module eop_reset_detect(
             usbRst_o <= nextUsbReset;
         end
 
-        if (ackEOP_i) begin
+        // Ensure that we do not misinterpret the end of an usb reset phase as an EOP signal
+        if (ackEOP_i || usbRst_o) begin
             state <= IDLE;
             eopDetect_o <= 1'b0;
         end else begin
