@@ -22,11 +22,11 @@ static void signalHandler(int signal) {
     }
 }
 
-/* Linus USB error codes: https://www.kernel.org/doc/html/latest/driver-api/usb/error-codes.html and https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/errno.h
-0
+/* Linus USB error codes: https://www.kernel.org/doc/html/latest/driver-api/usb/error-codes.html and https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/errno.h and https://github.com/torvalds/linux/blob/master/tools/include/uapi/asm-generic/errno-base.h
+SUCCESS = 0
     Transfer completed successfully
 
--ENOENT
+-ENOENT = -2
     URB was synchronously unlinked by usb_unlink_urb()
 
 -EINPROGRESS = -115
@@ -49,7 +49,7 @@ static void signalHandler(int signal) {
 -ETIMEDOUT = -110
     Synchronous USB message functions use this code to indicate timeout expired before the transfer completed, and no other error was reported by HC.
 
--EPIPE =
+-EPIPE = -32
     Endpoint stalled. For non-control endpoints, reset this status with usb_clear_halt().
 
 -ECOMM = -70
@@ -64,13 +64,13 @@ static void signalHandler(int signal) {
 -EREMOTEIO = -121
     The data read from the endpoint did not fill the specified buffer, and URB_SHORT_NOT_OK was set in urb->transfer_flags.
 
--ENODEV =
+-ENODEV = -19
     Device was removed. Often preceded by a burst of other errors, since the hub driver doesn’t detect device removal events immediately.
 
--EXDEV =
+-EXDEV = -18
     ISO transfer only partially completed (only set in iso_frame_desc[n].status, not urb->status)
 
--EINVAL =
+-EINVAL = -22
     ISO madness, if this happens: Log off and go home
 
 -ECONNRESET = -104
