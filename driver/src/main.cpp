@@ -6,29 +6,12 @@
 #include <memory>
 #include <vector>
 
+// hardcoded paths... I dont like it
+#include "../../USBController/sim_src/common/print_utils.hpp"
+
 // Future versions of libusb will use usb_interface instead of interface
 // in libusb_config_descriptor => catter for that
 #define usb_interface interface
-
-static bool compareVec(const std::vector<uint8_t> &expected, const std::vector<uint8_t> &got,
-                       const std::string &lengthErrMsg, const std::string &dataErrMsg) {
-    bool failed = false;
-    if (got.size() != expected.size()) {
-        std::cout << lengthErrMsg << std::endl;
-        std::cout << "  Expected: " << expected.size() << " but got: " << got.size() << std::endl;
-        failed = true;
-    }
-
-    int minSize = std::min(got.size(), expected.size());
-    for (int i = 0; i < minSize; ++i) {
-        if (got[i] != expected[i]) {
-            failed = true;
-            std::cout << dataErrMsg << i << std::endl;
-            std::cout << "  Expected: " << expected[i] << " but got: " << got[i] << std::endl;
-        }
-    }
-    return failed;
-}
 
 class LibUsbDeviceHandleRAII {
   public:
