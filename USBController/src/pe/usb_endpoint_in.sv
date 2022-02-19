@@ -57,7 +57,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevIn != usb_ep_pkg:
             ignorePacket <= byteIsData_i ? ignorePacket : EP_IN_data_i[usb_packet_pkg::DATA_0_1_TOGGLE_OFFSET] != expectedDataToggleBit;
 
             // Update the data toggle bit upon successful transaction that was not ignored
-            expectedDataToggleBit <= resetDataToggle_i ? 1'b0 : ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i) ^ expectedDataToggleBit);
+            expectedDataToggleBit <= resetDataToggle_i ? 1'b0 : ((EP_IN_fillTransDone_i && EP_IN_fillTransSuccess_i && !ignorePacket) ^ expectedDataToggleBit);
         end
     end
 
