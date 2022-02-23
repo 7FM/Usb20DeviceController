@@ -193,179 +193,147 @@ int main(int argc, char **argv) {
     UsbTopSim sim;
     sim.init(argc, argv);
 
-    // start things going
-    sim.reset();
-
-    sim.issueDummySignal();
-
     bool failed = false;
+    for (int i = 0; !forceStop && !failed && i < 5; ++i) {
+        // reset the simulation
+        sim.reset();
 
-    std::vector<uint8_t> result;
-    std::vector<ConfigurationDescriptor> configDescs;
-    std::vector<InterfaceDescriptor> ifaceDescs;
-    std::vector<EndpointDescriptor> epDescs;
-    uint8_t ep0MaxPacketSize = 0;
-    uint8_t addr = 0;
+        sim.issueDummySignal();
 
-    failed |= sendSOF(sim, 0);
-    if (failed) {
-        goto exitAndCleanup;
-    }
+        std::vector<uint8_t> result;
+        std::vector<ConfigurationDescriptor> configDescs;
+        std::vector<InterfaceDescriptor> ifaceDescs;
+        std::vector<EndpointDescriptor> epDescs;
+        uint8_t ep0MaxPacketSize = 0;
+        uint8_t addr = 0;
 
-    // Execute a few more cycles to give the logic some time between the packages
-    sim.template run<true, false>(2);
-
-    failed |= sendSOF(sim, 0xFFFF);
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    // Execute a few more cycles to give the logic some time between the packages
-    sim.template run<true, false>(2);
-
-    // Read the device descriptor
-    // First, only read 8 bytes to determine the ep0MaxPacketSize
-    // Afterwards read it all!
-    failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
-
-    if (result.size() != 18) {
-        std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
-        failed = true;
-        goto exitAndCleanup;
-    }
-
-    {
-        std::cout << "Device Descriptor:" << std::endl;
-        prettyPrintDescriptors(result);
-        // TODO check content
-
-        const char *stringDescName[] = {
-            "String Desc 0:",
-            "Manufacturer Name:",
-            "Product Name:",
-            "Serial Number:",
-            "Configuration Description:",
-            "Interface Description:",
-        };
-        for (int i = 0; !failed && i < sizeof(stringDescName) / sizeof(stringDescName[0]); ++i) {
-            sim.issueDummySignal();
-            failed |= readDescriptor(result, sim, DESC_STRING, i, ep0MaxPacketSize, addr, 2);
-            std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
-            prettyPrintDescriptors(result);
-            // TODO check content
-        }
-    }
-
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    sim.issueDummySignal();
-    std::cout << std::endl;
-    std::cout << "Lets try reading the configuration descriptor!" << std::endl;
-
-    // Read the default configuration
-    failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
-
-    std::cout << "Result size: " << result.size() << std::endl;
-
-    prettyPrintDescriptors(result, &epDescs, &ifaceDescs, &configDescs);
-    // TODO check content
-
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    sim.issueDummySignal();
-    // select a random address
-    addr = sim.getRand() & ((1 << 7) - 1);
-    if (addr == 0) {
-        ++addr;
-    }
-    std::cout << "Setting device address to " << static_cast<int>(addr) << '!' << std::endl;
-    failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr, ep0MaxPacketSize, 0, 0);
-
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    sim.issueDummySignal();
-    // set configuration value to 1
-    std::cout << std::endl;
-    std::cout << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
-    // This is expected to fail!
-    failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr + 1, 0);
-
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    sim.issueDummySignal();
-    std::cout << std::endl;
-    std::cout << "Selecting device configuration 1 (correct addr)!" << std::endl;
-    failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
-
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    sim.txState.actAsNop();
-    sim.rxState.actAsNop();
-
-    {
-        // fill EP1_OUT fifo / execute fifo filling!
-        int testSize = 1 + (sim.getRand() & (512 - 1));
-        std::cout << "Filling EP1 OUT fifo: " << testSize << std::endl;
-        for (int i = 0; i < testSize; ++i) {
-            sim.fifoFillState.epState->data.push_back(sim.getRand());
-        }
-        sim.fifoFillState.enable();
-        // Execute till stop condition
-        while (!sim.template run<true>(0)) {
-        }
-        sim.fifoFillState.disable();
-
-        std::cout << "Requesting data from EP1" << std::endl;
-        std::vector<uint8_t> ep1Res;
-        failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
-
-        const auto &sentData = sim.fifoFillState.epState->data;
-        failed |= compareVec(
-            sentData, ep1Res,
-            "Error: Fifo data length & received data does not match!",
-            "Fifo fill data vs received data does not match at index: ");
-    }
-
-    sim.txState.actAsNop();
-    sim.txState.reset();
-    sim.rxState.actAsNop();
-    sim.rxState.reset();
-
-    if (failed) {
-        goto exitAndCleanup;
-    }
-
-    {
-        int testSize = 1 + (sim.getRand() & (512 - 1));
-        std::cout << "Sending data to EP1: " << testSize << std::endl;
-        std::vector<uint8_t> ep1Data;
-
-        for (int i = 0; i < testSize; ++i) {
-            ep1Data.push_back(sim.getRand());
-        }
-
-        // send data to EP1
-        bool dataToggleState = false;
-        int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
-        if (maxPacketSize == 0) {
-            failed = true;
-            std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
-            goto exitAndCleanup;
-        }
-
-        failed = sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
+        failed |= sendSOF(sim, 0);
         if (failed) {
             goto exitAndCleanup;
+        }
+
+        // Execute a few more cycles to give the logic some time between the packages
+        sim.template run<true, false>(2);
+
+        failed |= sendSOF(sim, 0xFFFF);
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        // Execute a few more cycles to give the logic some time between the packages
+        sim.template run<true, false>(2);
+
+        // Read the device descriptor
+        // First, only read 8 bytes to determine the ep0MaxPacketSize
+        // Afterwards read it all!
+        failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
+
+        if (result.size() != 18) {
+            std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
+            failed = true;
+            goto exitAndCleanup;
+        }
+
+        {
+            std::cout << "Device Descriptor:" << std::endl;
+            prettyPrintDescriptors(result);
+            // TODO check content
+
+            const char *stringDescName[] = {
+                "String Desc 0:",
+                "Manufacturer Name:",
+                "Product Name:",
+                "Serial Number:",
+                "Configuration Description:",
+                "Interface Description:",
+            };
+            for (int i = 0; !failed && i < sizeof(stringDescName) / sizeof(stringDescName[0]); ++i) {
+                sim.issueDummySignal();
+                failed |= readDescriptor(result, sim, DESC_STRING, i, ep0MaxPacketSize, addr, 2);
+                std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
+                prettyPrintDescriptors(result);
+                // TODO check content
+            }
+        }
+
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        sim.issueDummySignal();
+        std::cout << std::endl;
+        std::cout << "Lets try reading the configuration descriptor!" << std::endl;
+
+        // Read the default configuration
+        failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
+
+        std::cout << "Result size: " << result.size() << std::endl;
+
+        prettyPrintDescriptors(result, &epDescs, &ifaceDescs, &configDescs);
+        // TODO check content
+
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        sim.issueDummySignal();
+        // select a random address
+        addr = sim.getRand() & ((1 << 7) - 1);
+        if (addr == 0) {
+            ++addr;
+        }
+        std::cout << "Setting device address to " << static_cast<int>(addr) << '!' << std::endl;
+        failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr, ep0MaxPacketSize, 0, 0);
+
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        sim.issueDummySignal();
+        // set configuration value to 1
+        std::cout << std::endl;
+        std::cout << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
+        // This is expected to fail!
+        failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr + 1, 0);
+
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        sim.issueDummySignal();
+        std::cout << std::endl;
+        std::cout << "Selecting device configuration 1 (correct addr)!" << std::endl;
+        failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
+
+        if (failed) {
+            goto exitAndCleanup;
+        }
+
+        sim.txState.actAsNop();
+        sim.rxState.actAsNop();
+
+        {
+            // fill EP1_OUT fifo / execute fifo filling!
+            int testSize = 1 + (sim.getRand() & (512 - 1));
+            std::cout << "Filling EP1 OUT fifo: " << testSize << std::endl;
+            for (int i = 0; i < testSize; ++i) {
+                sim.fifoFillState.epState->data.push_back(sim.getRand());
+            }
+            sim.fifoFillState.enable();
+            // Execute till stop condition
+            while (!sim.template run<true>(0)) {
+            }
+            sim.fifoFillState.disable();
+
+            std::cout << "Requesting data from EP1" << std::endl;
+            std::vector<uint8_t> ep1Res;
+            failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
+
+            const auto &sentData = sim.fifoFillState.epState->data;
+            failed |= compareVec(
+                sentData, ep1Res,
+                "Error: Fifo data length & received data does not match!",
+                "Fifo fill data vs received data does not match at index: ");
         }
 
         sim.txState.actAsNop();
@@ -373,23 +341,56 @@ int main(int argc, char **argv) {
         sim.rxState.actAsNop();
         sim.rxState.reset();
 
-        // check contents of EP1_IN fifo
-        sim.fifoEmptyState.enable();
-        // Execute till stop condition
-        while (!sim.template run<true>(0)) {
+        if (failed) {
+            goto exitAndCleanup;
         }
-        sim.fifoEmptyState.disable();
 
-        failed |= compareVec(
-            ep1Data, sim.fifoEmptyState.epState->data,
-            "Error: Fifo data length & sent data does not match!",
-            "Fifo empty data vs sent data does not match at index: ");
+        {
+            int testSize = 1 + (sim.getRand() & (512 - 1));
+            std::cout << "Sending data to EP1: " << testSize << std::endl;
+            std::vector<uint8_t> ep1Data;
+
+            for (int i = 0; i < testSize; ++i) {
+                ep1Data.push_back(sim.getRand());
+            }
+
+            // send data to EP1
+            bool dataToggleState = false;
+            int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
+            if (maxPacketSize == 0) {
+                failed = true;
+                std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
+                goto exitAndCleanup;
+            }
+
+            failed = sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
+            if (failed) {
+                goto exitAndCleanup;
+            }
+
+            sim.txState.actAsNop();
+            sim.txState.reset();
+            sim.rxState.actAsNop();
+            sim.rxState.reset();
+
+            // check contents of EP1_IN fifo
+            sim.fifoEmptyState.enable();
+            // Execute till stop condition
+            while (!sim.template run<true>(0)) {
+            }
+            sim.fifoEmptyState.disable();
+
+            failed |= compareVec(
+                ep1Data, sim.fifoEmptyState.epState->data,
+                "Error: Fifo data length & sent data does not match!",
+                "Fifo empty data vs sent data does not match at index: ");
+        }
+
+        sim.txState.actAsNop();
+        sim.txState.reset();
+        sim.rxState.actAsNop();
+        sim.rxState.reset();
     }
-
-    sim.txState.actAsNop();
-    sim.txState.reset();
-    sim.rxState.actAsNop();
-    sim.rxState.reset();
 
 exitAndCleanup:
 
