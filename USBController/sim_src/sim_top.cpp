@@ -134,8 +134,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         fifoFillState.reset(top);
         fifoEmptyState.reset(top);
 
-        tx_clk12_counter = 0;
-        rx_clk12_counter = clk12Offset;
+        rx_clk12_counter = rxClk12Offset % 2;
+        tx_clk12_counter = txClk12Offset % 2;
 
         top->rxRST = 1;
         // Give modules some time to settle
@@ -209,7 +209,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     FIFOFillState<1> fifoFillState;
     FIFOEmptyState<1> fifoEmptyState;
 
-    uint8_t clk12Offset = 0;
+    uint8_t rxClk12Offset = 0;
+    uint8_t txClk12Offset = 0;
 };
 
 bool getForceStop() {
@@ -225,6 +226,9 @@ int main(int argc, char **argv) {
 
     bool failed = false;
     for (int i = 0; !forceStop && !failed && i < 5; ++i) {
+        sim.rxClk12Offset = sim.getRand();
+        sim.txClk12Offset = sim.getRand();
+
         // reset the simulation
         sim.reset();
 
