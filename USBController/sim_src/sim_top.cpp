@@ -278,14 +278,16 @@ int main(int argc, char **argv) {
 
     sim.issueDummySignal();
     // set address to 42
-    std::cout << "Setting device address to 42!" << std::endl;
-    failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, 42, ep0MaxPacketSize, 0, 0);
+    addr = 1 + (sim.getRand() & ((1 << 7) - 1));
+    if (addr == 0) {
+        ++addr;
+    }
+    std::cout << "Setting device address to " << addr << '!' << std::endl;
+    failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr, ep0MaxPacketSize, 0, 0);
 
     if (failed) {
         goto exitAndCleanup;
     }
-
-    addr = 42;
 
     sim.issueDummySignal();
     // set configuration value to 1
