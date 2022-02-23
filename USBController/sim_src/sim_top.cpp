@@ -277,12 +277,12 @@ int main(int argc, char **argv) {
     }
 
     sim.issueDummySignal();
-    // set address to 42
-    addr = 1 + (sim.getRand() & ((1 << 7) - 1));
+    // select a random address
+    addr = sim.getRand() & ((1 << 7) - 1);
     if (addr == 0) {
         ++addr;
     }
-    std::cout << "Setting device address to " << addr << '!' << std::endl;
+    std::cout << "Setting device address to " << static_cast<int>(addr) << '!' << std::endl;
     failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr, ep0MaxPacketSize, 0, 0);
 
     if (failed) {
