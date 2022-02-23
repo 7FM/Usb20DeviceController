@@ -213,7 +213,7 @@ int main(int argc, char **argv) {
         }
 
         // Execute a few more cycles to give the logic some time between the packages
-        sim.template run<true, false>(2);
+        sim.template run<true, false>(2 + (sim.getRand() & 15));
 
         failed |= sendSOF(sim, 0xFFFF);
         if (failed) {
@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
         }
 
         // Execute a few more cycles to give the logic some time between the packages
-        sim.template run<true, false>(2);
+        sim.template run<true, false>(2 + (sim.getRand() & 15));
 
         // Read the device descriptor
         // First, only read 8 bytes to determine the ep0MaxPacketSize
