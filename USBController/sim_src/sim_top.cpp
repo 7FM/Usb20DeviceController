@@ -376,10 +376,10 @@ int main(int argc, char **argv) {
                 "Fifo fill data vs received data does not match at index: ");
         }
 
-        sim.txState.actAsNop();
         sim.txState.reset();
-        sim.rxState.actAsNop();
+        sim.txState.actAsNop();
         sim.rxState.reset();
+        sim.rxState.actAsNop();
 
         if (failed) {
             goto exitAndCleanup;
@@ -409,10 +409,10 @@ int main(int argc, char **argv) {
                 goto exitAndCleanup;
             }
 
-            sim.txState.actAsNop();
             sim.txState.reset();
-            sim.rxState.actAsNop();
+            sim.txState.actAsNop();
             sim.rxState.reset();
+            sim.rxState.actAsNop();
 
             // check contents of EP1_IN fifo
             sim.updateSimStateStr("Empty EP1 IN FIFO");
@@ -428,10 +428,10 @@ int main(int argc, char **argv) {
                 "Fifo empty data vs sent data does not match at index: ");
         }
 
-        sim.txState.actAsNop();
         sim.txState.reset();
-        sim.rxState.actAsNop();
+        sim.txState.actAsNop();
         sim.rxState.reset();
+        sim.rxState.actAsNop();
     }
 
 exitAndCleanup:

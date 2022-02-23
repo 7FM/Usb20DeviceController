@@ -186,10 +186,10 @@ int main(int argc, char **argv) {
         goto exitAndCleanup;
     }
 
-    sim.txState.actAsNop();
     sim.txState.reset();
-    sim.rxState.actAsNop();
+    sim.txState.actAsNop();
     sim.rxState.reset();
+    sim.rxState.actAsNop();
 
     {
         int testSize = 1 + (sim.getRand() & (512 - 1));
@@ -230,10 +230,10 @@ int main(int argc, char **argv) {
             "Echoed data vs sent data does not match at index: ");
     }
 
-    sim.txState.actAsNop();
     sim.txState.reset();
-    sim.rxState.actAsNop();
+    sim.txState.actAsNop();
     sim.rxState.reset();
+    sim.rxState.actAsNop();
 
 exitAndCleanup:
 
