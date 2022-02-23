@@ -83,6 +83,30 @@ SUCCESS = 0
 
 /******************************************************************************/
 
+template <class T>
+static void fillStrBuf(T *buffer, int arrSize, const char *str) {
+    const int strLen = std::strlen(str);
+
+    int strIdx = 0;
+    constexpr T mask = 255;
+    for (int arrIdx = arrSize - 1; arrIdx >= 0; --arrIdx) {
+        T imm = 0;
+        for (int i = 0; i < sizeof(T) && strIdx < strLen; ++i, ++strIdx) {
+            uint8_t character = str[strIdx];
+            imm <<= 8;
+            imm |= static_cast<T>(character) & mask;
+        }
+        /*
+        // swap bytes
+        uint8_t *rawImm = reinterpret_cast<uint8_t*>(&imm);
+        for (int i = 0; i < sizeof(T) / 2; ++i) {
+            rawImm[i] = rawImm[sizeof(T) - 1 - i];
+        }
+        */
+        buffer[arrIdx] = imm;
+    }
+}
+
 class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
   private:
@@ -100,6 +124,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
         top->rxAcceptNewData = 0;
         top->rxClk12 = 0;
         top->txClk12 = 0;
+
+        updateSimStateStr("Sim Reset");
 
         rxState.reset();
         txState.reset();
@@ -170,6 +196,10 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     void onFallingEdge() {}
     void sanityChecks() {}
 
+    void updateSimStateStr(const char *str) {
+        fillStrBuf(top->simStateStr, sizeof(top->simStateStr) / sizeof(top->simStateStr[0]), str);
+    }
+
   public:
     // Usb data receive state variables
     UsbReceiveState rxState;
@@ -207,6 +237,7 @@ int main(int argc, char **argv) {
         uint8_t ep0MaxPacketSize = 0;
         uint8_t addr = 0;
 
+        sim.updateSimStateStr("SOF 1");
         failed |= sendSOF(sim, 0);
         if (failed) {
             goto exitAndCleanup;
@@ -215,6 +246,7 @@ int main(int argc, char **argv) {
         // Execute a few more cycles to give the logic some time between the packages
         sim.template run<true, false>(2 + (sim.getRand() & 15));
 
+        sim.updateSimStateStr("SOF 2");
         failed |= sendSOF(sim, 0xFFFF);
         if (failed) {
             goto exitAndCleanup;
@@ -224,6 +256,7 @@ int main(int argc, char **argv) {
         sim.template run<true, false>(2 + (sim.getRand() & 15));
 
         // Read the device descriptor
+        sim.updateSimStateStr("Read device desc");
         // First, only read 8 bytes to determine the ep0MaxPacketSize
         // Afterwards read it all!
         failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
@@ -249,6 +282,7 @@ int main(int argc, char **argv) {
             };
             for (int i = 0; !failed && i < sizeof(stringDescName) / sizeof(stringDescName[0]); ++i) {
                 sim.issueDummySignal();
+                sim.updateSimStateStr(stringDescName[i]);
                 failed |= readDescriptor(result, sim, DESC_STRING, i, ep0MaxPacketSize, addr, 2);
                 std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
                 prettyPrintDescriptors(result);
@@ -265,6 +299,7 @@ int main(int argc, char **argv) {
         std::cout << "Lets try reading the configuration descriptor!" << std::endl;
 
         // Read the default configuration
+        sim.updateSimStateStr("Read Config Desc");
         failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
 
         std::cout << "Result size: " << result.size() << std::endl;
@@ -283,6 +318,7 @@ int main(int argc, char **argv) {
             ++addr;
         }
         std::cout << "Setting device address to " << static_cast<int>(addr) << '!' << std::endl;
+        sim.updateSimStateStr("SET ADDR");
         failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr, ep0MaxPacketSize, 0, 0);
 
         if (failed) {
@@ -294,6 +330,7 @@ int main(int argc, char **argv) {
         std::cout << std::endl;
         std::cout << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
         // This is expected to fail!
+        sim.updateSimStateStr("SET CONF (WRONG ADDR)");
         failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr + 1, 0);
 
         if (failed) {
@@ -303,6 +340,7 @@ int main(int argc, char **argv) {
         sim.issueDummySignal();
         std::cout << std::endl;
         std::cout << "Selecting device configuration 1 (correct addr)!" << std::endl;
+        sim.updateSimStateStr("SET CONF");
         failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
 
         if (failed) {
@@ -316,6 +354,7 @@ int main(int argc, char **argv) {
             // fill EP1_OUT fifo / execute fifo filling!
             int testSize = 1 + (sim.getRand() & (512 - 1));
             std::cout << "Filling EP1 OUT fifo: " << testSize << std::endl;
+            sim.updateSimStateStr("Fill EP1 Out FIFO");
             for (int i = 0; i < testSize; ++i) {
                 sim.fifoFillState.epState->data.push_back(sim.getRand());
             }
@@ -327,6 +366,7 @@ int main(int argc, char **argv) {
 
             std::cout << "Requesting data from EP1" << std::endl;
             std::vector<uint8_t> ep1Res;
+            sim.updateSimStateStr("Read from EP1");
             failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
 
             const auto &sentData = sim.fifoFillState.epState->data;
@@ -348,6 +388,7 @@ int main(int argc, char **argv) {
         {
             int testSize = 1 + (sim.getRand() & (512 - 1));
             std::cout << "Sending data to EP1: " << testSize << std::endl;
+            sim.updateSimStateStr("Send data to EP1");
             std::vector<uint8_t> ep1Data;
 
             for (int i = 0; i < testSize; ++i) {
@@ -374,6 +415,7 @@ int main(int argc, char **argv) {
             sim.rxState.reset();
 
             // check contents of EP1_IN fifo
+            sim.updateSimStateStr("Empty EP1 IN FIFO");
             sim.fifoEmptyState.enable();
             // Execute till stop condition
             while (!sim.template run<true>(0)) {

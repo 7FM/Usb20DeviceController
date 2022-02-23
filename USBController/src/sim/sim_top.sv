@@ -12,6 +12,7 @@ module sim_top #(
     input logic txClk12,
     `MUTE_LINT(UNUSED)
     input logic dummyPin,
+    input logic [8 * 64 - 1 : 0] simStateStr,
     `UNMUTE_LINT(UNUSED)
     input logic rxRST,
 
