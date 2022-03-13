@@ -71,9 +71,9 @@ module top #(
         .clk_i(clk48),
         .clk_o(clk12)
     );
+`endif
 
     assign clk12_o = clk12;
-`endif
 
 `ifndef RUN_SIM
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
