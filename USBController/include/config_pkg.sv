@@ -4,6 +4,19 @@
 package config_pkg;
 
 `define DEBUG_LEDS
+// Select which part of the usb controller should provide the debug leds
+`define DEBUG_USB_RX
+`ifndef DEBUG_USB_RX
+`define DEBUG_USB_PE
+`endif
+
+// Select which part of the usb receiveer should provide the debug leds
+`ifdef DEBUG_USB_RX
+`define DEBUG_USB_RX_IFACE
+`ifdef DEBUG_USB_RX_INTERNAL
+`define DEBUG_USB_RX_INTERNAL
+`endif
+`endif
 
 // General Settings
 // enable by IO block provided registered inputs for the differential input pins

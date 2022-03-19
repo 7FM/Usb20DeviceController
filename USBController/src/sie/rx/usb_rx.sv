@@ -8,6 +8,12 @@ module usb_rx#()(
     input logic clk12_i,
     input logic rxClk12_i,
 
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+
     // CRC interface: rxClk12_i
     output logic rxCRCReset_o,
     output logic rxUseCRC16_o,
@@ -76,6 +82,19 @@ module usb_rx#()(
 
     usb_rx_interface rx_iface (
         .clk12_i(clk12_i),
+
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX_IFACE
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`else
+        `MUTE_PIN_CONNECT_EMPTY(LED_R),
+        `MUTE_PIN_CONNECT_EMPTY(LED_G),
+        `MUTE_PIN_CONNECT_EMPTY(LED_B),
+`endif
+`endif
+
         .rxAcceptNewData_i(rxAcceptNewData_i),
         .rxDone_o(rxDone_o),
         .rxDataValid_o(rxDataValid_o),
@@ -92,6 +111,18 @@ module usb_rx#()(
 
     usb_rx_internal rx_internal (
         .clk12_i(clk12_i),
+
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX_INTERNAL
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`else
+        `MUTE_PIN_CONNECT_EMPTY(LED_R),
+        `MUTE_PIN_CONNECT_EMPTY(LED_G),
+        `MUTE_PIN_CONNECT_EMPTY(LED_B),
+`endif
+`endif
 
         // CRC interface: clk12_i
         .rxCRCReset_o(rxCRCReset_o),
@@ -124,6 +155,12 @@ endmodule
 
 module usb_rx_interface(
     input logic clk12_i,
+
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
 
     // Data output interface:
     input logic rxAcceptNewData_i, // Backend indicates that it is able to retrieve the next data byte
@@ -225,14 +262,41 @@ module usb_rx_interface(
     end
 
     always_ff @(posedge clk12_i) begin
+        flushFifoTimeout <= nextFlushFifoTimeout;
         byteWasNotReceived <= next_byteWasNotReceived;
         rxIfaceState <= nextRxIfaceState;
     end
+
+`ifdef DEBUG_LEDS
+    logic inv_LED_R;
+    logic inv_LED_G;
+    logic inv_LED_B;
+    initial begin
+        inv_LED_R = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_G = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_B = 1'b0; // a value of 1 turns the LEDs off!
+    end
+    always_ff @(posedge clk12_i) begin
+        inv_LED_R <= inv_LED_R || byteWasNotReceived; // This condition gets true, which is a bad sign and should under normal circumstances never happen!
+        // inv_LED_G <= inv_LED_G || dropPacket_i;
+        inv_LED_B <= inv_LED_B || (rxIfaceState == WAIT_UNTIL_EMPTY && flushFifoTimeout == 0);
+    end
+
+    assign LED_R = !inv_LED_R;
+    assign LED_G = !inv_LED_G;
+    assign LED_B = !inv_LED_B;
+`endif
 
 endmodule
 
 module usb_rx_internal(
     input logic clk12_i,
+
+`ifdef DEBUG_LEDS
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
 
     // CRC interface:
     output logic rxCRCReset_o,
@@ -469,5 +533,25 @@ module usb_rx_internal(
     assign rxUseCRC16_o = inputBuf[2:1] == usb_packet_pkg::DATA_PACKET_MASK_VAL;
     assign rxCRCInputValid_o = expectNonBitStuffedInput_i;
     assign rxCRCInput_o = nrziDecodedInput;
+
+`ifdef DEBUG_LEDS
+    logic inv_LED_R;
+    logic inv_LED_G;
+    logic inv_LED_B;
+    initial begin
+        inv_LED_R = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_G = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_B = 1'b0; // a value of 1 turns the LEDs off!
+    end
+    always_ff @(posedge clk12_i) begin
+        inv_LED_R <= inv_LED_R || (rxState == RX_WAIT_FOR_EOP && eopDetected_i && !lastByteValidCRC);
+        inv_LED_G <= inv_LED_G || (rxState == RX_GET_PID && inputBufFull && !pidValid);
+        inv_LED_B <= inv_LED_B || ((rxState == RX_GET_PID || rxState == RX_WAIT_FOR_EOP) && defaultNextDropPacket);
+    end
+
+    assign LED_R = !inv_LED_R;
+    assign LED_G = !inv_LED_G;
+    assign LED_B = !inv_LED_B;
+`endif
 
 endmodule

@@ -71,6 +71,18 @@ module usb#(
         .clk48_i(clk48_i),
         .clk12_i(clk12_i),
 
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`else
+        `MUTE_PIN_CONNECT_EMPTY(LED_R),
+        `MUTE_PIN_CONNECT_EMPTY(LED_G),
+        `MUTE_PIN_CONNECT_EMPTY(LED_B),
+`endif
+`endif
+
         .USB_DN(USB_DN),
         .USB_DP(USB_DP),
 `ifdef RUN_SIM
@@ -118,9 +130,15 @@ module usb#(
         .clk12_i(clk12_i),
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
+`else
+        `MUTE_PIN_CONNECT_EMPTY(LED_R),
+        `MUTE_PIN_CONNECT_EMPTY(LED_G),
+        `MUTE_PIN_CONNECT_EMPTY(LED_B),
+`endif
 `endif
 
         // Serial Engine Services:
