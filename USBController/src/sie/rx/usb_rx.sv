@@ -277,8 +277,8 @@ module usb_rx_interface(
         inv_LED_B = 1'b0; // a value of 1 turns the LEDs off!
     end
     always_ff @(posedge clk12_i) begin
-        inv_LED_R <= inv_LED_R || byteWasNotReceived; // This condition gets true, which is a bad sign and should under normal circumstances never happen!
-        // inv_LED_G <= inv_LED_G || dropPacket_i;
+        inv_LED_R <= inv_LED_R || byteWasNotReceived; // TODO This condition gets true, which is a bad sign and should under normal circumstances never happen!
+        inv_LED_G <= inv_LED_G || dropPacket_i;
         inv_LED_B <= inv_LED_B || (rxIfaceState == WAIT_UNTIL_EMPTY && flushFifoTimeout == 0);
     end
 
