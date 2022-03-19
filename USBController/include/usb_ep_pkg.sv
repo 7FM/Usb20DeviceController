@@ -70,7 +70,7 @@ package usb_ep_pkg;
     localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
         epTypeDevIn: BULK,
         epTypeDevOut: BULK,
-        maxPacketSize: DefaultControlEpConfig.maxPacketSize // At max 512 bytes per transaction
+        maxPacketSize: {3'b0, DefaultControlEpConfig.maxPacketSize} // At max 512 bytes per transaction
     };
 
     localparam EndpointConfig DefaultEpConfig = '{
