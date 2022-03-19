@@ -61,7 +61,7 @@ package usb_ep_pkg;
     } UsbDeviceEpConfig;
 
     localparam ControlEndpointConfig DefaultControlEpConfig = '{
-        //maxPacketSize: usb_desc_pkg::EP0_MAX_8_BYTES
+        // maxPacketSize: usb_desc_pkg::EP0_MAX_8_BYTES
         // maxPacketSize: usb_desc_pkg::EP0_MAX_16_BYTES
         // maxPacketSize: usb_desc_pkg::EP0_MAX_32_BYTES
         maxPacketSize: usb_desc_pkg::EP0_MAX_64_BYTES
@@ -70,7 +70,7 @@ package usb_ep_pkg;
     localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
         epTypeDevIn: BULK,
         epTypeDevOut: BULK,
-        maxPacketSize: 64 // At max 512 bytes per transaction
+        maxPacketSize: DefaultControlEpConfig.maxPacketSize // At max 512 bytes per transaction
     };
 
     localparam EndpointConfig DefaultEpConfig = '{
