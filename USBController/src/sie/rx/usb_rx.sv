@@ -175,18 +175,22 @@ module usb_rx_interface(
         WAIT_UNTIL_EMPTY
     } RxIfaceStates;
 
+    localparam FLUSH_TIMEOUT_CYCLES = 3;
+    logic [1:0] flushFifoTimeout, nextFlushFifoTimeout;
     RxIfaceStates rxIfaceState, nextRxIfaceState;
 
     // For CRC5 packets all bytes contain data -> we do not need to hold any data back!
     // Else if we are waiting until the FIFO is empty
     assign allowFifoPop = (rxGotNewInput && fifoFull) || !needCRC16Handling;
     // for CRC16 packets flush the entire fifo as the last 2 bytes are the CRC!
-    assign flushFifo = gotEopDetect && needCRC16Handling;
+    // we can drop keep flushing the fifo if we do not want to keep the packet anyway!
+    assign flushFifo = gotEopDetect && needCRC16Handling || !keepPacket_o;
 
     always_comb begin
         rxDone_o = 1'b0;
         nextRxIfaceState = rxIfaceState;
         next_byteWasNotReceived = byteWasNotReceived;
+        nextFlushFifoTimeout = flushFifoTimeout - 1;
 
         if (!fifoAcceptInput && rxGotNewInput) begin
             // The fifo does not accept our new input -> this byte will be dropped!
@@ -195,16 +199,16 @@ module usb_rx_interface(
 
         unique case (rxIfaceState)
             KEEP_FILLED: begin
+                nextFlushFifoTimeout = FLUSH_TIMEOUT_CYCLES;
                 if (gotEopDetect) begin
                     nextRxIfaceState = WAIT_UNTIL_EMPTY;
                 end
             end
             WAIT_UNTIL_EMPTY: begin
-                //TODO we need to prevent deadlocks here!
-                //     if we are waiting until the fifo is empty but the receive buffers in usb_pe are full
-                //     then we will wait to long here... add something like a count down and then set byteWasNotReceived
-                //     (fifo needs flushing before), set rxDone one cycle later and go back to KEEP_FILLING
-                if (!fifoDataAvailable) begin
+                if (flushFifoTimeout == 0) begin
+                    // Timeout, set error bit! To prevent a deadlock.
+                    next_byteWasNotReceived = 1'b1;
+                end else if (!fifoDataAvailable) begin
                     // Signal that all bytes of this packet were received!
                     rxDone_o = 1'b1;
                     // We are done for this packet -> clear the error flag
