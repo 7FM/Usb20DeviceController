@@ -13,7 +13,7 @@ package config_pkg;
 // Select which part of the usb receiveer should provide the debug leds
 `ifdef DEBUG_USB_RX
 `define DEBUG_USB_RX_IFACE
-`ifdef DEBUG_USB_RX_INTERNAL
+`ifndef DEBUG_USB_RX_IFACE
 `define DEBUG_USB_RX_INTERNAL
 `endif
 `endif
