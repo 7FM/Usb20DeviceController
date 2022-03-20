@@ -10,7 +10,7 @@ package config_pkg;
 `define DEBUG_USB_PE
 `endif
 
-// Select which part of the usb receiveer should provide the debug leds
+// Select which part of the usb receiver should provide the debug leds
 `ifdef DEBUG_USB_RX
 `define DEBUG_USB_RX_IFACE
 `ifndef DEBUG_USB_RX_IFACE
