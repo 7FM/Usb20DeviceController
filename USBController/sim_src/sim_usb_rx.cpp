@@ -106,7 +106,9 @@ int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
 
     UsbRxSim sim;
-    sim.init(argc, argv);
+    if (!sim.init(argc, argv)) {
+        return 1;
+    }
 
     constexpr std::array<uint8_t, 5> expectedOutput = {
         0xc3,

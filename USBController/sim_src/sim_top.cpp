@@ -222,7 +222,9 @@ int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
 
     UsbTopSim sim;
-    sim.init(argc, argv);
+    if (!sim.init(argc, argv)) {
+        return 1;
+    }
 
     bool failed = false;
     for (int i = 0; !forceStop && !failed && i < 5; ++i) {

@@ -183,7 +183,9 @@ int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
 
     FIFOSim sim;
-    sim.init(argc, argv);
+    if (!sim.init(argc, argv)) {
+        return 1;
+    }
 
     sim.reset();
 

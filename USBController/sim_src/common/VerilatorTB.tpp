@@ -51,8 +51,8 @@ bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
                 std::cout << "option needs a value" << std::endl;
                 return false;
             case '?': // used for some unknown options
-                if (!static_cast<Impl *>(this)->customInit(opt)) {
-                    std::cout << "unknown option: " << optopt << std::endl;
+                if (!static_cast<Impl *>(this)->customInit(optopt)) {
+                    std::cout << "unknown option: -" << static_cast<char>(optopt) << std::endl;
                     return false;
                 }
                 break;

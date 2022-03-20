@@ -122,7 +122,9 @@ int main(int argc, char **argv) {
     std::signal(SIGINT, signalHandler);
 
     UsbEchoSim sim;
-    sim.init(argc, argv);
+    if (!sim.init(argc, argv)) {
+        return 1;
+    }
 
     // start things going
     sim.reset();

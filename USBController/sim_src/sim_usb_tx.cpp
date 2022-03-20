@@ -100,7 +100,9 @@ int main(int argc, char **argv) {
     int testFailed = 0;
 
     UsbTxSim sim;
-    sim.init(argc, argv);
+    if (!sim.init(argc, argv)) {
+        return 1;
+    }
 
     for (sim.clk12Offset = 0; sim.clk12Offset < 4 && testFailed == 0 && !forceStop; ++sim.clk12Offset) {
         std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
