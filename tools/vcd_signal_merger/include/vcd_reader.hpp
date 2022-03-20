@@ -22,7 +22,7 @@ class vcd_reader {
         return in.good();
     }
 
-    bool singleStep(bool truncate);
+    bool singleStep(bool truncate = true);
 
   private:
     std::ifstream in;
