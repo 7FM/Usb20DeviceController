@@ -166,7 +166,7 @@ class FIFOSim : public VerilatorTB<FIFOSim, TOP_MODULE> {
         }
     }
 
-    bool customInit(int opt) { return false; }
+    bool customInit(int, const char *) { return false; }
     void sanityChecks() {}
 
   public:

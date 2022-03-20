@@ -81,7 +81,7 @@ class UsbTxSim : public VerilatorTB<UsbTxSim, TOP_MODULE> {
         receiveDeserializedInput(*this, top, rxState, posedge, negedge);
     }
 
-    bool customInit(int opt) { return false; }
+    bool customInit(int, const char *) { return false; }
     void onFallingEdge() {}
     void sanityChecks() {}
 

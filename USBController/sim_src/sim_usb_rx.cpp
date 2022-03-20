@@ -91,7 +91,7 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
 #endif
     }
 
-    bool customInit(int opt) { return false; }
+    bool customInit(int, const char *) { return false; }
     void sanityChecks() {}
 
   public:

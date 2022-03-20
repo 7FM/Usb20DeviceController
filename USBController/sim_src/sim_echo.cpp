@@ -100,7 +100,7 @@ class UsbEchoSim : public VerilatorTB<UsbEchoSim, TOP_MODULE> {
         top->forceSE0 = 0;
     }
 
-    bool customInit(int opt) { return false; }
+    bool customInit(int, const char *) { return false; }
     void onFallingEdge() {}
     void sanityChecks() {}
 
