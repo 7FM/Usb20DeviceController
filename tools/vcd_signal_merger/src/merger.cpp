@@ -1,11 +1,8 @@
 #include "merger.hpp"
-
-#include <fstream>
-#include <map>
-#include <memory>
-#include <utility>
+#include "vcd_reader.hpp"
 
 #include <iostream>
+#include <memory>
 
 struct SignalMergeState {
     std::string outputVcdSymbol;
@@ -60,198 +57,79 @@ struct SignalMergeState {
     }
 };
 
+struct SignalMergerWrapper {
+    SignalMergerWrapper(size_t index, SignalMergeState *mergeState) : index(index), mergeState(mergeState) {}
+
+    void handleValueChange(bool value) {
+        mergeState->mergeSignal(index, value);
+    }
+
+    const size_t index;
+    SignalMergeState *const mergeState;
+};
+
 int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, const std::vector<MergeSignals> &mergeSignals, bool truncate) {
-    std::ifstream in(inputFile);
     std::ofstream out(outputFile);
 
-    if (!in) {
-        std::cout << "Could not open input file: " << inputFile << std::endl;
-        return 3;
-    }
     if (!out) {
         std::cout << "Could not open output file: " << outputFile << std::endl;
         return 3;
     }
 
     std::vector<std::unique_ptr<SignalMergeState>> states;
-    std::map<std::string, std::pair<size_t, SignalMergeState *>> signalNameToState;
+    std::map<std::string, SignalMergerWrapper> signalNameToState;
     for (const auto &s : mergeSignals) {
         const auto &ref = states.emplace_back(std::make_unique<SignalMergeState>(s.mergeViaAND, s.signalNames.size()));
         size_t i = 0;
         for (const auto &e : s.signalNames) {
-            signalNameToState.insert({e, std::make_pair(i, ref.get())});
+            signalNameToState.insert({e, SignalMergerWrapper(i, ref.get())});
             ++i;
         }
     }
 
-    std::map<std::string, std::pair<size_t, SignalMergeState *>> vcdAliases;
-
-    std::string line;
-
-    // Parse the header
-    while (in.good()) {
-        std::getline(in, line);
-
-        if (line.empty()) {
-            continue;
-        }
-
-        if (line.starts_with("$var")) {
-            // Expected format: `$var` <type> <bitWidth> <vcdAlias> <signalName> `$end`
-            auto typeStart = line.find_first_not_of(" ", 4);
-            if (typeStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-            auto typeEnd = line.find(" ", typeStart);
-            if (typeEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-
-            auto bitWidthStart = line.find_first_not_of(" ", typeEnd);
-            if (bitWidthStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-            auto bitWidthEnd = line.find(" ", bitWidthStart);
-            if (bitWidthEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-            if (line[bitWidthStart] != '1' || bitWidthStart + 1 != bitWidthEnd) {
+    vcd_reader<SignalMergerWrapper> vcdHandler(
+        inputFile,
+        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string &typeStr, const std::string &bitwidthStr) -> std::optional<SignalMergerWrapper> {
+            if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1') {
                 // std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
                 // out << line << std::endl;
-                continue;
+                return std::nullopt;
             }
-
-            auto vcdAliasStart = line.find_first_not_of(" ", bitWidthEnd);
-            if (vcdAliasStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-            auto vcdAliasEnd = line.find(" ", vcdAliasStart);
-            if (vcdAliasEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-
-            auto signalNameStart = line.find_first_not_of(" ", vcdAliasEnd);
-            if (signalNameStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-            auto signalNameEnd = line.find(" ", signalNameStart);
-            if (signalNameEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                out << line << std::endl;
-                continue;
-            }
-
-            std::string vcdAlias(line.substr(vcdAliasStart, vcdAliasEnd - vcdAliasStart));
-            std::string signalName(line.substr(signalNameStart, signalNameEnd - signalNameStart));
-
             auto it = signalNameToState.find(signalName);
             if (it != signalNameToState.end()) {
                 std::cout << "Info: found variable: '" << signalName << "' with alias '" << vcdAlias << "'" << std::endl;
-                // Add the new alias
-                vcdAliases.insert({vcdAlias, it->second});
-                auto &vcdSymbol = it->second.second->outputVcdSymbol;
+                auto &vcdSymbol = it->second.mergeState->outputVcdSymbol;
                 if (vcdSymbol.empty()) {
                     // This is the first alias for this signal group!
                     // -> keep this signal definition & set it as outputVcdSymbol
                     out << line << std::endl;
                     vcdSymbol = vcdAlias;
                 }
+
+                // return the new alias
+                return it->second;
             } else if (!truncate) {
                 std::cout << "Warning: no entry found for signal: " << signalName << std::endl;
                 // We still want to keep this signal!
                 out << line << std::endl;
             }
-        } else {
-            // We dont care about this line, just write it too
-            out << line << std::endl;
-
-            // We are done with the header!
-            if (line.starts_with("$dumpvars")) {
-                break;
-            }
-        }
-    }
-
-    if (!in.good()) {
-        return 0;
-    }
-
-    // Handle the actual dump data!
-    bool showedMultibitWarning = false;
-    while (in.good()) {
-        std::getline(in, line);
-
-        if (line.empty()) {
-            continue;
-        }
-
-        bool isTimestampEnd = line.starts_with('#');
-        bool isVariableUpdate = !isTimestampEnd && !line.starts_with('$');
-        if (isVariableUpdate) {
-            // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
-            std::string vcdAlias;
-            bool value;
-
-            if (line[0] == 'b') {
-                // Multibit value: currently we can not handle this
-                if (!showedMultibitWarning) {
-                    showedMultibitWarning = true;
-                    std::cout << "Warning: multibit values are unsupported!" << std::endl;
-                }
-                if (!truncate) {
-                    out << line << std::endl;
-                }
-                continue;
-            } else {
-                // Single bit value
-                char valueChar = line[0];
-                if (valueChar != '0' && valueChar != '1') {
-                    std::cout << "Warning: unsupported value: " << valueChar << std::endl;
-                    if (!truncate) {
-                        out << line << std::endl;
-                    }
-                    continue;
-                }
-                value = valueChar == '1';
-                vcdAlias = line.substr(1);
-            }
-
-            auto it = vcdAliases.find(vcdAlias);
-            if (it != vcdAliases.end()) {
-                it->second.second->mergeSignal(it->second.first, value);
-            } else if (!truncate) {
-                std::cout << "Warning: no entry found for vcd alias: " << vcdAlias << std::endl;
-                std::cout << "    raw line: " << line << std::endl;
-                // We still want to keep this signal!
-                out << line << std::endl;
-            }
-        } else if (isTimestampEnd) {
+            return std::nullopt;
+        },
+        [&](uint64_t timestamp) {
             // Iterate over all signal groups to dump updated values
             for (auto &s : states) {
                 s->handleTimestepEnd(out);
             }
-            // Also print this line that signaled the end of an timestamp
-            out << line << std::endl;
-        } else {
-            // We neither know nor want to know what this line is, just pass it on!
-            // TODO log?
-            out << line << std::endl;
-        }
+        },
+        [&](const std::string &line) { out << line << std::endl; });
+
+    if (!vcdHandler.good()) {
+        std::cout << "Could not open input file: " << inputFile << std::endl;
+        return 4;
     }
+
+    // run the vcdHandler
+    while(vcdHandler.singleStep(truncate)) {}
 
     // One final dump for updated values
     for (auto &s : states) {
