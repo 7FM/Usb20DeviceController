@@ -70,8 +70,8 @@ module usb_rx#()(
 
     logic dataP, validSignal, eopDetectedSync;
     // when the fifo is empty then we clear the validSignal flag to ensure a error is detected in case that valid data was expected
-    assign dataP = emptyFifo ? 1'b1 : dataP_cdc;
     assign validSignal = emptyFifo ? 1'b0 : validSignal_cdc;
+    assign dataP = validSignal ? dataP_cdc : 1'b1;
     assign eopDetectedSync = emptyFifo ? 1'b0 : eopDetectedCDC;
 
     logic [7:0] inputBuf;
