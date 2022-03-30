@@ -25,6 +25,9 @@ class vcd_reader {
     bool singleStep(bool truncate = true);
 
   private:
+    void parseVariableUpdates(bool truncate, std::string& line);
+
+  private:
     std::ifstream in;
 
     const std::function<void(uint64_t /*timestamp*/)> handleTimestamp;

@@ -94,6 +94,69 @@ vcd_reader<T>::vcd_reader(
 }
 
 template <class T>
+void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
+    // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
+    std::string vcdAlias;
+    bool value;
+
+    auto it = line.find(' ');
+    do {
+        it = line.find(' ');
+        std::string variableUpdate;
+        if (it != std::string::npos) {
+            variableUpdate = line.substr(0, it);
+            line = line.substr(it + 1);
+        } else {
+            variableUpdate = line;
+        }
+
+        if (variableUpdate[0] == 'b') {
+            // Multibit value: currently we can not handle this
+            if (!showedMultibitWarning) {
+                showedMultibitWarning = true;
+                std::cout << "Warning: multibit values are unsupported!" << std::endl;
+            }
+            if (!truncate) {
+                handleIgnoredLine(variableUpdate);
+            }
+            it = line.find(' ');
+            if (it != std::string::npos) {
+                variableUpdate = line.substr(0, it);
+                line = line.substr(it + 1);
+            } else {
+                variableUpdate = line;
+            }
+            if (!truncate) {
+                handleIgnoredLine(variableUpdate);
+            }
+            continue;
+        } else {
+            // Single bit value
+            char valueChar = variableUpdate[0];
+            if (valueChar != '0' && valueChar != '1') {
+                std::cout << "Warning: unsupported value: " << valueChar << std::endl;
+                if (!truncate) {
+                    handleIgnoredLine(variableUpdate);
+                }
+                continue;
+            }
+            value = valueChar == '1';
+            vcdAlias = variableUpdate.substr(1);
+        }
+
+        auto vcdHandlerIt = vcdAliases.find(vcdAlias);
+        if (vcdHandlerIt != vcdAliases.end()) {
+            vcdHandlerIt->second.handleValueChange(value);
+        } else if (!truncate) {
+            std::cout << "Warning: no entry found for vcd alias: " << vcdAlias << std::endl;
+            std::cout << "    raw line: " << variableUpdate << std::endl;
+            // We still want to keep this signal!
+            handleIgnoredLine(variableUpdate);
+        }
+    } while(it != std::string::npos);
+}
+
+template <class T>
 bool vcd_reader<T>::singleStep(bool truncate) {
     std::string line;
 
@@ -108,50 +171,26 @@ bool vcd_reader<T>::singleStep(bool truncate) {
         bool isTimestampEnd = line.starts_with('#');
         bool isVariableUpdate = !isTimestampEnd && !line.starts_with('$');
         if (isVariableUpdate) {
-            // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
-            std::string vcdAlias;
-            bool value;
-
-            if (line[0] == 'b') {
-                // Multibit value: currently we can not handle this
-                if (!showedMultibitWarning) {
-                    showedMultibitWarning = true;
-                    std::cout << "Warning: multibit values are unsupported!" << std::endl;
-                }
-                if (!truncate) {
-                    handleIgnoredLine(line);
-                }
-                continue;
-            } else {
-                // Single bit value
-                char valueChar = line[0];
-                if (valueChar != '0' && valueChar != '1') {
-                    std::cout << "Warning: unsupported value: " << valueChar << std::endl;
-                    if (!truncate) {
-                        handleIgnoredLine(line);
-                    }
-                    continue;
-                }
-                value = valueChar == '1';
-                vcdAlias = line.substr(1);
-            }
-
-            auto it = vcdAliases.find(vcdAlias);
-            if (it != vcdAliases.end()) {
-                it->second.handleValueChange(value);
-            } else if (!truncate) {
-                std::cout << "Warning: no entry found for vcd alias: " << vcdAlias << std::endl;
-                std::cout << "    raw line: " << line << std::endl;
-                // We still want to keep this signal!
-                handleIgnoredLine(line);
-            }
+            parseVariableUpdates(truncate, line);
         } else if (isTimestampEnd) {
             // extract the new timestamp value!
-            uint64_t timestamp = std::stoull(line.substr(1));
+            auto it = line.find(' ');
+            std::string timestempStr;
+            if (it != std::string::npos) {
+                timestempStr = line.substr(0, it);
+            } else {
+                timestempStr = line;
+            }
 
+            uint64_t timestamp = std::stoull(timestempStr.substr(1));
             handleTimestamp(timestamp);
             // Also print this line that signaled the end of an timestamp
-            handleIgnoredLine(line);
+            handleIgnoredLine(timestempStr);
+
+            if (it != std::string::npos) {
+                std::string updates = line.substr(it + 1);
+                parseVariableUpdates(truncate, updates);
+            }
 
             // Exit the loop as only wanted to process a single timestamp
             break;
