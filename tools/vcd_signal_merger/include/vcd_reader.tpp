@@ -93,22 +93,32 @@ vcd_reader<T>::vcd_reader(
     }
 }
 
+static auto updateIt(std::string& line, std::string& variableUpdate) {
+    auto it = line.find(' ');
+    if (it != std::string::npos) {
+        variableUpdate = line.substr(0, it);
+        line = line.substr(it + 1);
+        it = line.find_first_not_of(' ');
+        if (it != std::string::npos) {
+            line = line.substr(it);
+        }
+    } else {
+        variableUpdate = line;
+    }
+    return it;
+}
+
 template <class T>
 void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
     // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
     std::string vcdAlias;
     bool value;
 
-    auto it = line.find(' ');
+    decltype(line.find(' ')) it;
     do {
-        it = line.find(' ');
         std::string variableUpdate;
-        if (it != std::string::npos) {
-            variableUpdate = line.substr(0, it);
-            line = line.substr(it + 1);
-        } else {
-            variableUpdate = line;
-        }
+
+        it = updateIt(line, variableUpdate);
 
         if (variableUpdate[0] == 'b') {
             // Multibit value: currently we can not handle this
@@ -119,13 +129,7 @@ void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
             if (!truncate) {
                 handleIgnoredLine(variableUpdate);
             }
-            it = line.find(' ');
-            if (it != std::string::npos) {
-                variableUpdate = line.substr(0, it);
-                line = line.substr(it + 1);
-            } else {
-                variableUpdate = line;
-            }
+            it = updateIt(line, variableUpdate);
             if (!truncate) {
                 handleIgnoredLine(variableUpdate);
             }
