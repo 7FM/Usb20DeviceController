@@ -1,8 +1,8 @@
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "device_masker.hpp"
 #include "vcd_reader.hpp"
@@ -37,7 +37,6 @@ struct SignalState {
     }
 };
 
-
 struct SignalWrapper {
     SignalWrapper(SignalState *state) : state(state) {}
 
@@ -47,7 +46,6 @@ struct SignalWrapper {
 
     SignalState *const state;
 };
-
 
 int main(int argc, char **argv) {
     std::string inputVcdFile;
@@ -83,18 +81,39 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    std::ofstream out(outputFile);
+    std::vector<Packet> packets;
+    decltype(packets.size()) packetIdx = 0;
+    uint64_t prev_timestamp = 0;
+    {
+        annotation_reader annotationReader(inputAnnotationFile);
+
+        if (!annotationReader.good()) {
+            return 2;
+        }
+
+        annotationReader.parse(packets);
+        maskDevicePackets(packets);
+    }
+
+    for (decltype(packets.size()) i = 0; i < packets.size(); ++i) {
+        std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": " << packets[i] << std::endl;
+    }
+
     std::vector<std::unique_ptr<SignalState>> signals;
 
-    annotation_reader annotationReader(inputAnnotationFile);
+    std::ofstream out(outputFile);
     vcd_reader<SignalWrapper> vcdReader(
         inputVcdFile,
-        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string &typeStr, const std::string &bitwidthStr) -> std::optional<SignalWrapper> {
-            if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1' || !signalName.starts_with("USB_D")) {
+        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string & /*typeStr*/, const std::string &bitwidthStr) -> std::optional<SignalWrapper> {
+            auto it = signalName.find("USB_D");
+            if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1' || it == std::string::npos) {
                 // std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
                 // out << line << std::endl;
                 return std::nullopt;
             }
+
+            // -> keep this signal definition
+            out << line << std::endl;
 
             const auto &ref = signals.emplace_back(std::make_unique<SignalState>());
 
@@ -103,26 +122,27 @@ int main(int argc, char **argv) {
             return wrapper;
         },
         [&](uint64_t timestamp) {
-            bool ignore; // TODO use timestamp to get the packet annotation!
+            bool ignore = false;
+            for (; packetIdx < packets.size(); ++packetIdx) {
+                const auto &p = packets[packetIdx];
+                // TODO allow for some padding!
+                if (p.endTime >= timestamp && prev_timestamp >= p.startTime) {
+                    ignore = p.ignore;
+                    break;
+                }
+            }
 
             // Iterate over all signal groups to dump updated values
             for (auto &s : signals) {
                 s->handleTimestepEnd(out, ignore);
             }
+
+            prev_timestamp = timestamp;
         },
         [&](const std::string &line) { out << line << std::endl; });
 
-    if (!annotationReader.good() || !vcdReader.good() || !out.good()) {
-        return 2;
-    }
-
-    std::vector<Packet> packets;
-    annotationReader.parse(packets);
-
-    maskDevicePackets(packets);
-
-    for (decltype(packets.size()) i = 0; i < packets.size(); ++i) {
-        std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": " << packets[i] << std::endl;
+    if (!vcdReader.good() || !out.good()) {
+        return 3;
     }
 
     bool truncate = true;
