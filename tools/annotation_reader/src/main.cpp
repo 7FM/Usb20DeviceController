@@ -4,16 +4,16 @@
 #include "annotation_reader.hpp"
 
 static void printHelp() {
-    std::cout << "Usage: ./annotation_reader -i <input.vcd>" << std::endl;
+    std::cout << "Usage: ./annotation_reader -a <annotation.txt>" << std::endl;
 }
 
 int main(int argc, char **argv) {
     std::string inputFile;
 
     int opt;
-    while ((opt = getopt(argc, argv, "i:")) != -1) {
+    while ((opt = getopt(argc, argv, "a:")) != -1) {
         switch (opt) {
-            case 'i': {
+            case 'a': {
                 inputFile = optarg;
                 break;
             }
