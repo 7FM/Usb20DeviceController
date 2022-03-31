@@ -24,7 +24,6 @@ static void parseMergeSignalArgs(const std::string& arg, MergeSignals &merge) {
     auto sig = arg.substr(prevPos);
     merge.signalNames.insert(sig);
     std::cout << " " << sig << std::endl;
-    ;
 }
 
 int main(int argc, char **argv) {
