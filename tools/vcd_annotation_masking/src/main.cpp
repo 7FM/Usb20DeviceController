@@ -126,7 +126,9 @@ int main(int argc, char **argv) {
             for (; packetIdx < packets.size(); ++packetIdx) {
                 const auto &p = packets[packetIdx];
                 // TODO allow for some padding!
-                if (p.endTime >= timestamp && prev_timestamp >= p.startTime) {
+                if (timestamp < p.startTime || prev_timestamp < p.startTime) {
+                    break;
+                } else if (p.endTime >= timestamp && prev_timestamp >= p.startTime) {
                     ignore = p.ignore;
                     break;
                 }
