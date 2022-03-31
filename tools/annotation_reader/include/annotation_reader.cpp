@@ -58,8 +58,8 @@ void annotation_reader::parse(std::vector<Packet> &packets) {
 
             uint64_t regionStart = std::stoull(region.substr(0, regionSplit));
             uint64_t regionEnd = std::stoull(region.substr(regionSplit + 1));
-            regionStart = static_cast<decltype(regionStart)>(regionStart * 1'000'000'000.0 / (2 * 48'000'000));
-            regionEnd = static_cast<decltype(regionEnd)>(regionEnd * 1'000'000'000.0 / (2 * 48'000'000));
+            // regionStart = static_cast<decltype(regionStart)>(regionStart * 1'000'000'000.0 / (2 * 48'000'000));
+            // regionEnd = static_cast<decltype(regionEnd)>(regionEnd * 1'000'000'000.0 / (2 * 48'000'000));
 
             line = line.substr(it + searchTermSize - 1);
             it = line.find(DELIMITER_TERM);
