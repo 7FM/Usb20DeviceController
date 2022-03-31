@@ -86,7 +86,7 @@ vcd_reader<T>::vcd_reader(
             handleIgnoredLine(line);
 
             // We are done with the header!
-            if (line.starts_with("$dumpvars")) {
+            if (line.starts_with("$dumpvars") || line.starts_with("$enddefinitions")) {
                 break;
             }
         }
@@ -138,7 +138,7 @@ void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
             // Single bit value
             char valueChar = variableUpdate[0];
             if (valueChar != '0' && valueChar != '1') {
-                std::cout << "Warning: unsupported value: " << valueChar << std::endl;
+                std::cout << "Warning: unsupported value: '" << valueChar << '\'' << std::endl;
                 if (!truncate) {
                     handleIgnoredLine(variableUpdate);
                 }
@@ -193,7 +193,14 @@ bool vcd_reader<T>::singleStep(bool truncate) {
 
             if (it != std::string::npos) {
                 std::string updates = line.substr(it + 1);
-                parseVariableUpdates(truncate, updates);
+
+                auto it = updates.find_first_not_of(' ');
+                if (it != std::string::npos) {
+                    updates = updates.substr(it);
+                    if (!updates.empty()) {
+                        parseVariableUpdates(truncate, updates);
+                    }
+                }
             }
 
             // Exit the loop as only wanted to process a single timestamp
