@@ -114,25 +114,47 @@ void VerilatorTB<Impl, TOP>::tick() {
 }
 
 template <class Impl, class TOP>
+template <bool dump, bool runOnRisingEdge>
+void VerilatorTB<Impl, TOP>::issueRisingEdge() {
+    top->CLK = 1;
+
+    if constexpr (runOnRisingEdge) {
+        static_cast<Impl *>(this)->onRisingEdge();
+    }
+    tick<dump>();
+}
+
+template <class Impl, class TOP>
+template <bool dump, bool runOnFallingEdge>
+void VerilatorTB<Impl, TOP>::issueFallingEdge() {
+    top->CLK = 0;
+
+    if constexpr (runOnFallingEdge) {
+        static_cast<Impl *>(this)->onFallingEdge();
+    }
+    tick<dump>();
+}
+
+template <class Impl, class TOP>
+template <bool dump, bool runOnEdge>
+void VerilatorTB<Impl, TOP>::issueClkToggle() {
+    if (top->CLK) {
+        issueFallingEdge<dump, runOnEdge>();
+    } else {
+        issueRisingEdge<dump, runOnEdge>();
+    }
+}
+
+template <class Impl, class TOP>
 template <bool dump, bool checkStopCondition, bool runSanityChecks, bool runOnRisingEdge, bool runOnFallingEdge>
 bool VerilatorTB<Impl, TOP>::run(uint64_t limit) {
     bool stop;
     do {
         stop = checkStopCondition && static_cast<Impl *>(this)->stopCondition();
 
-        top->CLK = 1;
+        issueRisingEdge<dump, runOnRisingEdge>();
 
-        if constexpr (runOnRisingEdge) {
-            static_cast<Impl *>(this)->onRisingEdge();
-        }
-        tick<dump>();
-
-        top->CLK = 0;
-
-        if constexpr (runOnFallingEdge) {
-            static_cast<Impl *>(this)->onFallingEdge();
-        }
-        tick<dump>();
+        issueFallingEdge<dump, runOnFallingEdge>();
 
         if constexpr (runSanityChecks) {
             static_cast<Impl *>(this)->sanityChecks();

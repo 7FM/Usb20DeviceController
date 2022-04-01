@@ -42,6 +42,13 @@ class VerilatorTB {
     template <bool dump, bool checkStopCondition = true, bool runSanityChecks = true, bool runOnRisingEdge = true, bool runOnFallingEdge = true>
     bool run(uint64_t limit);
 
+    template <bool dump, bool runOnRisingEdge = true>
+    void issueRisingEdge();
+    template <bool dump, bool runOnFallingEdge = true>
+    void issueFallingEdge();
+    template <bool dump, bool runOnEdge = true>
+    void issueClkToggle();
+
     unsigned getSeed() const { return seed; }
 
     int getRand() const {
