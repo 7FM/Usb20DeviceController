@@ -20,15 +20,17 @@ struct SignalState {
     bool changedValue = false;
     bool initialized = false;
 
-    void handleValueChange(bool newValue) {
+    bool handleValueChange(bool newValue) {
         changedValue = !initialized || changedValue || (newValue != currentState);
         currentState = newValue;
+        return changedValue;
     }
 
-    void handleTimestepEnd(std::ofstream &out, bool ignore) {
+    void handleTimestepEnd(std::vector<std::string> &printBacklog) {
         // Only print the variable state, if it has changed!
-        if (!ignore && changedValue) {
-            out << (currentState ? '1' : '0') << outputVcdSymbol << std::endl;
+        if (changedValue) {
+            std::string res = (currentState ? '1' : '0') + outputVcdSymbol;
+            printBacklog.push_back(std::move(res));
         }
 
         initialized = initialized || changedValue;
@@ -40,8 +42,8 @@ struct SignalState {
 struct SignalWrapper {
     SignalWrapper(SignalState *state) : state(state) {}
 
-    void handleValueChange(bool value) {
-        state->handleValueChange(value);
+    bool handleValueChange(bool value) {
+        return state->handleValueChange(value);
     }
 
     SignalState *const state;
@@ -121,6 +123,12 @@ int main(int argc, char **argv) {
             ref->outputVcdSymbol = vcdAlias;
             return wrapper;
         },
+        [&](std::vector<std::string> &printBacklog) {
+            // Iterate over all signal groups to dump updated values
+            for (auto &s : signals) {
+                s->handleTimestepEnd(printBacklog);
+            }
+        },
         [&](uint64_t timestamp) {
             bool ignore = false;
             for (; packetIdx < packets.size(); ++packetIdx) {
@@ -134,12 +142,8 @@ int main(int argc, char **argv) {
                 }
             }
 
-            // Iterate over all signal groups to dump updated values
-            for (auto &s : signals) {
-                s->handleTimestepEnd(out, ignore);
-            }
-
             prev_timestamp = timestamp;
+            return ignore;
         },
         [&](const std::string &line) { out << line << std::endl; });
 
@@ -149,8 +153,7 @@ int main(int argc, char **argv) {
 
     bool truncate = true;
     // run the vcdReader
-    while (vcdReader.singleStep(truncate)) {
-    }
+    vcdReader.process(truncate);
 
     return 0;
 }

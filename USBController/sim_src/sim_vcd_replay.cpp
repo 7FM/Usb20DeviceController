@@ -59,14 +59,17 @@ class UsbVcdReplaySim : public VerilatorTB<UsbVcdReplaySim, TOP_MODULE> {
     void onFallingEdge() {}
     void sanityChecks() {}
 
-    void updateUSB_DP(bool value) {
+    bool updateUSB_DP(bool value) {
         top->USB_DP = value;
+        return false;
     }
-    void updateUSB_DN(bool value) {
+    bool updateUSB_DN(bool value) {
         top->USB_DN = value;
+        return false;
     }
-    
+
   public:
+    bool tickEqualsClockFreq = false;
     const char *replayFile = nullptr;
 };
 
@@ -77,15 +80,15 @@ bool getForceStop() {
 /******************************************************************************/
 
 struct DummyForwarder {
-    DummyForwarder(std::function<void(bool)> handler) : handler(handler) {
+    DummyForwarder(std::function<bool(bool)> handler) : handler(handler) {
     }
 
-    void handleValueChange(bool value) {
-        handler(value);
+    bool handleValueChange(bool value) {
+        return handler(value);
     }
 
   private:
-    const std::function<void(bool)> handler;
+    const std::function<bool(bool)> handler;
 };
 
 struct SimWrapper {
@@ -102,13 +105,14 @@ struct SimWrapper {
 
         return std::nullopt;
     }
-    void handleTimestamp(uint64_t timestamp) {
+    bool handleTimestampStart(uint64_t timestamp) {
         // run sim for the expired cycles
         uint64_t cyclesPassed = timestamp - lastTimestamp;
 
         sim->run<true>(cyclesPassed);
 
         lastTimestamp = timestamp;
+        return true;
     }
 
   private:
@@ -138,11 +142,11 @@ int main(int argc, char **argv) {
     vcd_reader<DummyForwarder> vcdParser(
         sim.replayFile,
         std::bind(&SimWrapper::handlerCreator, &wrapper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
-        std::bind(&SimWrapper::handleTimestamp, &wrapper, std::placeholders::_1),
+        [&](std::vector<std::string> &printBacklog) {},
+        std::bind(&SimWrapper::handleTimestampStart, &wrapper, std::placeholders::_1),
         [](auto &) {});
 
-    while (!forceStop && vcdParser.singleStep()) {
-    }
+    vcdParser.process();
 
     return 0;
 }

@@ -26,7 +26,7 @@ struct SignalMergeState {
 
     SignalMergeState(bool mergeViaAND, size_t size) : mergeViaAND(mergeViaAND), size(size), values(new bool[size]) {}
 
-    void mergeSignal(size_t i, bool newValue) {
+    bool mergeSignal(size_t i, bool newValue) {
         values[i] = newValue;
 
         // Recalculate the combined state value
@@ -44,13 +44,15 @@ struct SignalMergeState {
 
         changedValue = !initialized || changedValue || (updatedState != currentState);
         currentState = updatedState;
+        return changedValue;
     }
 
-    void handleTimestepEnd(std::ofstream &out) {
+    void handleTimestepEnd(std::vector<std::string> &printBacklog) {
         // Only print the variable state, if it has changed!
         if (changedValue) {
             initialized = true;
-            out << (currentState ? '1' : '0') << outputVcdSymbol << std::endl;
+            std::string res((currentState ? '1' : '0') + outputVcdSymbol);
+            printBacklog.push_back(std::move(res));
         }
         // Clear the changed flag
         changedValue = false;
@@ -60,8 +62,8 @@ struct SignalMergeState {
 struct SignalMergerWrapper {
     SignalMergerWrapper(size_t index, SignalMergeState *mergeState) : index(index), mergeState(mergeState) {}
 
-    void handleValueChange(bool value) {
-        mergeState->mergeSignal(index, value);
+    bool handleValueChange(bool value) {
+        return mergeState->mergeSignal(index, value);
     }
 
     const size_t index;
@@ -89,7 +91,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
 
     vcd_reader<SignalMergerWrapper> vcdHandler(
         inputFile,
-        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string &typeStr, const std::string &bitwidthStr) -> std::optional<SignalMergerWrapper> {
+        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string &/*typeStr*/, const std::string &bitwidthStr) -> std::optional<SignalMergerWrapper> {
             if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1') {
                 // std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
                 // out << line << std::endl;
@@ -115,12 +117,13 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
             }
             return std::nullopt;
         },
-        [&](uint64_t timestamp) {
+        [&](std::vector<std::string> &printBacklog) {
             // Iterate over all signal groups to dump updated values
             for (auto &s : states) {
-                s->handleTimestepEnd(out);
+                s->handleTimestepEnd(printBacklog);
             }
         },
+        [&](uint64_t /*timestamp*/) { return false; },
         [&](const std::string &line) { out << line << std::endl; });
 
     if (!vcdHandler.good()) {
@@ -129,12 +132,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
     }
 
     // run the vcdHandler
-    while(vcdHandler.singleStep(truncate)) {}
-
-    // One final dump for updated values
-    for (auto &s : states) {
-        s->handleTimestepEnd(out);
-    }
+    vcdHandler.process(truncate);
 
     return 0;
 }

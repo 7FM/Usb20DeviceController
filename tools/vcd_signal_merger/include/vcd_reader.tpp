@@ -6,8 +6,9 @@ template <class T>
 vcd_reader<T>::vcd_reader(
     const std::string &path,
     std::function<std::optional<T>(const std::string & /*line*/, const std::string & /*signalName*/, const std::string & /*vcdAlias*/, const std::string & /*typeStr*/, const std::string & /*bitwidthStr*/)> handlerCreator,
-    std::function<void(uint64_t /*timestamp*/)> handleTimestamp,
-    std::function<void(const std::string & /*line*/)> handleIgnoredLine) : in(path), handleTimestamp(handleTimestamp), handleIgnoredLine(handleIgnoredLine) {
+    std::function<void(std::vector<std::string> & /*printBacklog*/)> handleTimestampEnd,
+    std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart,
+    std::function<void(const std::string & /*line*/)> handleIgnoredLine) : in(path), handleTimestampEnd(handleTimestampEnd), handleTimestampStart(handleTimestampStart), handleIgnoredLine(handleIgnoredLine) {
 
     std::string line;
 
@@ -93,7 +94,7 @@ vcd_reader<T>::vcd_reader(
     }
 }
 
-static auto updateIt(std::string& line, std::string& variableUpdate) {
+static auto updateIt(std::string &line, std::string &variableUpdate) {
     auto it = line.find(' ');
     if (it != std::string::npos) {
         variableUpdate = line.substr(0, it);
@@ -109,10 +110,11 @@ static auto updateIt(std::string& line, std::string& variableUpdate) {
 }
 
 template <class T>
-void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
+bool vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line, std::vector<std::string> &printBacklog) {
     // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
     std::string vcdAlias;
     bool value;
+    bool print = false;
 
     decltype(line.find(' ')) it;
     do {
@@ -127,11 +129,12 @@ void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
                 std::cout << "Warning: multibit values are unsupported!" << std::endl;
             }
             if (!truncate) {
-                handleIgnoredLine(variableUpdate);
+                print = true;
+                printBacklog.push_back(variableUpdate);
             }
             it = updateIt(line, variableUpdate);
             if (!truncate) {
-                handleIgnoredLine(variableUpdate);
+                printBacklog.push_back(variableUpdate);
             }
             continue;
         } else {
@@ -140,7 +143,8 @@ void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
             if (valueChar != '0' && valueChar != '1') {
                 std::cout << "Warning: unsupported value: '" << valueChar << '\'' << std::endl;
                 if (!truncate) {
-                    handleIgnoredLine(variableUpdate);
+                    print = true;
+                    printBacklog.push_back(variableUpdate);
                 }
                 continue;
             }
@@ -150,19 +154,26 @@ void vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line) {
 
         auto vcdHandlerIt = vcdAliases.find(vcdAlias);
         if (vcdHandlerIt != vcdAliases.end()) {
-            vcdHandlerIt->second.handleValueChange(value);
+            print |= vcdHandlerIt->second.handleValueChange(value);
         } else if (!truncate) {
             std::cout << "Warning: no entry found for vcd alias: " << vcdAlias << std::endl;
             std::cout << "    raw line: " << variableUpdate << std::endl;
             // We still want to keep this signal!
-            handleIgnoredLine(variableUpdate);
+            print = true;
+            printBacklog.push_back(variableUpdate);
         }
-    } while(it != std::string::npos);
+    } while (it != std::string::npos);
+
+    return print;
 }
 
 template <class T>
-bool vcd_reader<T>::singleStep(bool truncate) {
+void vcd_reader<T>::process(bool truncate) {
     std::string line;
+
+    std::vector<std::string> printBacklog;
+    bool print = false;
+    bool maskPrinting = true;
 
     // Handle the actual dump data!
     while (in.good()) {
@@ -175,8 +186,18 @@ bool vcd_reader<T>::singleStep(bool truncate) {
         bool isTimestampEnd = line.starts_with('#');
         bool isVariableUpdate = !isTimestampEnd && !line.starts_with('$');
         if (isVariableUpdate) {
-            parseVariableUpdates(truncate, line);
+            print |= parseVariableUpdates(truncate, line, printBacklog);
         } else if (isTimestampEnd) {
+            if (!maskPrinting && print) {
+                handleTimestampEnd(printBacklog);
+                for (const auto &s : printBacklog) {
+                    handleIgnoredLine(s);
+                }
+            }
+            printBacklog.clear();
+            maskPrinting = true;
+            print = false;
+
             // extract the new timestamp value!
             auto it = line.find(' ');
             std::string timestempStr;
@@ -187,9 +208,9 @@ bool vcd_reader<T>::singleStep(bool truncate) {
             }
 
             uint64_t timestamp = std::stoull(timestempStr.substr(1));
-            handleTimestamp(timestamp);
+            maskPrinting = handleTimestampStart(timestamp);
             // Also print this line that signaled the end of an timestamp
-            handleIgnoredLine(timestempStr);
+            printBacklog.push_back(timestempStr);
 
             if (it != std::string::npos) {
                 std::string updates = line.substr(it + 1);
@@ -198,18 +219,23 @@ bool vcd_reader<T>::singleStep(bool truncate) {
                 if (it != std::string::npos) {
                     updates = updates.substr(it);
                     if (!updates.empty()) {
-                        parseVariableUpdates(truncate, updates);
+                        // TODO test inline updates within the same line as the timestamp!
+                        print |= parseVariableUpdates(truncate, updates, printBacklog);
                     }
                 }
             }
 
-            // Exit the loop as only wanted to process a single timestamp
-            break;
         } else {
-            // We neither know nor want to know what this line is, just pass it on!
+            // TODO this might change the position of that line! ADD BIG WARNING!
+            //  We neither know nor want to know what this line is, just pass it on!
             handleIgnoredLine(line);
         }
     }
 
-    return in.good();
+    if (!maskPrinting && print) {
+        handleTimestampEnd(printBacklog);
+        for (const auto &s : printBacklog) {
+            handleIgnoredLine(s);
+        }
+    }
 }
