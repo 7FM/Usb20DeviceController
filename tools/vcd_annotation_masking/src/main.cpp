@@ -2,6 +2,7 @@
 #include <getopt.h>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "device_masker.hpp"
@@ -53,9 +54,10 @@ int main(int argc, char **argv) {
     std::string inputVcdFile;
     std::string outputFile;
     std::string inputAnnotationFile;
+    int64_t padding = 10;
 
     int opt;
-    while ((opt = getopt(argc, argv, "i:a:o:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:a:o:p:")) != -1) {
         switch (opt) {
             case 'i': {
                 inputVcdFile = optarg;
@@ -67,6 +69,10 @@ int main(int argc, char **argv) {
             }
             case 'o': {
                 outputFile = optarg;
+                break;
+            }
+            case 'p': {
+                padding = std::stoull(optarg);
                 break;
             }
             default: {
@@ -85,7 +91,6 @@ int main(int argc, char **argv) {
 
     std::vector<Packet> packets;
     decltype(packets.size()) packetIdx = 0;
-    uint64_t prev_timestamp = 0;
     {
         annotation_reader annotationReader(inputAnnotationFile);
 
@@ -133,16 +138,16 @@ int main(int argc, char **argv) {
             bool ignore = false;
             for (; packetIdx < packets.size(); ++packetIdx) {
                 const auto &p = packets[packetIdx];
-                // TODO allow for some padding!
-                if (timestamp < p.startTime || prev_timestamp < p.startTime) {
+
+                if (static_cast<int64_t>(timestamp) < p.startTime - padding) {
+                    // we haven't reached the current packet yet!
                     break;
-                } else if (p.endTime >= timestamp && prev_timestamp >= p.startTime) {
+                } else if (p.endTime + padding >= static_cast<int64_t>(timestamp)) {
                     ignore = p.ignore;
                     break;
                 }
             }
 
-            prev_timestamp = timestamp;
             return ignore;
         },
         [&](const std::string &line) { out << line << std::endl; });

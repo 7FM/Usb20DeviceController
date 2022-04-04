@@ -16,7 +16,7 @@ enum UsbPacket {
 };
 
 struct Packet {
-    uint64_t startTime, endTime;
+    int64_t startTime, endTime;
     UsbPacket type;
     bool ignore;
 
