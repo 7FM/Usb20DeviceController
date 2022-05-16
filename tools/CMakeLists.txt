@@ -1,0 +1,3 @@
+add_subdirectory(annotation_reader)
+add_subdirectory(vcd_annotation_masking)
+add_subdirectory(vcd_signal_merger)
