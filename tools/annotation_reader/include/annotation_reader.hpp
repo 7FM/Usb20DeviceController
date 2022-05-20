@@ -20,19 +20,15 @@ struct Packet {
     UsbPacket type;
     bool ignore;
 
-    friend std::ostream &operator<<(std::ostream &s, const Packet& p);
+    friend std::ostream &operator<<(std::ostream &s, const Packet &p);
 };
 
 class annotation_reader {
   public:
     annotation_reader(const std::string &path) : in(path) {}
 
-    bool operator()() {
-        return good();
-    }
-    bool good() {
-        return in.good();
-    }
+    bool operator()() { return good(); }
+    bool good() { return in.good(); }
 
     void parse(std::vector<Packet> &packets);
 

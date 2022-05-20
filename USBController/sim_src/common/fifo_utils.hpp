@@ -4,20 +4,20 @@
 #include <type_traits>
 #include <vector>
 
-template <typename T>
-void setBit(T &data, unsigned int bitOffset, bool value) {
-    data = (data & ~(1 << bitOffset)) | (static_cast<T>(value ? 1 : 0) << bitOffset);
+template <typename T> void setBit(T &data, unsigned int bitOffset, bool value) {
+    data = (data & ~(1 << bitOffset)) |
+           (static_cast<T>(value ? 1 : 0) << bitOffset);
 }
 
 template <typename T, typename V>
 void setValue(T &data, unsigned int offset, V value) {
     V v_mask = static_cast<V>(-1);
-    T mask = static_cast<T>(~(static_cast<std::make_unsigned<T>::type>(v_mask) << offset));
+    T mask = static_cast<T>(
+        ~(static_cast<std::make_unsigned<T>::type>(v_mask) << offset));
     data = (data & mask) | (static_cast<T>(value) << offset);
 }
 
-template <typename T>
-bool getBit(const T &data, unsigned int bitOffset) {
+template <typename T> bool getBit(const T &data, unsigned int bitOffset) {
     return data & (1 << bitOffset);
 }
 
@@ -28,11 +28,9 @@ V getValue(const T &data, unsigned int offset) {
     return static_cast<V>((data >> offset) & mask);
 }
 
-template <unsigned int EPs, class Impl, class EpState>
-class BaseFIFOState {
+template <unsigned int EPs, class Impl, class EpState> class BaseFIFOState {
   public:
-    template <class T>
-    void reset(T *top) {
+    template <class T> void reset(T *top) {
         for (auto &s : epState) {
             s.reset();
         }
@@ -41,16 +39,10 @@ class BaseFIFOState {
         static_cast<Impl *>(this)->do_reset(top);
     }
 
-    void enable() {
-        enabled = true;
-    }
-    void disable() {
-        enabled = false;
-    }
+    void enable() { enabled = true; }
+    void disable() { enabled = false; }
 
-    bool isEnabled() {
-        return enabled;
-    }
+    bool isEnabled() { return enabled; }
     bool anyDone() {
         bool done = false;
         for (const auto &s : epState) {
@@ -85,20 +77,16 @@ struct EpFillState {
         writePointer = 0;
     }
 
-    bool isDone() const {
-        return sentAllData() && doneSent;
-    }
+    bool isDone() const { return sentAllData() && doneSent; }
 
-    bool sentAllData() const {
-        return data.size() == writePointer;
-    }
+    bool sentAllData() const { return data.size() == writePointer; }
 };
 
 template <unsigned int EPs>
-class FIFOFillState : public BaseFIFOState<EPs, FIFOFillState<EPs>, EpFillState> {
+class FIFOFillState
+    : public BaseFIFOState<EPs, FIFOFillState<EPs>, EpFillState> {
   public:
-    template <class T>
-    void do_reset(T *top) {
+    template <class T> void do_reset(T *top) {
         for (unsigned int i = 0; i < EPs; ++i) {
             setBit(top->EP_OUT_fillTransDone_i, i, false);
             setBit(top->EP_OUT_fillTransSuccess_i, i, false);
@@ -120,7 +108,8 @@ void fillFIFO(T *top, FIFOFillState<EPs> &s) {
             setBit(top->EP_OUT_fillTransSuccess_i, i, ep.sentAllData());
             ep.doneSent = ep.sentAllData();
 
-            setBit(top->EP_OUT_dataValid_i, i, ep.writePointer < ep.data.size());
+            setBit(top->EP_OUT_dataValid_i, i,
+                   ep.writePointer < ep.data.size());
             if (ep.writePointer < ep.data.size()) {
                 setValue(top->EP_OUT_data_i, i * 8, ep.data[ep.writePointer]);
 
@@ -143,16 +132,14 @@ struct EpEmptyState {
         done = false;
     }
 
-    bool isDone() const {
-        return done;
-    }
+    bool isDone() const { return done; }
 };
 
 template <unsigned int EPs>
-class FIFOEmptyState : public BaseFIFOState<EPs, FIFOEmptyState<EPs>, EpEmptyState> {
+class FIFOEmptyState
+    : public BaseFIFOState<EPs, FIFOEmptyState<EPs>, EpEmptyState> {
   public:
-    template <class T>
-    void do_reset(T *top) {
+    template <class T> void do_reset(T *top) {
         for (unsigned int i = 0; i < EPs; ++i) {
             setBit(top->EP_IN_popTransDone_i, i, false);
             setBit(top->EP_IN_popTransSuccess_i, i, false);

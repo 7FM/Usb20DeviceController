@@ -7,8 +7,8 @@
 
 #include <iostream>
 
-#define STRINGIFY_CASE(x) \
-    case (x):             \
+#define STRINGIFY_CASE(x)                                                      \
+    case (x):                                                                  \
         return #x
 
 static const char *usbPacketToStr(UsbPacket p) {
@@ -25,7 +25,8 @@ static const char *usbPacketToStr(UsbPacket p) {
 }
 
 std::ostream &operator<<(std::ostream &s, const Packet &p) {
-    s << usbPacketToStr(p.type) << " start: " << p.startTime << " end: " << p.endTime << " ignore: " << p.ignore;
+    s << usbPacketToStr(p.type) << " start: " << p.startTime
+      << " end: " << p.endTime << " ignore: " << p.ignore;
     return s;
 }
 
@@ -42,9 +43,11 @@ void annotation_reader::parse(std::vector<Packet> &packets) {
         }
 
 #define SEARCH_TERM " USB packet: Packet fields: "
-        auto constexpr searchTermSize = sizeof(SEARCH_TERM) / sizeof(SEARCH_TERM[0]);
+        auto constexpr searchTermSize =
+            sizeof(SEARCH_TERM) / sizeof(SEARCH_TERM[0]);
 #define DELIMITER_TERM ": "
-        auto constexpr delimiterTermSize = sizeof(DELIMITER_TERM) / sizeof(DELIMITER_TERM[0]);
+        auto constexpr delimiterTermSize =
+            sizeof(DELIMITER_TERM) / sizeof(DELIMITER_TERM[0]);
         auto it = line.find(SEARCH_TERM);
         if (it != std::string::npos) {
             std::string region = line.substr(0, it);
@@ -58,8 +61,10 @@ void annotation_reader::parse(std::vector<Packet> &packets) {
 
             uint64_t regionStart = std::stoull(region.substr(0, regionSplit));
             uint64_t regionEnd = std::stoull(region.substr(regionSplit + 1));
-            // regionStart = static_cast<decltype(regionStart)>(regionStart * 1'000'000'000.0 / (2 * 48'000'000));
-            // regionEnd = static_cast<decltype(regionEnd)>(regionEnd * 1'000'000'000.0 / (2 * 48'000'000));
+            // regionStart = static_cast<decltype(regionStart)>(regionStart *
+            // 1'000'000'000.0 / (2 * 48'000'000)); regionEnd =
+            // static_cast<decltype(regionEnd)>(regionEnd * 1'000'000'000.0 / (2
+            // * 48'000'000));
 
             line = line.substr(it + searchTermSize - 1);
             it = line.find(DELIMITER_TERM);
@@ -75,10 +80,12 @@ void annotation_reader::parse(std::vector<Packet> &packets) {
                     currentPacket.ignore = false;
                 } else if (packetField == "PID") {
                     if (currentPacket.type == NONE) {
-                        std::string pid = line.substr(it + delimiterTermSize - 1);
+                        std::string pid =
+                            line.substr(it + delimiterTermSize - 1);
                         currentPacket.type = NONE;
 
-                        if (pid == "ACK" || pid == "NAK" || pid == "STALL" || pid == "NYET") {
+                        if (pid == "ACK" || pid == "NAK" || pid == "STALL" ||
+                            pid == "NYET") {
                             currentPacket.type = HANDSHAKE;
                         } else if (pid == "IN") {
                             currentPacket.type = IN;
@@ -91,7 +98,8 @@ void annotation_reader::parse(std::vector<Packet> &packets) {
                         } else if (pid.starts_with("DATA")) {
                             currentPacket.type = DATA;
                         } else {
-                            std::cout << "WARNING: unknown PID: " << pid << std::endl;
+                            std::cout << "WARNING: unknown PID: " << pid
+                                      << std::endl;
                         }
                     }
                 } else {

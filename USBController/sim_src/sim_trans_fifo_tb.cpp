@@ -5,7 +5,7 @@
 #include <functional>
 
 #define TOP_MODULE Vsim_trans_fifo_tb
-#include "Vsim_trans_fifo_tb.h"       // basic Top header
+#include "Vsim_trans_fifo_tb.h" // basic Top header
 #include "Vsim_trans_fifo_tb__Syms.h" // all headers to access exposed internal signals
 
 #include "common/VerilatorTB.hpp"
@@ -44,15 +44,9 @@ class FIFOPusher {
         clearCommit(top);
     }
 
-    void enable() {
-        enabled = true;
-    }
-    void disable() {
-        enabled = false;
-    }
-    bool isEnabled() const {
-        return enabled;
-    }
+    void enable() { enabled = true; }
+    void disable() { enabled = false; }
+    bool isEnabled() const { return enabled; }
 
     void fillFIFO(TOP_MODULE *top, bool posedge, bool negedge) {
         if (!enabled) {
@@ -101,15 +95,9 @@ class FIFOPopper {
         clearCommit(top);
     }
 
-    void enable() {
-        enabled = true;
-    }
-    void disable() {
-        enabled = false;
-    }
-    bool isEnabled() const {
-        return enabled;
-    }
+    void enable() { enabled = true; }
+    void disable() { enabled = false; }
+    bool isEnabled() const { return enabled; }
 
     void emptyFIFO(TOP_MODULE *top, bool posedge, bool negedge) {
         if (!enabled) {
@@ -147,7 +135,8 @@ class FIFOSim : public VerilatorTB<FIFOSim, TOP_MODULE> {
     }
 
     bool stopCondition() {
-        return forceStop || (pusher.isEnabled() && top->full_o) || (popper.isEnabled() && !top->dataAvailable_o);
+        return forceStop || (pusher.isEnabled() && top->full_o) ||
+               (popper.isEnabled() && !top->dataAvailable_o);
     }
 
     void onRisingEdge() {
@@ -221,7 +210,8 @@ int main(int argc, char **argv) {
     sim.run<true, false>(1);
 
     failed = sim.popper.poppedData.size() != fifoSize;
-    std::cout << "Popped " << sim.popper.poppedData.size() << " elements!" << std::endl;
+    std::cout << "Popped " << sim.popper.poppedData.size() << " elements!"
+              << std::endl;
 
     if (failed) {
         goto exitAndCleanup;
@@ -232,14 +222,15 @@ int main(int argc, char **argv) {
         uint8_t got = sim.popper.poppedData[i];
         if (got != expected) {
             failed = true;
-            std::cout << "Popped wrong value at idx: " << i << " expected: " << static_cast<int>(expected) << " Got: " << static_cast<int>(got) << std::endl;
+            std::cout << "Popped wrong value at idx: " << i
+                      << " expected: " << static_cast<int>(expected)
+                      << " Got: " << static_cast<int>(got) << std::endl;
         }
     }
 
 exitAndCleanup:
 
-    std::cout << std::endl
-              << "Tests ";
+    std::cout << std::endl << "Tests ";
 
     if (forceStop) {
         std::cout << "ABORTED!" << std::endl;

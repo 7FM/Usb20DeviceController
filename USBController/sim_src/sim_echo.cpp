@@ -61,7 +61,8 @@ class UsbEchoSim : public VerilatorTB<UsbEchoSim, TOP_MODULE> {
     }
 
     bool stopCondition() {
-        return txState.doneSending || rxState.receivedLastByte || rxState.timedOut || forceStop;
+        return txState.doneSending || rxState.receivedLastByte ||
+               rxState.timedOut || forceStop;
     }
 
     void onRisingEdge() {
@@ -95,7 +96,8 @@ class UsbEchoSim : public VerilatorTB<UsbEchoSim, TOP_MODULE> {
 
     void usbReset() {
         top->forceSE0 = 1;
-        // Run with the reset signal for some time //TODO how many cycles exactly???
+        // Run with the reset signal for some time //TODO how many cycles
+        // exactly???
         run<true, false>(200);
         top->forceSE0 = 0;
     }
@@ -112,9 +114,7 @@ class UsbEchoSim : public VerilatorTB<UsbEchoSim, TOP_MODULE> {
     uint8_t clk12Offset = 0;
 };
 
-bool getForceStop() {
-    return forceStop;
-}
+bool getForceStop() { return forceStop; }
 
 /******************************************************************************/
 
@@ -144,10 +144,12 @@ int main(int argc, char **argv) {
     // Read the device descriptor
     // First, only read 8 bytes to determine the ep0MaxPacketSize
     // Afterwards read it all!
-    failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
+    failed |=
+        readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
 
     if (result.size() != 18) {
-        std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
+        std::cout << "Unexpected Descriptor size of " << result.size()
+                  << " instead of 18!" << std::endl;
         failed = true;
         goto exitAndCleanup;
     }
@@ -157,7 +159,9 @@ int main(int argc, char **argv) {
     std::cout << "Lets try reading the configuration descriptor!" << std::endl;
 
     // Read the default configuration
-    failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
+    failed |=
+        readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize,
+                       addr, 9, getConfigurationDescriptorSize);
 
     std::cout << "Result size: " << result.size() << std::endl;
 
@@ -171,7 +175,8 @@ int main(int argc, char **argv) {
     sim.issueDummySignal();
     // set address to 42
     std::cout << "Setting device address to 42!" << std::endl;
-    failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, 42, ep0MaxPacketSize, 0, 0);
+    failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, 42, ep0MaxPacketSize,
+                                  0, 0);
 
     if (failed) {
         goto exitAndCleanup;
@@ -181,8 +186,10 @@ int main(int argc, char **argv) {
 
     sim.issueDummySignal();
     std::cout << std::endl;
-    std::cout << "Selecting device configuration 1 (correct addr)!" << std::endl;
-    failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
+    std::cout << "Selecting device configuration 1 (correct addr)!"
+              << std::endl;
+    failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1,
+                                 ep0MaxPacketSize, addr, 0);
 
     if (failed) {
         goto exitAndCleanup;
@@ -207,11 +214,13 @@ int main(int argc, char **argv) {
         int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
         if (maxPacketSize == 0) {
             failed = true;
-            std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
+            std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor"
+                      << std::endl;
             goto exitAndCleanup;
         }
 
-        failed = sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
+        failed =
+            sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
         if (failed) {
             goto exitAndCleanup;
         }
@@ -219,17 +228,19 @@ int main(int argc, char **argv) {
         sim.txState.actAsNop();
         sim.rxState.actAsNop();
 
-        // wait some cycles to let the echo implementation transfer the data from the receive FIFO to the send FIFO
+        // wait some cycles to let the echo implementation transfer the data
+        // from the receive FIFO to the send FIFO
         sim.template run<true, false>(ep1Data.size());
 
         std::cout << "Requesting data from EP1" << std::endl;
         std::vector<uint8_t> ep1Res;
-        failed = readItAll(ep1Res, sim, addr, ep1Data.size(), ep0MaxPacketSize, 1);
+        failed =
+            readItAll(ep1Res, sim, addr, ep1Data.size(), ep0MaxPacketSize, 1);
 
-        failed |= compareVec(
-            ep1Data, ep1Res,
-            "Error: Echoed data length & sent data does not match!",
-            "Echoed data vs sent data does not match at index: ");
+        failed |=
+            compareVec(ep1Data, ep1Res,
+                       "Error: Echoed data length & sent data does not match!",
+                       "Echoed data vs sent data does not match at index: ");
     }
 
     sim.txState.reset();

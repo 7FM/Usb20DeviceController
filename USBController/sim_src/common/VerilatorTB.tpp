@@ -5,11 +5,10 @@
 #include <time.h>
 
 template <class Impl, class TOP>
-VerilatorTB<Impl, TOP>::VerilatorTB() : simContext(new VerilatedContext), top(nullptr) {
-}
+VerilatorTB<Impl, TOP>::VerilatorTB()
+    : simContext(new VerilatedContext), top(nullptr) {}
 
-template <class Impl, class TOP>
-VerilatorTB<Impl, TOP>::~VerilatorTB() {
+template <class Impl, class TOP> VerilatorTB<Impl, TOP>::~VerilatorTB() {
     if (top) {
         top->final();
     }
@@ -52,7 +51,8 @@ bool VerilatorTB<Impl, TOP>::init(int argc, char **argv) {
                 return false;
             case '?': // used for some unknown options
                 if (!static_cast<Impl *>(this)->customInit(optopt, optarg)) {
-                    std::cout << "unknown option: -" << static_cast<char>(optopt) << std::endl;
+                    std::cout << "unknown option: -"
+                              << static_cast<char>(optopt) << std::endl;
                     return false;
                 }
                 break;
@@ -146,7 +146,8 @@ void VerilatorTB<Impl, TOP>::issueClkToggle() {
 }
 
 template <class Impl, class TOP>
-template <bool dump, bool checkStopCondition, bool runSanityChecks, bool runOnRisingEdge, bool runOnFallingEdge>
+template <bool dump, bool checkStopCondition, bool runSanityChecks,
+          bool runOnRisingEdge, bool runOnFallingEdge>
 bool VerilatorTB<Impl, TOP>::run(uint64_t limit) {
     bool stop;
     do {

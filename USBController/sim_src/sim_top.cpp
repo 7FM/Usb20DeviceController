@@ -148,9 +148,10 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     }
 
     bool stopCondition() {
-        return txState.doneSending || rxState.receivedLastByte || rxState.timedOut || forceStop
-            || (fifoFillState.isEnabled() && fifoFillState.allDone())
-            || (fifoEmptyState.isEnabled() && fifoEmptyState.allDone());
+        return txState.doneSending || rxState.receivedLastByte ||
+               rxState.timedOut || forceStop ||
+               (fifoFillState.isEnabled() && fifoFillState.allDone()) ||
+               (fifoEmptyState.isEnabled() && fifoEmptyState.allDone());
     }
 
     void onRisingEdge() {
@@ -187,7 +188,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
 
     void usbReset() {
         top->forceSE0 = 1;
-        // Run with the reset signal for some time //TODO how many cycles exactly???
+        // Run with the reset signal for some time //TODO how many cycles
+        // exactly???
         run<true, false>(200);
         top->forceSE0 = 0;
     }
@@ -197,7 +199,8 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     void sanityChecks() {}
 
     void updateSimStateStr(const char *str) {
-        fillStrBuf(top->simStateStr, sizeof(top->simStateStr) / sizeof(top->simStateStr[0]), str);
+        fillStrBuf(top->simStateStr,
+                   sizeof(top->simStateStr) / sizeof(top->simStateStr[0]), str);
     }
 
   public:
@@ -213,9 +216,7 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     uint8_t txClk12Offset = 0;
 };
 
-bool getForceStop() {
-    return forceStop;
-}
+bool getForceStop() { return forceStop; }
 
 /******************************************************************************/
 int main(int argc, char **argv) {
@@ -249,7 +250,8 @@ int main(int argc, char **argv) {
             goto exitAndCleanup;
         }
 
-        // Execute a few more cycles to give the logic some time between the packages
+        // Execute a few more cycles to give the logic some time between the
+        // packages
         sim.template run<true, false>(2 + (sim.getRand() & 15));
 
         sim.updateSimStateStr("SOF 2");
@@ -258,17 +260,20 @@ int main(int argc, char **argv) {
             goto exitAndCleanup;
         }
 
-        // Execute a few more cycles to give the logic some time between the packages
+        // Execute a few more cycles to give the logic some time between the
+        // packages
         sim.template run<true, false>(2 + (sim.getRand() & 15));
 
         // Read the device descriptor
         sim.updateSimStateStr("Read device desc");
         // First, only read 8 bytes to determine the ep0MaxPacketSize
         // Afterwards read it all!
-        failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize, addr, 8);
+        failed |= readDescriptor(result, sim, DESC_DEVICE, 0, ep0MaxPacketSize,
+                                 addr, 8);
 
         if (result.size() != 18) {
-            std::cout << "Unexpected Descriptor size of " << result.size() << " instead of 18!" << std::endl;
+            std::cout << "Unexpected Descriptor size of " << result.size()
+                      << " instead of 18!" << std::endl;
             failed = true;
             goto exitAndCleanup;
         }
@@ -286,11 +291,15 @@ int main(int argc, char **argv) {
                 "Configuration Description:",
                 "Interface Description:",
             };
-            for (int i = 0; !failed && i < sizeof(stringDescName) / sizeof(stringDescName[0]); ++i) {
+            for (int i = 0; !failed && i < sizeof(stringDescName) /
+                                               sizeof(stringDescName[0]);
+                 ++i) {
                 sim.issueDummySignal();
                 sim.updateSimStateStr(stringDescName[i]);
-                failed |= readDescriptor(result, sim, DESC_STRING, i, ep0MaxPacketSize, addr, 2);
-                std::cout << "Read String Descriptor for the " << stringDescName[i] << std::endl;
+                failed |= readDescriptor(result, sim, DESC_STRING, i,
+                                         ep0MaxPacketSize, addr, 2);
+                std::cout << "Read String Descriptor for the "
+                          << stringDescName[i] << std::endl;
                 prettyPrintDescriptors(result);
                 // TODO check content
             }
@@ -302,11 +311,14 @@ int main(int argc, char **argv) {
 
         sim.issueDummySignal();
         std::cout << std::endl;
-        std::cout << "Lets try reading the configuration descriptor!" << std::endl;
+        std::cout << "Lets try reading the configuration descriptor!"
+                  << std::endl;
 
         // Read the default configuration
         sim.updateSimStateStr("Read Config Desc");
-        failed |= readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize, addr, 9, getConfigurationDescriptorSize);
+        failed |=
+            readDescriptor(result, sim, DESC_CONFIGURATION, 0, ep0MaxPacketSize,
+                           addr, 9, getConfigurationDescriptorSize);
 
         std::cout << "Result size: " << result.size() << std::endl;
 
@@ -323,9 +335,11 @@ int main(int argc, char **argv) {
         if (addr == 0) {
             ++addr;
         }
-        std::cout << "Setting device address to " << static_cast<int>(addr) << '!' << std::endl;
+        std::cout << "Setting device address to " << static_cast<int>(addr)
+                  << '!' << std::endl;
         sim.updateSimStateStr("SET ADDR");
-        failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr, ep0MaxPacketSize, 0, 0);
+        failed |= sendValueSetRequest(sim, DEVICE_SET_ADDRESS, addr,
+                                      ep0MaxPacketSize, 0, 0);
 
         if (failed) {
             goto exitAndCleanup;
@@ -334,10 +348,13 @@ int main(int argc, char **argv) {
         sim.issueDummySignal();
         // set configuration value to 1
         std::cout << std::endl;
-        std::cout << "Selecting device configuration 1 (with wrong addr -> should fail)!" << std::endl;
+        std::cout << "Selecting device configuration 1 (with wrong addr -> "
+                     "should fail)!"
+                  << std::endl;
         // This is expected to fail!
         sim.updateSimStateStr("SET CONF (WRONG ADDR)");
-        failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr + 1, 0);
+        failed |= !sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1,
+                                       ep0MaxPacketSize, addr + 1, 0);
 
         if (failed) {
             goto exitAndCleanup;
@@ -345,9 +362,11 @@ int main(int argc, char **argv) {
 
         sim.issueDummySignal();
         std::cout << std::endl;
-        std::cout << "Selecting device configuration 1 (correct addr)!" << std::endl;
+        std::cout << "Selecting device configuration 1 (correct addr)!"
+                  << std::endl;
         sim.updateSimStateStr("SET CONF");
-        failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1, ep0MaxPacketSize, addr, 0);
+        failed = sendValueSetRequest(sim, DEVICE_SET_CONFIGURATION, 1,
+                                     ep0MaxPacketSize, addr, 0);
 
         if (failed) {
             goto exitAndCleanup;
@@ -373,7 +392,9 @@ int main(int argc, char **argv) {
             std::cout << "Requesting data from EP1" << std::endl;
             std::vector<uint8_t> ep1Res;
             sim.updateSimStateStr("Read from EP1");
-            failed = readItAll(ep1Res, sim, addr, sim.fifoFillState.epState->data.size(), ep0MaxPacketSize, 1);
+            failed = readItAll(ep1Res, sim, addr,
+                               sim.fifoFillState.epState->data.size(),
+                               ep0MaxPacketSize, 1);
 
             const auto &sentData = sim.fifoFillState.epState->data;
             failed |= compareVec(
@@ -406,11 +427,14 @@ int main(int argc, char **argv) {
             int maxPacketSize = epDescs[0].wMaxPacketSize & 0x7FF;
             if (maxPacketSize == 0) {
                 failed = true;
-                std::cout << "Extracted invalid wMaxPacketSize from EP1 descriptor" << std::endl;
+                std::cout
+                    << "Extracted invalid wMaxPacketSize from EP1 descriptor"
+                    << std::endl;
                 goto exitAndCleanup;
             }
 
-            failed = sendItAll(ep1Data, dataToggleState, sim, addr, maxPacketSize, 1);
+            failed = sendItAll(ep1Data, dataToggleState, sim, addr,
+                               maxPacketSize, 1);
             if (failed) {
                 goto exitAndCleanup;
             }

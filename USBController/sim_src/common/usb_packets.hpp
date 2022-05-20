@@ -33,8 +33,8 @@ typedef enum : uint8_t {
     _PID_RESERVED = createPID(0b0000)
 } PID_Types;
 
-#define STRINGIFY_CASE(x) \
-    case x:               \
+#define STRINGIFY_CASE(x)                                                      \
+    case x:                                                                    \
         return #x
 
 std::string pidToString(PID_Types pid) {
@@ -112,8 +112,10 @@ enum StandardDeviceRequest : uint16_t {
 
     ENDPOINT_SYNCH_FRAME = swapBytes(0b1000'0010'0000'0000 + SYNCH_FRAME),
 
-    DEVICE_GET_CONFIGURATION = swapBytes(0b1000'0000'0000'0000 + GET_CONFIGURATION),
-    DEVICE_SET_CONFIGURATION = swapBytes(0b0000'0000'0000'0000 + SET_CONFIGURATION),
+    DEVICE_GET_CONFIGURATION =
+        swapBytes(0b1000'0000'0000'0000 + GET_CONFIGURATION),
+    DEVICE_SET_CONFIGURATION =
+        swapBytes(0b0000'0000'0000'0000 + SET_CONFIGURATION),
 
     DEVICE_GET_DESCRIPTOR = swapBytes(0b1000'0000'0000'0000 + GET_DESCRIPTOR),
     DEVICE_SET_DESCRIPTOR = swapBytes(0b0000'0000'0000'0000 + SET_DESCRIPTOR),

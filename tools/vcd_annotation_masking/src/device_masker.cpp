@@ -7,7 +7,7 @@ enum Transaction {
     NO_TRANS,
     SETUP_TRANS,
     IN_TRANS,
-    OUT_TRANS
+    OUT_TRANS,
 };
 
 void maskDevicePackets(std::vector<Packet> &packets) {
@@ -54,14 +54,17 @@ void maskDevicePackets(std::vector<Packet> &packets) {
             }
             case HANDSHAKE: {
                 assert(ongoingTrans != NO_TRANS);
-                p.ignore = ongoingTrans == OUT_TRANS || ongoingTrans == SETUP_TRANS;
+                p.ignore =
+                    ongoingTrans == OUT_TRANS || ongoingTrans == SETUP_TRANS;
                 // clear on going trans
                 ongoingTrans = NO_TRANS;
                 break;
             }
             case NONE:
             default: {
-                std::cout << "Error: I cant distinguish the host packets from the device packets at index: " << i << std::endl;
+                std::cout << "Error: I cant distinguish the host packets from "
+                             "the device packets at index: "
+                          << i << std::endl;
                 return;
             }
         }

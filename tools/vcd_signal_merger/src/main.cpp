@@ -4,11 +4,13 @@
 #include "merger.hpp"
 
 static void printHelp() {
-    std::cout << "Usage: ./vcd_signal_merger -i <input.vcd> -o <output.vcd> [OPTIONS]" << std::endl;
-    //TODO print options
+    std::cout
+        << "Usage: ./vcd_signal_merger -i <input.vcd> -o <output.vcd> [OPTIONS]"
+        << std::endl;
+    // TODO print options
 }
 
-static void parseMergeSignalArgs(const std::string& arg, MergeSignals &merge) {
+static void parseMergeSignalArgs(const std::string &arg, MergeSignals &merge) {
     // Expected format: <Signal1>;<Signal2>;....;<SignalN>
     auto pos = arg.find(";");
     auto prevPos = pos;
@@ -69,13 +71,16 @@ int main(int argc, char **argv) {
     }
 
     if (inputFile.empty() || outputFile.empty()) {
-        std::cout << "You need to specify both a input & output file!" << std::endl;
+        std::cout << "You need to specify both a input & output file!"
+                  << std::endl;
         printHelp();
         return 1;
     }
 
     if (mergeSignals.empty()) {
-        std::cout << "You need to specify at least 2 signal names that are supposed to be merged to merge!" << std::endl;
+        std::cout << "You need to specify at least 2 signal names that are "
+                     "supposed to be merged to merge!"
+                  << std::endl;
         printHelp();
         return 2;
     }

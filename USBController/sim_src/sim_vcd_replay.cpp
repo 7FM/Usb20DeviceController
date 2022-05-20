@@ -34,13 +34,12 @@ class UsbVcdReplaySim : public VerilatorTB<UsbVcdReplaySim, TOP_MODULE> {
         usbReset();
     }
 
-    bool stopCondition() {
-        return forceStop;
-    }
+    bool stopCondition() { return forceStop; }
 
     void usbReset() {
         top->forceSE0 = 1;
-        // Run with the reset signal for some time //TODO how many cycles exactly???
+        // Run with the reset signal for some time //TODO how many cycles
+        // exactly???
         run<true, false>(200);
         top->forceSE0 = 0;
     }
@@ -73,19 +72,14 @@ class UsbVcdReplaySim : public VerilatorTB<UsbVcdReplaySim, TOP_MODULE> {
     const char *replayFile = nullptr;
 };
 
-bool getForceStop() {
-    return forceStop;
-}
+bool getForceStop() { return forceStop; }
 
 /******************************************************************************/
 
 struct DummyForwarder {
-    DummyForwarder(std::function<bool(bool)> handler) : handler(handler) {
-    }
+    DummyForwarder(std::function<bool(bool)> handler) : handler(handler) {}
 
-    bool handleValueChange(bool value) {
-        return handler(value);
-    }
+    bool handleValueChange(bool value) { return handler(value); }
 
   private:
     const std::function<bool(bool)> handler;
@@ -94,13 +88,19 @@ struct DummyForwarder {
 struct SimWrapper {
     SimWrapper(UsbVcdReplaySim *sim) : sim(sim) {}
 
-    std::optional<DummyForwarder> handlerCreator(const std::string & /*line*/, const std::string &signalName, const std::string & /*vcdAlias*/, const std::string & /*typeStr*/, const std::string & /*bitwidthStr*/) {
+    std::optional<DummyForwarder>
+    handlerCreator(const std::string & /*line*/, const std::string &signalName,
+                   const std::string & /*vcdAlias*/,
+                   const std::string & /*typeStr*/,
+                   const std::string & /*bitwidthStr*/) {
         auto usbP = signalName.find("USB_DP");
         auto usbN = signalName.find("USB_DN");
         if (usbP != std::string::npos) {
-            return DummyForwarder(std::bind(&UsbVcdReplaySim::updateUSB_DP, sim, std::placeholders::_1));
+            return DummyForwarder(std::bind(&UsbVcdReplaySim::updateUSB_DP, sim,
+                                            std::placeholders::_1));
         } else if (usbN != std::string::npos) {
-            return DummyForwarder(std::bind(&UsbVcdReplaySim::updateUSB_DN, sim, std::placeholders::_1));
+            return DummyForwarder(std::bind(&UsbVcdReplaySim::updateUSB_DN, sim,
+                                            std::placeholders::_1));
         }
 
         return std::nullopt;
@@ -130,7 +130,9 @@ int main(int argc, char **argv) {
 
     if (sim.replayFile == nullptr) {
         std::cout << "Missing vcd file to replay!" << std::endl;
-        std::cout << "Usage: ./Vsim_vcd_replay -r <path_to_vcd_file> [other sim options]" << std::endl;
+        std::cout << "Usage: ./Vsim_vcd_replay -r <path_to_vcd_file> [other "
+                     "sim options]"
+                  << std::endl;
         return 2;
     }
 
@@ -141,9 +143,12 @@ int main(int argc, char **argv) {
 
     vcd_reader<DummyForwarder> vcdParser(
         sim.replayFile,
-        std::bind(&SimWrapper::handlerCreator, &wrapper, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5),
+        std::bind(&SimWrapper::handlerCreator, &wrapper, std::placeholders::_1,
+                  std::placeholders::_2, std::placeholders::_3,
+                  std::placeholders::_4, std::placeholders::_5),
         [&](std::vector<std::string> &printBacklog) {},
-        std::bind(&SimWrapper::handleTimestampStart, &wrapper, std::placeholders::_1),
+        std::bind(&SimWrapper::handleTimestampStart, &wrapper,
+                  std::placeholders::_1),
         [](auto &) {});
 
     vcdParser.process();

@@ -12,8 +12,7 @@
 
 bool getForceStop();
 
-template <class T>
-void fillVector(std::vector<uint8_t> &vec, const T &data) {
+template <class T> void fillVector(std::vector<uint8_t> &vec, const T &data) {
     const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&data);
     for (int i = 0; i < sizeof(T); ++i) {
         vec.push_back(*rawPtr);
@@ -21,8 +20,7 @@ void fillVector(std::vector<uint8_t> &vec, const T &data) {
     }
 }
 
-template <class T>
-void printVector(const T &data) {
+template <class T> void printVector(const T &data) {
     const uint8_t *rawPtr = reinterpret_cast<const uint8_t *>(&data);
     IosFlagSaver _(std::cout);
     std::cout << std::hex;
@@ -47,7 +45,9 @@ bool sendStuff(Sim &sim, std::function<void()> fillSendData) {
     }
 
     if (!sim.txState.doneSending) {
-        std::cerr << "CRITICAL ERROR: sendStuff assertion failed! Did not stop because of doneSending!" << std::endl;
+        std::cerr << "CRITICAL ERROR: sendStuff assertion failed! Did not stop "
+                     "because of doneSending!"
+                  << std::endl;
         return true;
     }
 
@@ -77,30 +77,29 @@ bool receiveStuff(Sim &sim, const char *errMsg, const char *timeoutMsg) {
     }
 
     if (!sim.rxState.receivedLastByte) {
-        std::cerr << "CRITICAL ERROR: receiveStuff assertion failed! Did not stop because of receiving the last byte!" << std::endl;
+        std::cerr << "CRITICAL ERROR: receiveStuff assertion failed! Did not "
+                     "stop because of receiving the last byte!"
+                  << std::endl;
         return true;
     }
 
     return getForceStop();
 }
 
-template <class Sim>
-static bool sendSOF(Sim &sim, uint16_t frameNumber) {
+template <class Sim> static bool sendSOF(Sim &sim, uint16_t frameNumber) {
 
-    std::cout << "Sending start of frame " << frameNumber << " packet!" << std::endl;
+    std::cout << "Sending start of frame " << frameNumber << " packet!"
+              << std::endl;
 
     TokenPacket SOF;
     SOF.token = PID_SOF_TOKEN;
     SOF.addr = frameNumber & 0x07F;
     SOF.endpoint = (frameNumber >> 7) & 0x0F;
 
-    return sendStuff(sim, [&] {
-        fillVector(sim.txState.dataToSend, SOF);
-    });
+    return sendStuff(sim, [&] { fillVector(sim.txState.dataToSend, SOF); });
 }
 
-template <typename Sim>
-class InTransaction {
+template <typename Sim> class InTransaction {
     /*
     In Transaction:
     1. Send Token packet
@@ -126,24 +125,23 @@ class InTransaction {
         // 2. Receive Data packet / Timeout
         std::cout << "Receive IN data!" << std::endl;
 
-        if (receiveStuff(sim, "ERROR: received data has keepPacket set low!", "Timeout waiting for input data!"))
+        if (receiveStuff(sim, "ERROR: received data has keepPacket set low!",
+                         "Timeout waiting for input data!"))
             return true;
 
         //=========================================================================
         // 3. (Send Handshake)
         std::cout << "Send handshake!" << std::endl;
 
-        if (sendStuff(sim, [&] {
-                sim.txState.dataToSend.push_back(handshakeToken);
-            }))
+        if (sendStuff(
+                sim, [&] { sim.txState.dataToSend.push_back(handshakeToken); }))
             return true;
 
         return false;
     }
 };
 
-template <typename Sim>
-class OutTransaction {
+template <typename Sim> class OutTransaction {
     /*
     Out Transaction:
     1. Send Token packet
@@ -165,7 +163,8 @@ class OutTransaction {
             return true;
         }
 
-        // Execute a few more cycles to give the logic some time between the packages
+        // Execute a few more cycles to give the logic some time between the
+        // packages
         int waitCycles = 5 + sim.getRand() % 6;
         sim.template run<true, false>(waitCycles);
 
@@ -185,7 +184,8 @@ class OutTransaction {
         // 3. Receive Handshake / Timeout
         std::cout << "Wait for response!" << std::endl;
 
-        if (receiveStuff(sim, "ERROR: response has keepPacket set low!", "Timeout waiting for a handshake response!"))
+        if (receiveStuff(sim, "ERROR: response has keepPacket set low!",
+                         "Timeout waiting for a handshake response!"))
             return true;
 
         return false;
@@ -203,16 +203,19 @@ void printResponse(const std::vector<uint8_t> &response) {
     IosFlagSaver flagSaver(std::cout);
     for (auto data : response) {
         if (first) {
-            std::cout << "    " << pidToString(static_cast<PID_Types>(data)) << std::endl;
+            std::cout << "    " << pidToString(static_cast<PID_Types>(data))
+                      << std::endl;
         } else {
-            std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+            std::cout << "    0x" << std::hex << static_cast<int>(data)
+                      << std::endl;
         }
         first = false;
     }
 }
 
 template <typename Sim>
-bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, uint8_t ep0MaxDescriptorSize, uint8_t ep = 0) {
+bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize,
+               uint8_t ep0MaxDescriptorSize, uint8_t ep = 0) {
     result.clear();
 
     InTransaction<Sim> getDesc;
@@ -239,8 +242,11 @@ bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, u
 
         readSize -= sim.rxState.receivedData.size() - 1;
 
-        if (sim.rxState.receivedData.size() - 1 != ep0MaxDescriptorSize && readSize > 0) {
-            std::cerr << "ERROR: Received non max sized packet but still expecting data to come!" << std::endl;
+        if (sim.rxState.receivedData.size() - 1 != ep0MaxDescriptorSize &&
+            readSize > 0) {
+            std::cerr << "ERROR: Received non max sized packet but still "
+                         "expecting data to come!"
+                      << std::endl;
             return true;
         }
 
@@ -250,7 +256,8 @@ bool readItAll(std::vector<uint8_t> &result, Sim &sim, int addr, int readSize, u
 }
 
 template <typename Sim>
-bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Sim &sim, int addr, int epMaxDescriptorSize, uint8_t ep = 0) {
+bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState,
+               Sim &sim, int addr, int epMaxDescriptorSize, uint8_t ep = 0) {
     OutTransaction<Sim> getDesc;
     getDesc.outTokenPacket.token = PID_OUT_TOKEN;
     getDesc.outTokenPacket.addr = addr;
@@ -262,7 +269,9 @@ bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Si
     int subpackets = (sendSize + epMaxDescriptorSize - 1) / epMaxDescriptorSize;
     do {
         std::cout << std::endl;
-        std::cout << "Send Output transaction packet " << (i / epMaxDescriptorSize + 1) << "/" << subpackets << std::endl;
+        std::cout << "Send Output transaction packet "
+                  << (i / epMaxDescriptorSize + 1) << "/" << subpackets
+                  << std::endl;
 
         getDesc.dataPacket.clear();
         getDesc.dataPacket.push_back(dataToggleState ? PID_DATA1 : PID_DATA0);
@@ -286,19 +295,26 @@ bool sendItAll(const std::vector<uint8_t> &dataToSend, bool &dataToggleState, Si
     return false;
 }
 
-bool expectHandshake(std::vector<uint8_t> &response, PID_Types expectedResponse) {
+bool expectHandshake(std::vector<uint8_t> &response,
+                     PID_Types expectedResponse) {
     if (response.size() > 1) {
-        std::cerr << "Expected only a Handshake as response but got multiple bytes!" << std::endl;
+        std::cerr
+            << "Expected only a Handshake as response but got multiple bytes!"
+            << std::endl;
         return true;
     }
     if (response.size() == 0) {
-        std::cerr << "Expected a handshake as response but got an timeout!" << std::endl;
+        std::cerr << "Expected a handshake as response but got an timeout!"
+                  << std::endl;
         return true;
     }
 
     if (response[0] != expectedResponse) {
         IosFlagSaver flagSaver(std::cerr);
-        std::cerr << "Expected Response: " << pidToString(expectedResponse) << " but got: " << pidToString(static_cast<PID_Types>(response[0])) << std::endl;
+        std::cerr << "Expected Response: " << pidToString(expectedResponse)
+                  << " but got: "
+                  << pidToString(static_cast<PID_Types>(response[0]))
+                  << std::endl;
         return true;
     }
 
@@ -313,7 +329,10 @@ void updateSetupTrans(OutTransaction<Sim> &setupTrans, SetupPacket &packet) {
 }
 
 template <typename Sim>
-OutTransaction<Sim> initDescReadTrans(SetupPacket &packet, DescriptorType descType, uint8_t descIdx, uint8_t addr, uint16_t initialReadSize, StandardDeviceRequest request) {
+OutTransaction<Sim> initDescReadTrans(SetupPacket &packet,
+                                      DescriptorType descType, uint8_t descIdx,
+                                      uint8_t addr, uint16_t initialReadSize,
+                                      StandardDeviceRequest request) {
     OutTransaction<Sim> setupTrans;
     setupTrans.outTokenPacket.token = PID_SETUP_TOKEN;
     setupTrans.outTokenPacket.addr = addr;
@@ -346,7 +365,8 @@ uint16_t defaultGetDescriptorSize(const std::vector<uint8_t> &result) {
 }
 
 uint16_t getConfigurationDescriptorSize(const std::vector<uint8_t> &result) {
-    return static_cast<uint16_t>(result[2]) | (static_cast<uint16_t>(result[3]) << 8);
+    return static_cast<uint16_t>(result[2]) |
+           (static_cast<uint16_t>(result[3]) << 8);
 }
 
 template <typename Sim>
@@ -370,9 +390,17 @@ bool statusStage(Sim &sim, OutTransaction<Sim> &outTrans) {
 }
 
 template <typename Sim>
-bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descType, uint8_t descIdx, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize, std::function<uint16_t(const std::vector<uint8_t> &)> descSizeExtractor = defaultGetDescriptorSize, StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR, bool recurse = true) {
+bool readDescriptor(std::vector<uint8_t> &result, Sim &sim,
+                    DescriptorType descType, uint8_t descIdx,
+                    uint8_t &ep0MaxDescriptorSize, uint8_t addr,
+                    uint16_t initialReadSize,
+                    std::function<uint16_t(const std::vector<uint8_t> &)>
+                        descSizeExtractor = defaultGetDescriptorSize,
+                    StandardDeviceRequest request = DEVICE_GET_DESCRIPTOR,
+                    bool recurse = true) {
     SetupPacket packet;
-    OutTransaction<Sim> setupTrans = initDescReadTrans<Sim>(packet, descType, descIdx, addr, initialReadSize, request);
+    OutTransaction<Sim> setupTrans = initDescReadTrans<Sim>(
+        packet, descType, descIdx, addr, initialReadSize, request);
 
     std::cout << "Setup Stage" << std::endl;
     if (sendOutputStage(sim, setupTrans)) {
@@ -380,10 +408,15 @@ bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descT
     }
 
     std::cout << "Data Stage" << std::endl;
-    bool failed = readItAll(result, sim, addr, initialReadSize, ep0MaxDescriptorSize == 0 ? 8 : ep0MaxDescriptorSize);
+    bool failed =
+        readItAll(result, sim, addr, initialReadSize,
+                  ep0MaxDescriptorSize == 0 ? 8 : ep0MaxDescriptorSize);
 
     if (result.size() != initialReadSize) {
-        std::cerr << "Error: Desired to read first " << static_cast<int>(initialReadSize) << " bytes of the descriptor but got only: " << result.size() << " bytes!" << std::endl;
+        std::cerr << "Error: Desired to read first "
+                  << static_cast<int>(initialReadSize)
+                  << " bytes of the descriptor but got only: " << result.size()
+                  << " bytes!" << std::endl;
         failed = true;
     }
 
@@ -393,7 +426,9 @@ bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descT
 
     if (result.size() == 0 && initialReadSize == 0) {
         // Zero length data phase -> ACK
-        std::cout << "Received a zero length data phase and is interpret as an ACK!" << std::endl;
+        std::cout
+            << "Received a zero length data phase and is interpret as an ACK!"
+            << std::endl;
         return false;
     }
 
@@ -401,7 +436,8 @@ bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descT
 
     if (descType == DESC_DEVICE) {
         ep0MaxDescriptorSize = result[7];
-        std::cout << "INFO: update EP0 Max packet size to: " << static_cast<int>(ep0MaxDescriptorSize) << std::endl;
+        std::cout << "INFO: update EP0 Max packet size to: "
+                  << static_cast<int>(ep0MaxDescriptorSize) << std::endl;
     }
 
     // Status stage
@@ -410,26 +446,40 @@ bool readDescriptor(std::vector<uint8_t> &result, Sim &sim, DescriptorType descT
     }
 
     if (descriptorSize < initialReadSize) {
-        std::cerr << "Error extracting the descriptor size: extracted " << static_cast<int>(descriptorSize) << " but expecting a size of at least " << static_cast<int>(initialReadSize) << std::endl;
+        std::cerr << "Error extracting the descriptor size: extracted "
+                  << static_cast<int>(descriptorSize)
+                  << " but expecting a size of at least "
+                  << static_cast<int>(initialReadSize) << std::endl;
         return true;
     } else if (descriptorSize > initialReadSize) {
         if (!recurse) {
-            std::cerr << "No further read attempts are permitted, reading entire descriptor failed!" << std::endl;
+            std::cerr << "No further read attempts are permitted, reading "
+                         "entire descriptor failed!"
+                      << std::endl;
             return true;
         }
 
-        // Recursion to issue a new request! BUT this time with the correct initalReadSize set!
-        // ALSO: further recursions will be disabled to ensure termination!
-        return readDescriptor(result, sim, descType, descIdx, ep0MaxDescriptorSize, addr, descriptorSize, descSizeExtractor, request, false);
+        // Recursion to issue a new request! BUT this time with the correct
+        // initalReadSize set! ALSO: further recursions will be disabled to
+        // ensure termination!
+        return readDescriptor(result, sim, descType, descIdx,
+                              ep0MaxDescriptorSize, addr, descriptorSize,
+                              descSizeExtractor, request, false);
     }
 
-    std::cout << "Successfully received a " << descTypeToString(descType) << " Descriptor!" << std::endl;
+    std::cout << "Successfully received a " << descTypeToString(descType)
+              << " Descriptor!" << std::endl;
 
     return false;
 }
 
 template <typename Sim>
-bool sendValueSetRequest(Sim &sim, StandardDeviceRequest request, uint16_t wValue, uint8_t &ep0MaxDescriptorSize, uint8_t addr, uint16_t initialReadSize) {
+bool sendValueSetRequest(Sim &sim, StandardDeviceRequest request,
+                         uint16_t wValue, uint8_t &ep0MaxDescriptorSize,
+                         uint8_t addr, uint16_t initialReadSize) {
     std::vector<uint8_t> dummyRes;
-    return readDescriptor(dummyRes, sim, static_cast<DescriptorType>((wValue >> 8) & 0x0FF), static_cast<uint8_t>((wValue >> 0) & 0x0FF), ep0MaxDescriptorSize, addr, initialReadSize, defaultGetDescriptorSize, request);
+    return readDescriptor(
+        dummyRes, sim, static_cast<DescriptorType>((wValue >> 8) & 0x0FF),
+        static_cast<uint8_t>((wValue >> 0) & 0x0FF), ep0MaxDescriptorSize, addr,
+        initialReadSize, defaultGetDescriptorSize, request);
 }

@@ -41,7 +41,8 @@ int main(int argc, char **argv) {
     reader.parse(packets);
 
     for (decltype(packets.size()) i = 0; i < packets.size(); ++i) {
-        std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": " << packets[i] << std::endl;
+        std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": "
+                  << packets[i] << std::endl;
     }
 
     return 0;

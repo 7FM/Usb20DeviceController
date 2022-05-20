@@ -24,7 +24,8 @@ struct SignalMergeState {
     SignalMergeState &operator=(SignalMergeState &&other) = delete;
     SignalMergeState(SignalMergeState &&other) = delete;
 
-    SignalMergeState(bool mergeViaAND, size_t size) : mergeViaAND(mergeViaAND), size(size), values(new bool[size]) {}
+    SignalMergeState(bool mergeViaAND, size_t size)
+        : mergeViaAND(mergeViaAND), size(size), values(new bool[size]) {}
 
     bool mergeSignal(size_t i, bool newValue) {
         values[i] = newValue;
@@ -42,7 +43,8 @@ struct SignalMergeState {
             }
         }
 
-        changedValue = !initialized || changedValue || (updatedState != currentState);
+        changedValue =
+            !initialized || changedValue || (updatedState != currentState);
         currentState = updatedState;
         return changedValue;
     }
@@ -60,7 +62,8 @@ struct SignalMergeState {
 };
 
 struct SignalMergerWrapper {
-    SignalMergerWrapper(size_t index, SignalMergeState *mergeState) : index(index), mergeState(mergeState) {}
+    SignalMergerWrapper(size_t index, SignalMergeState *mergeState)
+        : index(index), mergeState(mergeState) {}
 
     bool handleValueChange(bool value) {
         return mergeState->mergeSignal(index, value);
@@ -70,7 +73,9 @@ struct SignalMergerWrapper {
     SignalMergeState *const mergeState;
 };
 
-int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, const std::vector<MergeSignals> &mergeSignals, bool truncate) {
+int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
+                  const std::vector<MergeSignals> &mergeSignals,
+                  bool truncate) {
     std::ofstream out(outputFile);
 
     if (!out) {
@@ -81,7 +86,9 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
     std::vector<std::unique_ptr<SignalMergeState>> states;
     std::map<std::string, SignalMergerWrapper> signalNameToState;
     for (const auto &s : mergeSignals) {
-        const auto &ref = states.emplace_back(std::make_unique<SignalMergeState>(s.mergeViaAND, s.signalNames.size()));
+        const auto &ref =
+            states.emplace_back(std::make_unique<SignalMergeState>(
+                s.mergeViaAND, s.signalNames.size()));
         size_t i = 0;
         for (const auto &e : s.signalNames) {
             signalNameToState.insert({e, SignalMergerWrapper(i, ref.get())});
@@ -91,19 +98,25 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
 
     vcd_reader<SignalMergerWrapper> vcdHandler(
         inputFile,
-        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string &/*typeStr*/, const std::string &bitwidthStr) -> std::optional<SignalMergerWrapper> {
+        [&](const std::stack<std::string> &scopes, const std::string &line,
+            const std::string &signalName, const std::string &vcdAlias,
+            const std::string & /*typeStr*/, const std::string &bitwidthStr)
+            -> std::optional<SignalMergerWrapper> {
             if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1') {
-                // std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
-                // out << line << std::endl;
+                // std::cout << "Warning: unsupported bitwidth: " <<
+                // line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) <<
+                // std::endl; out << line << std::endl;
                 return std::nullopt;
             }
             auto it = signalNameToState.find(signalName);
             if (it != signalNameToState.end()) {
-                std::cout << "Info: found variable: '" << signalName << "' with alias '" << vcdAlias << "'" << std::endl;
+                std::cout << "Info: found variable: '" << signalName
+                          << "' with alias '" << vcdAlias << "'" << std::endl;
                 auto &vcdSymbol = it->second.mergeState->outputVcdSymbol;
                 if (vcdSymbol.empty()) {
                     // This is the first alias for this signal group!
-                    // -> keep this signal definition & set it as outputVcdSymbol
+                    // -> keep this signal definition & set it as
+                    // outputVcdSymbol
                     out << line << std::endl;
                     vcdSymbol = vcdAlias;
                 }
@@ -111,7 +124,8 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile, c
                 // return the new alias
                 return it->second;
             } else if (!truncate) {
-                std::cout << "Warning: no entry found for signal: " << signalName << std::endl;
+                std::cout << "Warning: no entry found for signal: "
+                          << signalName << std::endl;
                 // We still want to keep this signal!
                 out << line << std::endl;
             }

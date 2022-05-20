@@ -9,7 +9,9 @@
 #include "vcd_reader.hpp"
 
 static void printHelp() {
-    std::cout << "Usage: ./vcd_annotation_masking -i <input.vcd> -a <annotation.txt> -o <output.vcd>" << std::endl;
+    std::cout << "Usage: ./vcd_annotation_masking -i <input.vcd> -a "
+                 "<annotation.txt> -o <output.vcd>"
+              << std::endl;
 }
 
 struct SignalState {
@@ -22,7 +24,8 @@ struct SignalState {
     bool initialized = false;
 
     bool handleValueChange(bool newValue) {
-        changedValue = !initialized || changedValue || (newValue != currentState);
+        changedValue =
+            !initialized || changedValue || (newValue != currentState);
         currentState = newValue;
         return changedValue;
     }
@@ -83,8 +86,11 @@ int main(int argc, char **argv) {
         }
     }
 
-    if (inputVcdFile.empty() || inputAnnotationFile.empty() || outputFile.empty()) {
-        std::cout << "You need to specify a input vcd file, a annotation file and a output vcd file!" << std::endl;
+    if (inputVcdFile.empty() || inputAnnotationFile.empty() ||
+        outputFile.empty()) {
+        std::cout << "You need to specify a input vcd file, a annotation file "
+                     "and a output vcd file!"
+                  << std::endl;
         printHelp();
         return 1;
     }
@@ -103,7 +109,8 @@ int main(int argc, char **argv) {
     }
 
     for (decltype(packets.size()) i = 0; i < packets.size(); ++i) {
-        std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": " << packets[i] << std::endl;
+        std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": "
+                  << packets[i] << std::endl;
     }
 
     std::vector<std::unique_ptr<SignalState>> signals;
@@ -111,18 +118,24 @@ int main(int argc, char **argv) {
     std::ofstream out(outputFile);
     vcd_reader<SignalWrapper> vcdReader(
         inputVcdFile,
-        [&](const std::string &line, const std::string &signalName, const std::string &vcdAlias, const std::string & /*typeStr*/, const std::string &bitwidthStr) -> std::optional<SignalWrapper> {
+        [&](const std::stack<std::string> &scopes, const std::string &line,
+            const std::string &signalName, const std::string &vcdAlias,
+            const std::string & /*typeStr*/,
+            const std::string &bitwidthStr) -> std::optional<SignalWrapper> {
             auto it = signalName.find("USB_D");
-            if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1' || it == std::string::npos) {
-                // std::cout << "Warning: unsupported bitwidth: " << line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) << std::endl;
-                // out << line << std::endl;
+            if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1' ||
+                it == std::string::npos) {
+                // std::cout << "Warning: unsupported bitwidth: " <<
+                // line.substr(bitWidthStart, bitWidthEnd - bitWidthStart) <<
+                // std::endl; out << line << std::endl;
                 return std::nullopt;
             }
 
             // -> keep this signal definition
             out << line << std::endl;
 
-            const auto &ref = signals.emplace_back(std::make_unique<SignalState>());
+            const auto &ref =
+                signals.emplace_back(std::make_unique<SignalState>());
 
             SignalWrapper wrapper(ref.get());
             ref->outputVcdSymbol = vcdAlias;
@@ -142,7 +155,8 @@ int main(int argc, char **argv) {
                 if (static_cast<int64_t>(timestamp) < p.startTime - padding) {
                     // we haven't reached the current packet yet!
                     break;
-                } else if (p.endTime + padding >= static_cast<int64_t>(timestamp)) {
+                } else if (p.endTime + padding >=
+                           static_cast<int64_t>(timestamp)) {
                     ignore = p.ignore;
                     break;
                 }

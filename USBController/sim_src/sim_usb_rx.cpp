@@ -28,7 +28,12 @@ static void signalHandler(int signal) {
 
 class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
   private:
-    static constexpr auto signalToReceive = constructSignal(usbSyncSignal, nrziEncode<true, PID_DATA0, static_cast<uint8_t>(0xDE), static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE), static_cast<uint8_t>(0xEF)>(), usbEOPSignal);
+    static constexpr auto signalToReceive = constructSignal(
+        usbSyncSignal,
+        nrziEncode<true, PID_DATA0, static_cast<uint8_t>(0xDE),
+                   static_cast<uint8_t>(0xAD), static_cast<uint8_t>(0xBE),
+                   static_cast<uint8_t>(0xEF)>(),
+        usbEOPSignal);
 
     int signalIdx;
     uint8_t delayCnt;
@@ -66,7 +71,9 @@ class UsbRxSim : public VerilatorTB<UsbRxSim, TOP_MODULE> {
     }
 
     bool stopCondition() {
-        return (signalIdx >= signalToReceive.size() && rxState.receivedLastByte) || forceStop;
+        return (signalIdx >= signalToReceive.size() &&
+                rxState.receivedLastByte) ||
+               forceStop;
     }
 
     void onRisingEdge() {
@@ -111,17 +118,14 @@ int main(int argc, char **argv) {
     }
 
     constexpr std::array<uint8_t, 5> expectedOutput = {
-        0xc3,
-        0xde,
-        0xad,
-        0xbe,
-        0xef,
+        0xc3, 0xde, 0xad, 0xbe, 0xef,
     };
 
     int testFailed = 0;
 
     for (sim.clk12Offset = 0; sim.clk12Offset < 4; ++sim.clk12Offset) {
-        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset) << std::endl;
+        std::cout << "Use CLK12 offset of " << static_cast<int>(sim.clk12Offset)
+                  << std::endl;
 
         // start things going
         sim.reset();
@@ -136,20 +140,31 @@ int main(int argc, char **argv) {
             IosFlagSaver flagSaver(std::cout);
             std::cout << "Received Data:" << std::endl;
             for (auto data : sim.rxState.receivedData) {
-                std::cout << "    0x" << std::hex << static_cast<int>(data) << std::endl;
+                std::cout << "    0x" << std::hex << static_cast<int>(data)
+                          << std::endl;
             }
         }
 
         if (expectedOutput.size() != sim.rxState.receivedData.size()) {
-            std::cerr << "Unexpected response size! Expected: " << expectedOutput.size() << " got: " << sim.rxState.receivedData.size() << std::endl;
+            std::cerr << "Unexpected response size! Expected: "
+                      << expectedOutput.size()
+                      << " got: " << sim.rxState.receivedData.size()
+                      << std::endl;
             ++testFailed;
         }
 
         {
             IosFlagSaver flagSaver(std::cout);
-            for (int i = 0; i < std::min(expectedOutput.size(), sim.rxState.receivedData.size()); ++i) {
+            for (int i = 0; i < std::min(expectedOutput.size(),
+                                         sim.rxState.receivedData.size());
+                 ++i) {
                 if (expectedOutput[i] != sim.rxState.receivedData[i]) {
-                    std::cerr << "Received wrong data at index: " << std::dec << i << "! Expected: " << std::hex << static_cast<int>(expectedOutput[i]) << " got: " << std::hex << static_cast<int>(sim.rxState.receivedData[i]) << std::endl;
+                    std::cerr << "Received wrong data at index: " << std::dec
+                              << i << "! Expected: " << std::hex
+                              << static_cast<int>(expectedOutput[i])
+                              << " got: " << std::hex
+                              << static_cast<int>(sim.rxState.receivedData[i])
+                              << std::endl;
                     ++testFailed;
                 }
             }
@@ -157,7 +172,9 @@ int main(int argc, char **argv) {
 
         // Finally check that the packet should be kept!
         if (!sim.rxState.keepPacket) {
-            std::cerr << "Keep packet has an unexpected value! Expected: " << true << " got: " << sim.rxState.keepPacket << std::endl;
+            std::cerr << "Keep packet has an unexpected value! Expected: "
+                      << true << " got: " << sim.rxState.keepPacket
+                      << std::endl;
             ++testFailed;
         }
     }
