@@ -89,7 +89,8 @@ struct SimWrapper {
     SimWrapper(UsbVcdReplaySim *sim) : sim(sim) {}
 
     std::optional<DummyForwarder>
-    handlerCreator(const std::string & /*line*/, const std::string &signalName,
+    handlerCreator(const std::stack<std::string> & /*scopes*/,
+                   const std::string & /*line*/, const std::string &signalName,
                    const std::string & /*vcdAlias*/,
                    const std::string & /*typeStr*/,
                    const std::string & /*bitwidthStr*/) {
@@ -145,7 +146,8 @@ int main(int argc, char **argv) {
         sim.replayFile,
         std::bind(&SimWrapper::handlerCreator, &wrapper, std::placeholders::_1,
                   std::placeholders::_2, std::placeholders::_3,
-                  std::placeholders::_4, std::placeholders::_5),
+                  std::placeholders::_4, std::placeholders::_5,
+                  std::placeholders::_6),
         [&](std::vector<std::string> &printBacklog) {},
         std::bind(&SimWrapper::handleTimestampStart, &wrapper,
                   std::placeholders::_1),
