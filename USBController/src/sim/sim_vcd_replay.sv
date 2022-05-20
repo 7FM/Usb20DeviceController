@@ -19,7 +19,7 @@ module sim_vcd_replay #(
     input logic USB_DN,
     output logic USB_DP_OUT,
     output logic USB_DN_OUT,
-    output logic USB_PULLUP,
+    output logic USB_PULLUP
 );
 
     // Endpoint interfaces: Note that contrary to the USB spec, the names here are from the device centric!
