@@ -2,15 +2,37 @@
 
 #include <iostream>
 
+static bool extractNextField(const std::string &line, std::string &field,
+                             std::string::size_type &searchOffset) {
+    searchOffset = line.find_first_not_of(" ", searchOffset);
+    if (searchOffset == std::string::npos) {
+        return true;
+    }
+
+    auto nextSearchOffset = line.find(" ", searchOffset);
+    if (nextSearchOffset == std::string::npos) {
+        return true;
+    }
+
+    field =
+        std::string(line.substr(searchOffset, nextSearchOffset - searchOffset));
+    searchOffset = nextSearchOffset;
+
+    return false;
+}
+
 template <class T>
-vcd_reader<T>::vcd_reader(
-    const std::string &path,
-    std::function<std::optional<T>(const std::string & /*line*/, const std::string & /*signalName*/, const std::string & /*vcdAlias*/, const std::string & /*typeStr*/, const std::string & /*bitwidthStr*/)> handlerCreator,
-    std::function<void(std::vector<std::string> & /*printBacklog*/)> handleTimestampEnd,
-    std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart,
-    std::function<void(const std::string & /*line*/)> handleIgnoredLine) : in(path), handleTimestampEnd(handleTimestampEnd), handleTimestampStart(handleTimestampStart), handleIgnoredLine(handleIgnoredLine) {
+vcd_reader<T>::vcd_reader(const std::string &path,
+                          HandlerCreator handlerCreator,
+                          TimestampEndHandler handleTimestampEnd,
+                          TimestampStartHandler handleTimestampStart,
+                          IgnoredLineHandler handleIgnoredLine)
+    : in(path), handleTimestampEnd(handleTimestampEnd),
+      handleTimestampStart(handleTimestampStart),
+      handleIgnoredLine(handleIgnoredLine) {
 
     std::string line;
+    std::stack<std::string> scopes;
 
     // Parse the header
     while (in.good()) {
@@ -21,73 +43,53 @@ vcd_reader<T>::vcd_reader(
         }
 
         if (line.starts_with("$var")) {
-            // Expected format: `$var` <type> <bitWidth> <vcdAlias> <signalName> `$end`
-            auto typeStart = line.find_first_not_of(" ", 4);
-            if (typeStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-            auto typeEnd = line.find(" ", typeStart);
-            if (typeEnd == std::string::npos) {
+            // Expected format:
+            // `$var` <type> <bitWidth> <vcdAlias> <signalName> `$end`
+            std::string::size_type searchOffset = 4;
+
+            std::string typeStr;
+            std::string bitwidthStr;
+            std::string vcdAlias;
+            std::string signalName;
+
+            if (extractNextField(line, typeStr, searchOffset) ||
+                extractNextField(line, bitwidthStr, searchOffset) ||
+                extractNextField(line, vcdAlias, searchOffset) ||
+                extractNextField(line, signalName, searchOffset)) {
                 std::cout << "ERROR: Invalid $var define!" << std::endl;
                 handleIgnoredLine(line);
                 continue;
             }
 
-            auto bitWidthStart = line.find_first_not_of(" ", typeEnd);
-            if (bitWidthStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-            auto bitWidthEnd = line.find(" ", bitWidthStart);
-            if (bitWidthEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-
-            auto vcdAliasStart = line.find_first_not_of(" ", bitWidthEnd);
-            if (vcdAliasStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-            auto vcdAliasEnd = line.find(" ", vcdAliasStart);
-            if (vcdAliasEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-
-            auto signalNameStart = line.find_first_not_of(" ", vcdAliasEnd);
-            if (signalNameStart == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-            auto signalNameEnd = line.find(" ", signalNameStart);
-            if (signalNameEnd == std::string::npos) {
-                std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
-                continue;
-            }
-
-            std::string vcdAlias(line.substr(vcdAliasStart, vcdAliasEnd - vcdAliasStart));
-            std::string signalName(line.substr(signalNameStart, signalNameEnd - signalNameStart));
-            std::string typeStr(line.substr(typeStart, typeEnd - typeStart));
-            std::string bitwidthStr(line.substr(bitWidthStart, bitWidthEnd - bitWidthStart));
-
-            if (auto handler = handlerCreator(line, signalName, vcdAlias, typeStr, bitwidthStr)) {
+            if (auto handler = handlerCreator(scopes, line, signalName,
+                                              vcdAlias, typeStr, bitwidthStr)) {
                 vcdAliases.insert({vcdAlias, handler.value()});
             }
+        } else if (line.starts_with("$scope")) {
+            // Expected format: $scope <type> <name> $end
+            std::string::size_type searchOffset = 6;
+            std::string typeStr; // TODO useful?
+            std::string scopeName;
+
+            handleIgnoredLine(line);
+
+            if (extractNextField(line, typeStr, searchOffset) ||
+                extractNextField(line, scopeName, searchOffset)) {
+                std::cout << "ERROR: Invalid $scope define!" << std::endl;
+                continue;
+            }
+
+            scopes.push(std::move(scopeName));
+        } else if (line.starts_with("$upscope")) {
+            // Expected format: $upscope $end
+            scopes.pop();
         } else {
             // We dont care about this line, just write it too
             handleIgnoredLine(line);
 
             // We are done with the header!
-            if (line.starts_with("$dumpvars") || line.starts_with("$enddefinitions")) {
+            if (line.starts_with("$dumpvars") ||
+                line.starts_with("$enddefinitions")) {
                 break;
             }
         }
@@ -110,7 +112,8 @@ static auto updateIt(std::string &line, std::string &variableUpdate) {
 }
 
 template <class T>
-bool vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line, std::vector<std::string> &printBacklog) {
+bool vcd_reader<T>::parseVariableUpdates(
+    bool truncate, std::string &line, std::vector<std::string> &printBacklog) {
     // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
     std::string vcdAlias;
     bool value;
@@ -126,7 +129,8 @@ bool vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line, std::
             // Multibit value: currently we can not handle this
             if (!showedMultibitWarning) {
                 showedMultibitWarning = true;
-                std::cout << "Warning: multibit values are unsupported!" << std::endl;
+                std::cout << "Warning: multibit values are unsupported!"
+                          << std::endl;
             }
             if (!truncate) {
                 print = true;
@@ -141,7 +145,8 @@ bool vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line, std::
             // Single bit value
             char valueChar = variableUpdate[0];
             if (valueChar != '0' && valueChar != '1') {
-                std::cout << "Warning: unsupported value: '" << valueChar << '\'' << std::endl;
+                std::cout << "Warning: unsupported value: '" << valueChar
+                          << '\'' << std::endl;
                 if (!truncate) {
                     print = true;
                     printBacklog.push_back(variableUpdate);
@@ -156,7 +161,8 @@ bool vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line, std::
         if (vcdHandlerIt != vcdAliases.end()) {
             print |= vcdHandlerIt->second.handleValueChange(value);
         } else if (!truncate) {
-            std::cout << "Warning: no entry found for vcd alias: " << vcdAlias << std::endl;
+            std::cout << "Warning: no entry found for vcd alias: " << vcdAlias
+                      << std::endl;
             std::cout << "    raw line: " << variableUpdate << std::endl;
             // We still want to keep this signal!
             print = true;
@@ -167,8 +173,7 @@ bool vcd_reader<T>::parseVariableUpdates(bool truncate, std::string &line, std::
     return print;
 }
 
-template <class T>
-void vcd_reader<T>::process(bool truncate) {
+template <class T> void vcd_reader<T>::process(bool truncate) {
     std::string line;
 
     std::vector<std::string> printBacklog;
@@ -219,15 +224,19 @@ void vcd_reader<T>::process(bool truncate) {
                 if (it != std::string::npos) {
                     updates = updates.substr(it);
                     if (!updates.empty()) {
-                        // TODO test inline updates within the same line as the timestamp!
-                        print |= parseVariableUpdates(truncate, updates, printBacklog);
+                        // TODO test inline updates within the same line as the
+                        // timestamp!
+                        print |= parseVariableUpdates(truncate, updates,
+                                                      printBacklog);
                     }
                 }
             }
 
         } else {
-            // TODO this might change the position of that line! ADD BIG WARNING!
-            //  We neither know nor want to know what this line is, just pass it on!
+            // TODO this might change the position of that line! ADD BIG
+            // WARNING!
+            //  We neither know nor want to know what this line is, just pass it
+            //  on!
             handleIgnoredLine(line);
         }
     }

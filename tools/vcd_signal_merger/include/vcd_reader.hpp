@@ -4,35 +4,43 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <stack>
 #include <string>
 #include <utility>
 #include <vector>
 
-template <class T>
-class vcd_reader {
+template <class T> class vcd_reader {
   public:
-    vcd_reader(const std::string &path,
-               std::function<std::optional<T>(const std::string & /*line*/, const std::string & /*signalName*/, const std::string & /*vcdAlias*/, const std::string & /*typeStr*/, const std::string & /*bitwidthStr*/)> handlerCreator,
-               std::function<void(std::vector<std::string> & /*printBacklog*/)> handleTimestampEnd,
-               std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart,
-               std::function<void(const std::string & /*line*/)> handleIgnoredLine);
+    using HandlerCreator = std::function<std::optional<T>(
+        const std::stack<std::string> & /*scopes*/,
+        const std::string & /*line*/, const std::string & /*signalName*/,
+        const std::string & /*vcdAlias*/, const std::string & /*typeStr*/,
+        const std::string & /*bitwidthStr*/)>;
+    using TimestampEndHandler =
+        std::function<void(std::vector<std::string> & /*printBacklog*/)>;
+    using TimestampStartHandler = std::function<bool(uint64_t /*timestamp*/)>;
+    using IgnoredLineHandler =
+        std::function<void(const std::string & /*line*/)>;
 
-    bool operator()() {
-        return good();
-    }
-    bool good() {
-        return in.good();
-    }
+    vcd_reader(const std::string &path, HandlerCreator handlerCreator,
+               TimestampEndHandler handleTimestampEnd,
+               TimestampStartHandler handleTimestampStart,
+               IgnoredLineHandler handleIgnoredLine);
+
+    bool operator()() { return good(); }
+    bool good() { return in.good(); }
 
     void process(bool truncate = true);
 
   private:
-    bool parseVariableUpdates(bool truncate, std::string &line, std::vector<std::string> &printBacklog);
+    bool parseVariableUpdates(bool truncate, std::string &line,
+                              std::vector<std::string> &printBacklog);
 
   private:
     std::ifstream in;
 
-    const std::function<void(std::vector<std::string> & /*printBacklog*/)> handleTimestampEnd;
+    const std::function<void(std::vector<std::string> & /*printBacklog*/)>
+        handleTimestampEnd;
     const std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart;
     const std::function<void(const std::string & /*line*/)> handleIgnoredLine;
     std::map<std::string, T> vcdAliases;
