@@ -20,7 +20,8 @@ template <class T> class vcd_reader {
     using TimestampEndHandler =
         std::function<void(std::vector<std::string> & /*printBacklog*/)>;
     using TimestampStartHandler = std::function<bool(uint64_t /*timestamp*/)>;
-    using LinePrinter = std::function<void(const std::string & /*line*/)>;
+    using LinePrinter =
+        std::function<void(const std::string & /*line*/, bool /*isHeader*/)>;
 
     enum ValueType {
         SINGLE_BIT,
@@ -61,10 +62,9 @@ template <class T> class vcd_reader {
   private:
     Tokenizer tokenizer;
 
-    const std::function<void(std::vector<std::string> & /*printBacklog*/)>
-        handleTimestampEnd;
-    const std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart;
-    const std::function<void(const std::string & /*line*/)> linePrinter;
+    const TimestampEndHandler handleTimestampEnd;
+    const TimestampStartHandler handleTimestampStart;
+    const LinePrinter linePrinter;
     std::map<std::string, T> vcdAliases;
 };
 

@@ -63,7 +63,7 @@ vcd_reader<T>::vcd_reader(const std::string &path,
 
             // Print the scope
             linePrinter(SCOPE_TOKEN + ' ' + typeStr + ' ' + scopeName + ' ' +
-                        END_TOKEN);
+                        END_TOKEN, true);
 
             scopes.push(std::move(scopeName));
         } else if (token == UPSCOPE_TOKEN) {
@@ -76,9 +76,9 @@ vcd_reader<T>::vcd_reader(const std::string &path,
             }
 
             // Print the upscope
-            linePrinter(UPSCOPE_TOKEN + ' ' + END_TOKEN);
+            linePrinter(UPSCOPE_TOKEN + ' ' + END_TOKEN, true);
         } else if (token == DUMPVARS_TOKEN || token == ENDDEFINITIONS_TOKEN) {
-            linePrinter(token);
+            linePrinter(token, true);
 
             // We are done with the header!
             break;
@@ -92,13 +92,13 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                     break;
                 }
             }
-            linePrinter(collectedTokens);
-            linePrinter(token);
+            linePrinter(collectedTokens, true);
+            linePrinter(token, true);
         } else {
             // We dont care about this token, just write it too
             std::cout << "WARNING: unknown token: '" << token << '\''
                       << std::endl;
-            linePrinter(token);
+            linePrinter(token, true);
         }
     }
 }
@@ -208,7 +208,7 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             if (!maskPrinting && print) {
                 handleTimestampEnd(printBacklog);
                 for (const auto &s : printBacklog) {
-                    linePrinter(s);
+                    linePrinter(s, false);
                 }
             }
             printBacklog.clear();
@@ -226,17 +226,17 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             // WARNING!
             //  We neither know nor want to know what this line is, just pass it
             //  on!
-            linePrinter(token);
+            linePrinter(token, false);
         }
     }
 
     if (!maskPrinting && print) {
         handleTimestampEnd(printBacklog);
         for (const auto &s : printBacklog) {
-            linePrinter(s);
+            linePrinter(s, false);
         }
     } else if (!printBacklog.empty()) {
         // Always print the last timestamp!
-        linePrinter(printBacklog[0]);
+        linePrinter(printBacklog[0], false);
     }
 }

@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
 
             return ignore;
         },
-        [&](const std::string &line) { out << line << std::endl; });
+        [&](const std::string &line, bool /*isHeader*/) { out << line << std::endl; });
 
     if (!vcdReader.good() || !out.good()) {
         return 3;

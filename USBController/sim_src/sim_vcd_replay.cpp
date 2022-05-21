@@ -153,7 +153,7 @@ int main(int argc, char **argv) {
         [&](std::vector<std::string> &printBacklog) {},
         std::bind(&SimWrapper::handleTimestampStart, &wrapper,
                   std::placeholders::_1),
-        [](auto &) {});
+        [](auto &, bool) {});
 
     vcdParser.process();
 

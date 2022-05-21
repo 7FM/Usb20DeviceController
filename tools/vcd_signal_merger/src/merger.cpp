@@ -143,7 +143,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
             }
         },
         [&](uint64_t /*timestamp*/) { return false; },
-        [&](const std::string &line) { out << line << std::endl; });
+        [&](const std::string &line, bool /*isHeader*/) { out << line << std::endl; });
 
     if (!vcdHandler.good()) {
         std::cout << "Could not open input file: " << inputFile << std::endl;
