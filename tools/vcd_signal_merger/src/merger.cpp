@@ -101,9 +101,9 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
 
     vcd_reader<SignalMergerWrapper> vcdHandler(
         inputFile,
-        [&](const std::stack<std::string> & /*scopes*/, const std::string &line,
+        [&](const std::stack<std::string> & /*scopes*/,
             const std::string &signalName, const std::string &vcdAlias,
-            const std::string & /*typeStr*/, const std::string &bitwidthStr)
+            const std::string &typeStr, const std::string &bitwidthStr)
             -> std::optional<SignalMergerWrapper> {
             if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1') {
                 // std::cout << "Warning: unsupported bitwidth: " <<
@@ -120,7 +120,8 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
                     // This is the first alias for this signal group!
                     // -> keep this signal definition & set it as
                     // outputVcdSymbol
-                    out << line << std::endl;
+                    out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr
+                        << ' ' << vcdAlias << ' ' << END_TOKEN << std::endl;
                     vcdSymbol = vcdAlias;
                 }
 
@@ -130,7 +131,8 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
                 std::cout << "Warning: no entry found for signal: "
                           << signalName << std::endl;
                 // We still want to keep this signal!
-                out << line << std::endl;
+                out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr << ' '
+                    << vcdAlias << ' ' << END_TOKEN << std::endl;
             }
             return std::nullopt;
         },

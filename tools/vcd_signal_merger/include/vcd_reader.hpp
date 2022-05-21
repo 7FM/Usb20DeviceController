@@ -9,13 +9,14 @@
 #include <utility>
 #include <vector>
 
+#include "tokenizer.hpp"
+
 template <class T> class vcd_reader {
   public:
     using HandlerCreator = std::function<std::optional<T>(
         const std::stack<std::string> & /*scopes*/,
-        const std::string & /*line*/, const std::string & /*signalName*/,
-        const std::string & /*vcdAlias*/, const std::string & /*typeStr*/,
-        const std::string & /*bitwidthStr*/)>;
+        const std::string & /*signalName*/, const std::string & /*vcdAlias*/,
+        const std::string & /*typeStr*/, const std::string & /*bitwidthStr*/)>;
     using TimestampEndHandler =
         std::function<void(std::vector<std::string> & /*printBacklog*/)>;
     using TimestampStartHandler = std::function<bool(uint64_t /*timestamp*/)>;
@@ -49,16 +50,16 @@ template <class T> class vcd_reader {
                LinePrinter linePrinter);
 
     bool operator()() { return good(); }
-    bool good() { return in.good(); }
+    bool good() { return tokenizer.good(); }
 
     void process(bool truncate = true);
 
   private:
-    bool parseVariableUpdates(bool truncate, std::string &line,
-                              std::vector<std::string> &printBacklog);
+    bool parseVariableUpdate(bool truncate, std::string &line,
+                             std::vector<std::string> &printBacklog);
 
   private:
-    std::ifstream in;
+    Tokenizer tokenizer;
 
     const std::function<void(std::vector<std::string> & /*printBacklog*/)>
         handleTimestampEnd;

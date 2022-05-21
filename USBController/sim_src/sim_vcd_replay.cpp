@@ -1,8 +1,8 @@
 #include <atomic>
+#include <cassert>
 #include <csignal>
 #include <cstdint>
 #include <cstring>
-#include <cassert>
 #include <functional>
 #include <string>
 
@@ -80,7 +80,8 @@ bool getForceStop() { return forceStop; }
 struct DummyForwarder {
     DummyForwarder(std::function<bool(bool)> handler) : handler(handler) {}
 
-    bool handleValueChange(const vcd_reader<DummyForwarder>::ValueUpdate& value) {
+    bool
+    handleValueChange(const vcd_reader<DummyForwarder>::ValueUpdate &value) {
         assert(value.type == vcd_reader<DummyForwarder>::SINGLE_BIT);
         return handler(value.value.singleBit);
     }
@@ -92,12 +93,10 @@ struct DummyForwarder {
 struct SimWrapper {
     SimWrapper(UsbVcdReplaySim *sim) : sim(sim) {}
 
-    std::optional<DummyForwarder>
-    handlerCreator(const std::stack<std::string> & /*scopes*/,
-                   const std::string & /*line*/, const std::string &signalName,
-                   const std::string & /*vcdAlias*/,
-                   const std::string & /*typeStr*/,
-                   const std::string & /*bitwidthStr*/) {
+    std::optional<DummyForwarder> handlerCreator(
+        const std::stack<std::string> & /*scopes*/,
+        const std::string &signalName, const std::string & /*vcdAlias*/,
+        const std::string & /*typeStr*/, const std::string & /*bitwidthStr*/) {
         auto usbP = signalName.find("USB_DP");
         auto usbN = signalName.find("USB_DN");
         if (usbP != std::string::npos) {
@@ -150,8 +149,7 @@ int main(int argc, char **argv) {
         sim.replayFile,
         std::bind(&SimWrapper::handlerCreator, &wrapper, std::placeholders::_1,
                   std::placeholders::_2, std::placeholders::_3,
-                  std::placeholders::_4, std::placeholders::_5,
-                  std::placeholders::_6),
+                  std::placeholders::_4, std::placeholders::_5),
         [&](std::vector<std::string> &printBacklog) {},
         std::bind(&SimWrapper::handleTimestampStart, &wrapper,
                   std::placeholders::_1),
@@ -161,3 +159,6 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
+// Don't do this at home!
+#include "../../tools/vcd_signal_merger/include/tokenizer.cpp"

@@ -17,6 +17,7 @@ file(GLOB_RECURSE cppHeader CONFIGURE_DEPENDS
 )
 
 file(GLOB_RECURSE cppSrcs CONFIGURE_DEPENDS
+"../vcd_signal_merger/include/*.cpp"
 "../annotation_reader/include/*.cpp"
 "src/*.cpp"
 )

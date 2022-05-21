@@ -169,9 +169,8 @@ int main(int argc, char **argv) {
     vcd_reader<SignalWrapper<SignalAveraging>> vcdAvgReader(
         inputVcdFile,
         [&](const std::stack<std::string> & /*scopes*/,
-            const std::string & /*line*/, const std::string & /*signalName*/,
-            const std::string &vcdAlias, const std::string &typeStr,
-            const std::string & /*bitwidthStr*/)
+            const std::string & /*signalName*/, const std::string &vcdAlias,
+            const std::string &typeStr, const std::string & /*bitwidthStr*/)
             -> std::optional<SignalWrapper<SignalAveraging>> {
             if (typeStr != "real") {
                 return std::nullopt;
@@ -212,9 +211,8 @@ int main(int argc, char **argv) {
     vcd_reader<SignalWrapper<SignalState>> vcdReader(
         inputVcdFile,
         [&](const std::stack<std::string> & /*scopes*/,
-            const std::string & /*line*/, const std::string &signalName,
-            const std::string &vcdAlias, const std::string &typeStr,
-            const std::string & /*bitwidthStr*/)
+            const std::string &signalName, const std::string &vcdAlias,
+            const std::string &typeStr, const std::string & /*bitwidthStr*/)
             -> std::optional<SignalWrapper<SignalState>> {
             if (typeStr != "real") {
                 return std::nullopt;

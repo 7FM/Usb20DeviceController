@@ -15,6 +15,7 @@ file(GLOB_RECURSE cppHeader CONFIGURE_DEPENDS
 )
 
 file(GLOB_RECURSE cppSrcs CONFIGURE_DEPENDS
+"include/*.cpp"
 "src/*.cpp"
 )
 

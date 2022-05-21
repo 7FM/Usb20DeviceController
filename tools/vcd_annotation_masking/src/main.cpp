@@ -121,9 +121,9 @@ int main(int argc, char **argv) {
     std::ofstream out(outputFile);
     vcd_reader<SignalWrapper> vcdReader(
         inputVcdFile,
-        [&](const std::stack<std::string> & /*scopes*/, const std::string &line,
+        [&](const std::stack<std::string> & /*scopes*/,
             const std::string &signalName, const std::string &vcdAlias,
-            const std::string & /*typeStr*/,
+            const std::string &typeStr,
             const std::string &bitwidthStr) -> std::optional<SignalWrapper> {
             auto it = signalName.find("USB_D");
             if (bitwidthStr.size() != 1 || bitwidthStr[0] != '1' ||
@@ -135,7 +135,8 @@ int main(int argc, char **argv) {
             }
 
             // -> keep this signal definition
-            out << line << std::endl;
+            out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr << ' '
+                << vcdAlias << ' ' << END_TOKEN << std::endl;
 
             const auto &ref =
                 signals.emplace_back(std::make_unique<SignalState>());
