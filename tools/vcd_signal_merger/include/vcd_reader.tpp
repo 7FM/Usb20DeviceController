@@ -137,13 +137,12 @@ bool vcd_reader<T>::parseVariableUpdates(
 
         // Extract the vcd alias
         extractVcdAlias:
-            print = true;
             printBacklog.push_back(variableUpdateStr);
             it = updateIt(line, variableUpdateStr);
             vcdAlias = variableUpdateStr;
         } else if (variableUpdateStr[0] == 'r') {
             valueUpdate.type = REAL;
-            // real number
+
             valueUpdate.valueStr = variableUpdateStr.substr(1);
             std::stringstream realStream(valueUpdate.valueStr);
             realStream >> valueUpdate.value.real;
