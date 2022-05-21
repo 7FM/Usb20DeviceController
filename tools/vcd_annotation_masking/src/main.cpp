@@ -151,6 +151,7 @@ int main(int argc, char **argv) {
             }
         },
         [&](uint64_t timestamp) {
+            // Check whether if the current packet is masked!
             bool ignore = false;
             for (; packetIdx < packets.size(); ++packetIdx) {
                 const auto &p = packets[packetIdx];

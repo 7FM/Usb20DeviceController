@@ -88,16 +88,49 @@ struct SignalAveraging {
     double getFinalAverage() { return avg; }
 };
 
-struct SignalWrapper {
-    SignalWrapper(SignalAveraging *state) : state(state) {}
+struct SignalState {
+    std::string outputVcdSymbol;
+    const double threshold;
+    // NOTE we are not able to represent 'z' & 'x'
+    bool currentState;
+    // Keep track if the value was changed within this timestep!
 
-    bool
-    handleValueChange(const vcd_reader<SignalWrapper>::ValueUpdate &value) {
-        assert(value.type == vcd_reader<SignalWrapper>::REAL);
+    bool changedValue = false;
+    bool initialized = false;
+
+    SignalState(double thres) : threshold(thres) {}
+
+    bool handleValueChange(double newRealValue) {
+        bool newValue = newRealValue >= threshold;
+        changedValue =
+            !initialized || changedValue || (newValue != currentState);
+        currentState = newValue;
+        return changedValue;
+    }
+
+    void handleTimestepEnd(std::vector<std::string> &printBacklog) {
+        // Only print the variable state, if it has changed!
+        if (changedValue) {
+            std::string res = (currentState ? '1' : '0') + outputVcdSymbol;
+            printBacklog.push_back(std::move(res));
+        }
+
+        initialized = initialized || changedValue;
+        // Clear the changed flag
+        changedValue = false;
+    }
+};
+
+template <class State> struct SignalWrapper {
+    SignalWrapper(State *state) : state(state) {}
+
+    bool handleValueChange(
+        const vcd_reader<SignalWrapper<State>>::ValueUpdate &value) {
+        assert(value.type == vcd_reader<SignalWrapper<State>>::REAL);
         return state->handleValueChange(value.value.real);
     }
 
-    SignalAveraging *const state;
+    State *const state;
 };
 
 int main(int argc, char **argv) {
@@ -133,13 +166,13 @@ int main(int argc, char **argv) {
 
     std::map<std::string, std::unique_ptr<SignalAveraging>> realSignals;
 
-    vcd_reader<SignalWrapper> vcdAvgReader(
+    vcd_reader<SignalWrapper<SignalAveraging>> vcdAvgReader(
         inputVcdFile,
         [&](const std::stack<std::string> & /*scopes*/,
             const std::string & /*line*/, const std::string & /*signalName*/,
             const std::string &vcdAlias, const std::string &typeStr,
             const std::string & /*bitwidthStr*/)
-            -> std::optional<SignalWrapper> {
+            -> std::optional<SignalWrapper<SignalAveraging>> {
             if (typeStr != "real") {
                 return std::nullopt;
             }
@@ -158,12 +191,11 @@ int main(int argc, char **argv) {
         [&](const std::string & /*line*/) { /*nothing to print here*/ });
 
     if (!vcdAvgReader.good()) {
-        return 3;
+        return 2;
     }
 
-    bool truncate = true;
     // run the vcdReader
-    vcdAvgReader.process(truncate);
+    vcdAvgReader.process(true);
     for (auto &[first, second] : realSignals) {
         second->finalizeAveraging();
         // TODO remove
@@ -171,10 +203,58 @@ int main(int argc, char **argv) {
                   << std::endl;
     }
 
-    /* TODO read the vcd file again but this time apply the averaging create
-       binary output! std::ofstream out(outputFile); if (!vcdReader.good() ||
-       !out.good()) { return 3;
-        }
+    /* TODO read the vcd file again but this time apply the averaging to create
+       binary output!
     */
+    std::vector<std::unique_ptr<SignalState>> signals;
+
+    std::ofstream out(outputFile);
+    vcd_reader<SignalWrapper<SignalState>> vcdReader(
+        inputVcdFile,
+        [&](const std::stack<std::string> & /*scopes*/,
+            const std::string & /*line*/, const std::string &signalName,
+            const std::string &vcdAlias, const std::string &typeStr,
+            const std::string & /*bitwidthStr*/)
+            -> std::optional<SignalWrapper<SignalState>> {
+            if (typeStr != "real") {
+                return std::nullopt;
+            }
+
+            // check we have previously processed this vcdAlias too!
+            auto it = realSignals.find(vcdAlias);
+            if (it == realSignals.end()) {
+                return std::nullopt;
+            }
+
+            // -> change the signal definition to a single bit variable!
+            out << "$var wire 1 " << vcdAlias << " " << signalName << " $end"
+                << std::endl;
+
+            const auto &ref = signals.emplace_back(
+                std::make_unique<SignalState>(it->second->getFinalAverage()));
+
+            SignalWrapper wrapper(ref.get());
+            ref->outputVcdSymbol = vcdAlias;
+            return wrapper;
+        },
+        [&](std::vector<std::string> &printBacklog) {
+            // Iterate over all signal groups to dump updated values
+            for (auto &s : signals) {
+                s->handleTimestepEnd(printBacklog);
+            }
+        },
+        [&](uint64_t /*timestamp*/) {
+            // print it all
+            return false;
+        },
+        [&](const std::string &line) { out << line << std::endl; });
+
+    if (!vcdReader.good() || !out.good()) {
+        return 3;
+    }
+
+    // run the vcdReader
+    vcdReader.process(false);
+
     return 0;
 }
