@@ -1,6 +1,7 @@
 #include "vcd_reader.hpp"
 
 #include <iostream>
+#include <sstream>
 
 static bool extractNextField(const std::string &line, std::string &field,
                              std::string::size_type &searchOffset) {
@@ -114,59 +115,86 @@ static auto updateIt(std::string &line, std::string &variableUpdate) {
 template <class T>
 bool vcd_reader<T>::parseVariableUpdates(
     bool truncate, std::string &line, std::vector<std::string> &printBacklog) {
-    // Expected format: <value><vcdAlias> or b<multibit value> <vcdAlias>
+    // Expected format:
+    // <value><vcdAlias> or b<multibit value> <vcdAlias> or r<decimal value>
+    // <vcdAlias>
     std::string vcdAlias;
-    bool value;
+    std::string variableUpdateStr;
+
+    ValueUpdate valueUpdate;
+
     bool print = false;
 
     decltype(line.find(' ')) it;
     do {
-        std::string variableUpdate;
 
-        it = updateIt(line, variableUpdate);
+        it = updateIt(line, variableUpdateStr);
 
-        if (variableUpdate[0] == 'b') {
-            // Multibit value: currently we can not handle this
-            if (!showedMultibitWarning) {
-                showedMultibitWarning = true;
-                std::cout << "Warning: multibit values are unsupported!"
-                          << std::endl;
+        if (variableUpdateStr[0] == 'b') {
+            valueUpdate.type = MULTI_BIT;
+
+            valueUpdate.valueStr = variableUpdateStr.substr(1);
+
+        // Extract the vcd alias
+        extractVcdAlias:
+            print = true;
+            printBacklog.push_back(variableUpdateStr);
+            it = updateIt(line, variableUpdateStr);
+            vcdAlias = variableUpdateStr;
+        } else if (variableUpdateStr[0] == 'r') {
+            valueUpdate.type = REAL;
+            // real number
+            valueUpdate.valueStr = variableUpdateStr.substr(1);
+            std::stringstream realStream(valueUpdate.valueStr);
+            realStream >> valueUpdate.value.real;
+
+            if (realStream.fail()) {
+                std::cout << "Warning: failed to parse real number: "
+                          << valueUpdate.valueStr << std::endl;
+                if (!truncate) {
+                    print = true;
+                    printBacklog.push_back(variableUpdateStr);
+                    it = updateIt(line, variableUpdateStr);
+                    printBacklog.push_back(variableUpdateStr);
+                }
+                if (it != std::string::npos) {
+                    continue;
+                } else {
+                    break;
+                }
             }
-            if (!truncate) {
-                print = true;
-                printBacklog.push_back(variableUpdate);
-            }
-            it = updateIt(line, variableUpdate);
-            if (!truncate) {
-                printBacklog.push_back(variableUpdate);
-            }
-            continue;
+
+            // Extract the vcd alias
+            goto extractVcdAlias;
         } else {
-            // Single bit value
-            char valueChar = variableUpdate[0];
+            valueUpdate.type = SINGLE_BIT;
+
+            char valueChar = variableUpdateStr[0];
+            valueUpdate.valueStr = valueChar;
             if (valueChar != '0' && valueChar != '1') {
                 std::cout << "Warning: unsupported value: '" << valueChar
                           << '\'' << std::endl;
                 if (!truncate) {
                     print = true;
-                    printBacklog.push_back(variableUpdate);
+                    printBacklog.push_back(variableUpdateStr);
                 }
                 continue;
             }
-            value = valueChar == '1';
-            vcdAlias = variableUpdate.substr(1);
+            valueUpdate.value.singleBit = valueChar == '1';
+            vcdAlias = variableUpdateStr.substr(1);
         }
 
         auto vcdHandlerIt = vcdAliases.find(vcdAlias);
         if (vcdHandlerIt != vcdAliases.end()) {
-            print |= vcdHandlerIt->second.handleValueChange(value);
+            print |=
+                vcdHandlerIt->second.handleValueChange(std::cref(valueUpdate));
         } else if (!truncate) {
             std::cout << "Warning: no entry found for vcd alias: " << vcdAlias
                       << std::endl;
-            std::cout << "    raw line: " << variableUpdate << std::endl;
+            std::cout << "    raw line: " << variableUpdateStr << std::endl;
             // We still want to keep this signal!
             print = true;
-            printBacklog.push_back(variableUpdate);
+            printBacklog.push_back(variableUpdateStr);
         }
     } while (it != std::string::npos);
 

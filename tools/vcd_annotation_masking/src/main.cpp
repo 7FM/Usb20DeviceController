@@ -1,3 +1,4 @@
+#include <cassert>
 #include <fstream>
 #include <getopt.h>
 #include <iostream>
@@ -46,8 +47,10 @@ struct SignalState {
 struct SignalWrapper {
     SignalWrapper(SignalState *state) : state(state) {}
 
-    bool handleValueChange(bool value) {
-        return state->handleValueChange(value);
+    bool
+    handleValueChange(const vcd_reader<SignalWrapper>::ValueUpdate &value) {
+        assert(value.type == vcd_reader<SignalWrapper>::SINGLE_BIT);
+        return state->handleValueChange(value.value.singleBit);
     }
 
     SignalState *const state;

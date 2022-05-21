@@ -22,6 +22,28 @@ template <class T> class vcd_reader {
     using IgnoredLineHandler =
         std::function<void(const std::string & /*line*/)>;
 
+    enum ValueType {
+        SINGLE_BIT,
+        MULTI_BIT,
+        REAL,
+    };
+
+    struct ValueUpdate {
+        std::string valueStr;
+        union {
+            double real;
+            bool singleBit;
+        } value;
+        ValueType type;
+
+        ValueUpdate() = default;
+        // Prevent copies
+        ValueUpdate(const ValueUpdate &) = delete;
+        ValueUpdate(ValueUpdate &&) = delete;
+        ValueUpdate &operator=(const ValueUpdate &) = delete;
+        ValueUpdate &operator=(ValueUpdate &&other) = delete;
+    };
+
     vcd_reader(const std::string &path, HandlerCreator handlerCreator,
                TimestampEndHandler handleTimestampEnd,
                TimestampStartHandler handleTimestampStart,
@@ -44,8 +66,6 @@ template <class T> class vcd_reader {
     const std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart;
     const std::function<void(const std::string & /*line*/)> handleIgnoredLine;
     std::map<std::string, T> vcdAliases;
-
-    bool showedMultibitWarning = false;
 };
 
 #include "vcd_reader.tpp"

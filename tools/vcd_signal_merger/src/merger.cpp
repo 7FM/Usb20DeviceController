@@ -1,6 +1,7 @@
 #include "merger.hpp"
 #include "vcd_reader.hpp"
 
+#include <cassert>
 #include <iostream>
 #include <memory>
 
@@ -65,8 +66,10 @@ struct SignalMergerWrapper {
     SignalMergerWrapper(size_t index, SignalMergeState *mergeState)
         : index(index), mergeState(mergeState) {}
 
-    bool handleValueChange(bool value) {
-        return mergeState->mergeSignal(index, value);
+    bool handleValueChange(
+        const vcd_reader<SignalMergerWrapper>::ValueUpdate &value) {
+        assert(value.type == vcd_reader<SignalMergerWrapper>::SINGLE_BIT);
+        return mergeState->mergeSignal(index, value.value.singleBit);
     }
 
     const size_t index;

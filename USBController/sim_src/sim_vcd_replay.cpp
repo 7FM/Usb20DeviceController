@@ -2,6 +2,7 @@
 #include <csignal>
 #include <cstdint>
 #include <cstring>
+#include <cassert>
 #include <functional>
 #include <string>
 
@@ -79,7 +80,10 @@ bool getForceStop() { return forceStop; }
 struct DummyForwarder {
     DummyForwarder(std::function<bool(bool)> handler) : handler(handler) {}
 
-    bool handleValueChange(bool value) { return handler(value); }
+    bool handleValueChange(const vcd_reader<DummyForwarder>::ValueUpdate& value) {
+        assert(value.type == vcd_reader<DummyForwarder>::SINGLE_BIT);
+        return handler(value.value.singleBit);
+    }
 
   private:
     const std::function<bool(bool)> handler;
