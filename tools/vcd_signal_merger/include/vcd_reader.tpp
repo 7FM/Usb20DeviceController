@@ -29,8 +29,7 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                           TimestampStartHandler handleTimestampStart,
                           LinePrinter linePrinter)
     : in(path), handleTimestampEnd(handleTimestampEnd),
-      handleTimestampStart(handleTimestampStart),
-      linePrinter(linePrinter) {
+      handleTimestampStart(handleTimestampStart), linePrinter(linePrinter) {
 
     std::string line;
     std::stack<std::string> scopes;
@@ -137,9 +136,12 @@ bool vcd_reader<T>::parseVariableUpdates(
 
         // Extract the vcd alias
         extractVcdAlias:
-            printBacklog.push_back(variableUpdateStr);
+            // backup the value field
+            std::string valueField = variableUpdateStr;
             it = updateIt(line, variableUpdateStr);
             vcdAlias = variableUpdateStr;
+            // reconstruct the whole variable update string
+            variableUpdateStr = valueField + ' ' + variableUpdateStr;
         } else if (variableUpdateStr[0] == 'r') {
             valueUpdate.type = REAL;
 
