@@ -275,5 +275,8 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
         for (const auto &s : printBacklog) {
             linePrinter(s);
         }
+    } else if (!printBacklog.empty()) {
+        // Always print the last timestamp!
+        linePrinter(printBacklog[0]);
     }
 }
