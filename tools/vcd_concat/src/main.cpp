@@ -56,16 +56,37 @@ int main(int argc, char **argv) {
     uint64_t offset = 0;
     uint64_t lastTimestamp = 0;
     std::ofstream out(outputFile);
+
+    std::map<std::string, std::string> signalNameTranslation;
+    std::map<std::string, std::string> vcdAliasConversion;
+
     for (const auto &inputVcdFile : inputVcdFiles) {
+        vcdAliasConversion.clear();
+
         vcd_reader<DummySignalWrapper> vcdReader(
             inputVcdFile,
             [&](const std::stack<std::string> & /*scopes*/,
-                const std::string & /*signalName*/,
-                const std::string & /*vcdAlias*/,
-                const std::string & /*typeStr*/,
-                const std::string & /*bitwidthStr*/)
+                const std::string &signalName, const std::string &vcdAlias,
+                const std::string &typeStr, const std::string &bitwidthStr)
                 -> std::optional<DummySignalWrapper> {
                 // keep everything!
+                if (offset == 0) {
+                    out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr
+                        << ' ' << vcdAlias << ' ' << END_TOKEN << std::endl;
+                    signalNameTranslation.emplace(signalName, vcdAlias);
+                } else {
+                    auto it = signalNameTranslation.find(signalName);
+                    if (it != signalNameTranslation.end()) {
+                        vcdAliasConversion.emplace(vcdAlias, it->second);
+                    } else {
+                        std::cout
+                            << "WARNING: can not concat signal: " << signalName
+                            << std::endl;
+                        return std::nullopt;
+                    }
+                    //TODO we actually need a handler here to be able to rewrite value changes for the given vcdAlias to its corresponding previous vcdAlias!
+                }
+
                 return std::nullopt;
             },
             [&](std::vector<std::string> &printBacklog) {
@@ -93,7 +114,6 @@ int main(int argc, char **argv) {
         // run the vcdReader
         vcdReader.process(false);
 
-        // TODO prevent printing the header stuff twice! iff offset
         offset += lastTimestamp;
     }
 
