@@ -1,7 +1,6 @@
 *.out
 *.fst
 *.vcd
-*.txt
 *.diff
 *.log
 build/
