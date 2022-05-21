@@ -27,10 +27,10 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                           HandlerCreator handlerCreator,
                           TimestampEndHandler handleTimestampEnd,
                           TimestampStartHandler handleTimestampStart,
-                          IgnoredLineHandler handleIgnoredLine)
+                          LinePrinter linePrinter)
     : in(path), handleTimestampEnd(handleTimestampEnd),
       handleTimestampStart(handleTimestampStart),
-      handleIgnoredLine(handleIgnoredLine) {
+      linePrinter(linePrinter) {
 
     std::string line;
     std::stack<std::string> scopes;
@@ -58,7 +58,7 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                 extractNextField(line, vcdAlias, searchOffset) ||
                 extractNextField(line, signalName, searchOffset)) {
                 std::cout << "ERROR: Invalid $var define!" << std::endl;
-                handleIgnoredLine(line);
+                linePrinter(line);
                 continue;
             }
 
@@ -72,7 +72,7 @@ vcd_reader<T>::vcd_reader(const std::string &path,
             std::string typeStr; // TODO useful?
             std::string scopeName;
 
-            handleIgnoredLine(line);
+            linePrinter(line);
 
             if (extractNextField(line, typeStr, searchOffset) ||
                 extractNextField(line, scopeName, searchOffset)) {
@@ -86,7 +86,7 @@ vcd_reader<T>::vcd_reader(const std::string &path,
             scopes.pop();
         } else {
             // We dont care about this line, just write it too
-            handleIgnoredLine(line);
+            linePrinter(line);
 
             // We are done with the header!
             if (line.starts_with("$dumpvars") ||
@@ -224,7 +224,7 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             if (!maskPrinting && print) {
                 handleTimestampEnd(printBacklog);
                 for (const auto &s : printBacklog) {
-                    handleIgnoredLine(s);
+                    linePrinter(s);
                 }
             }
             printBacklog.clear();
@@ -265,14 +265,14 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             // WARNING!
             //  We neither know nor want to know what this line is, just pass it
             //  on!
-            handleIgnoredLine(line);
+            linePrinter(line);
         }
     }
 
     if (!maskPrinting && print) {
         handleTimestampEnd(printBacklog);
         for (const auto &s : printBacklog) {
-            handleIgnoredLine(s);
+            linePrinter(s);
         }
     }
 }

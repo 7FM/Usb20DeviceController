@@ -101,7 +101,7 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
 
     vcd_reader<SignalMergerWrapper> vcdHandler(
         inputFile,
-        [&](const std::stack<std::string> &scopes, const std::string &line,
+        [&](const std::stack<std::string> & /*scopes*/, const std::string &line,
             const std::string &signalName, const std::string &vcdAlias,
             const std::string & /*typeStr*/, const std::string &bitwidthStr)
             -> std::optional<SignalMergerWrapper> {

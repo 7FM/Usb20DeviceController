@@ -19,8 +19,7 @@ template <class T> class vcd_reader {
     using TimestampEndHandler =
         std::function<void(std::vector<std::string> & /*printBacklog*/)>;
     using TimestampStartHandler = std::function<bool(uint64_t /*timestamp*/)>;
-    using IgnoredLineHandler =
-        std::function<void(const std::string & /*line*/)>;
+    using LinePrinter = std::function<void(const std::string & /*line*/)>;
 
     enum ValueType {
         SINGLE_BIT,
@@ -47,7 +46,7 @@ template <class T> class vcd_reader {
     vcd_reader(const std::string &path, HandlerCreator handlerCreator,
                TimestampEndHandler handleTimestampEnd,
                TimestampStartHandler handleTimestampStart,
-               IgnoredLineHandler handleIgnoredLine);
+               LinePrinter linePrinter);
 
     bool operator()() { return good(); }
     bool good() { return in.good(); }
@@ -64,7 +63,7 @@ template <class T> class vcd_reader {
     const std::function<void(std::vector<std::string> & /*printBacklog*/)>
         handleTimestampEnd;
     const std::function<bool(uint64_t /*timestamp*/)> handleTimestampStart;
-    const std::function<void(const std::string & /*line*/)> handleIgnoredLine;
+    const std::function<void(const std::string & /*line*/)> linePrinter;
     std::map<std::string, T> vcdAliases;
 };
 

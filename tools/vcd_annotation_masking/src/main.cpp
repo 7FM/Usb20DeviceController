@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
     std::ofstream out(outputFile);
     vcd_reader<SignalWrapper> vcdReader(
         inputVcdFile,
-        [&](const std::stack<std::string> &scopes, const std::string &line,
+        [&](const std::stack<std::string> & /*scopes*/, const std::string &line,
             const std::string &signalName, const std::string &vcdAlias,
             const std::string & /*typeStr*/,
             const std::string &bitwidthStr) -> std::optional<SignalWrapper> {
