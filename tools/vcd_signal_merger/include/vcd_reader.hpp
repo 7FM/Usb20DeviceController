@@ -55,6 +55,10 @@ template <class T> class vcd_reader {
 
     void process(bool truncate = true);
 
+    std::map<std::string, T> &getVcdAliasHandler() {
+        return vcdAliases;
+    };
+
   private:
     bool parseVariableUpdate(bool truncate, std::string &line,
                              std::vector<std::string> &printBacklog);

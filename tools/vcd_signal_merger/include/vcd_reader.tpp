@@ -78,10 +78,19 @@ vcd_reader<T>::vcd_reader(const std::string &path,
 
             // Print the upscope
             linePrinter(UPSCOPE_TOKEN + ' ' + END_TOKEN, true);
-        } else if (token == DUMPVARS_TOKEN || token == ENDDEFINITIONS_TOKEN) {
+        } else if (token == ENDDEFINITIONS_TOKEN) {
+            // Expected format: $enddefinitions $end
             linePrinter(token, true);
 
+            // However, for $dumpvars <stuff> are value initializations!
+            if (tokenizer.expectToken(END_TOKEN)) {
+                std::cout << "ERROR: Illformed " << ENDDEFINITIONS_TOKEN
+                          << std::endl;
+                break;
+            }
+
             // We are done with the header!
+            linePrinter(END_TOKEN, true);
             break;
         } else if (token == DATE_TOKEN || token == TIMESCALE_TOKEN ||
                    token == VERSION_TOKEN || token == COMMENT_TOKEN) {
@@ -96,10 +105,16 @@ vcd_reader<T>::vcd_reader(const std::string &path,
             linePrinter(collectedTokens, true);
             linePrinter(token, true);
         } else {
+            linePrinter(token, true);
+            if (token[0] != '$') {
+                std::cout << "WARNING: illformed header! Unknown token: '"
+                          << token << "'. Stopping header parsing!"
+                          << std::endl;
+                break;
+            }
             // We dont care about this token, just write it too
             std::cout << "WARNING: unknown token: '" << token << '\''
                       << std::endl;
-            linePrinter(token, true);
         }
     }
 }
@@ -220,6 +235,32 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             maskPrinting = handleTimestampStart(timestamp);
             // Also print this line that signaled the end of an timestamp
             printBacklog.push_back(token);
+        } else if (token == DUMPVARS_TOKEN) {
+            // Expected format: $dumpvars [<stuff>]* $end
+            linePrinter(token,
+                        true); // This is still somewhat part of the header
+            std::vector<std::string> initBacklog;
+            initBacklog.push_back(token);
+
+            // However, for $dumpvars <stuff> are value initializations!
+            if (tokenizer.expectHasNextField(token)) {
+                break;
+            }
+            bool printInit = false;
+            while (token != END_TOKEN) {
+                printInit |= parseVariableUpdate(truncate, token, initBacklog);
+                if (tokenizer.expectHasNextField(token)) {
+                    break;
+                }
+            }
+            initBacklog.push_back(END_TOKEN);
+
+            if (!maskPrinting && printInit) {
+                handleTimestampEnd(initBacklog);
+                for (const auto &s : initBacklog) {
+                    linePrinter(s, false);
+                }
+            }
         } else {
             std::cout << "WARNING: unknown token: '" << token << "'"
                       << std::endl;
@@ -237,6 +278,7 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             linePrinter(s, false);
         }
     } else if (!printBacklog.empty()) {
+        handleTimestampEnd(printBacklog);
         // Always print the last timestamp!
         linePrinter(printBacklog[0], false);
     }
