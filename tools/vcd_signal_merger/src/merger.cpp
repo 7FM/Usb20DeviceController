@@ -121,7 +121,8 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
                     // -> keep this signal definition & set it as
                     // outputVcdSymbol
                     out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr
-                        << ' ' << vcdAlias << ' ' << END_TOKEN << std::endl;
+                        << ' ' << vcdAlias << ' ' << signalName << ' '
+                        << END_TOKEN << std::endl;
                     vcdSymbol = vcdAlias;
                 }
 
@@ -132,7 +133,8 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
                           << signalName << std::endl;
                 // We still want to keep this signal!
                 out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr << ' '
-                    << vcdAlias << ' ' << END_TOKEN << std::endl;
+                    << vcdAlias << ' ' << signalName << ' ' << END_TOKEN
+                    << std::endl;
             }
             return std::nullopt;
         },
@@ -143,7 +145,9 @@ int mergeVcdFiles(const std::string &inputFile, const std::string &outputFile,
             }
         },
         [&](uint64_t /*timestamp*/) { return false; },
-        [&](const std::string &line, bool /*isHeader*/) { out << line << std::endl; });
+        [&](const std::string &line, bool /*isHeader*/) {
+            out << line << std::endl;
+        });
 
     if (!vcdHandler.good()) {
         std::cout << "Could not open input file: " << inputFile << std::endl;

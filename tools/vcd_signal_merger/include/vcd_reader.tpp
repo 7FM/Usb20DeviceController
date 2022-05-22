@@ -63,7 +63,8 @@ vcd_reader<T>::vcd_reader(const std::string &path,
 
             // Print the scope
             linePrinter(SCOPE_TOKEN + ' ' + typeStr + ' ' + scopeName + ' ' +
-                        END_TOKEN, true);
+                            END_TOKEN,
+                        true);
 
             scopes.push(std::move(scopeName));
         } else if (token == UPSCOPE_TOKEN) {

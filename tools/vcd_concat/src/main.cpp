@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
                 // keep everything!
                 if (offset == 0) {
                     out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr
-                        << ' ' << vcdAlias << ' ' << END_TOKEN << std::endl;
+                        << ' ' << vcdAlias << ' ' << signalName << ' '
+                        << END_TOKEN << std::endl;
                     signalNameTranslation.emplace(signalName, vcdAlias);
                 } else {
                     auto it = signalNameTranslation.find(signalName);

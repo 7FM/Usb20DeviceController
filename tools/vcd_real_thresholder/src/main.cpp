@@ -9,9 +9,8 @@
 #include "vcd_reader.hpp"
 
 static void printHelp() {
-    std::cout
-        << "Usage: ./vcd_real_threshold -i <input.vcd> -o <output.vcd>"
-        << std::endl;
+    std::cout << "Usage: ./vcd_real_threshold -i <input.vcd> -o <output.vcd>"
+              << std::endl;
 }
 
 struct SignalAveraging {
@@ -187,7 +186,8 @@ int main(int argc, char **argv) {
             // ignore it all
             return true;
         },
-        [&](const std::string & /*line*/, bool /*isHeader*/) { /*nothing to print here*/ });
+        [&](const std::string & /*line*/,
+            bool /*isHeader*/) { /*nothing to print here*/ });
 
     if (!vcdAvgReader.good()) {
         return 2;
@@ -241,7 +241,9 @@ int main(int argc, char **argv) {
             // print it all
             return false;
         },
-        [&](const std::string &line, bool /*isHeader*/) { out << line << std::endl; });
+        [&](const std::string &line, bool /*isHeader*/) {
+            out << line << std::endl;
+        });
 
     if (!vcdReader.good() || !out.good()) {
         return 3;

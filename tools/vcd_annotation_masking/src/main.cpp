@@ -136,7 +136,8 @@ int main(int argc, char **argv) {
 
             // -> keep this signal definition
             out << VAR_TOKEN << ' ' << typeStr << ' ' << bitwidthStr << ' '
-                << vcdAlias << ' ' << END_TOKEN << std::endl;
+                << vcdAlias << ' ' << signalName << ' ' << END_TOKEN
+                << std::endl;
 
             const auto &ref =
                 signals.emplace_back(std::make_unique<SignalState>());
@@ -169,7 +170,9 @@ int main(int argc, char **argv) {
 
             return ignore;
         },
-        [&](const std::string &line, bool /*isHeader*/) { out << line << std::endl; });
+        [&](const std::string &line, bool /*isHeader*/) {
+            out << line << std::endl;
+        });
 
     if (!vcdReader.good() || !out.good()) {
         return 3;
