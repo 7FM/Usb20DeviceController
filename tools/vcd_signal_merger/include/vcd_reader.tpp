@@ -189,7 +189,8 @@ uint64_t vcd_reader<T>::parseHeader(HandlerCreator handlerCreator) {
 
 template <class T>
 bool vcd_reader<T>::parseVariableUpdate(
-    bool truncate, std::string &token, std::vector<std::string> &printBacklog) {
+    bool truncate, bool warnNoHandlerFound, std::string &token,
+    std::vector<std::string> &printBacklog) {
     // Expected format:
     // <value><vcdAlias> or b<multibit value> <vcdAlias> or r<decimal value>
     // <vcdAlias>
@@ -264,9 +265,11 @@ bool vcd_reader<T>::parseVariableUpdate(
     if (vcdHandlerIt != vcdAliases.end()) {
         print |= vcdHandlerIt->second.handleValueChange(std::cref(valueUpdate));
     } else if (!truncate) {
-        std::cout << "Warning: no entry found for vcd alias: " << vcdAlias
-                  << std::endl;
-        std::cout << "    raw line: " << token << std::endl;
+        if (warnNoHandlerFound) {
+            std::cout << "Warning: no entry found for vcd alias: " << vcdAlias
+                      << std::endl;
+            std::cout << "    raw line: " << token << std::endl;
+        }
         // We still want to keep this signal!
         print = true;
         printBacklog.push_back(token);
@@ -275,7 +278,8 @@ bool vcd_reader<T>::parseVariableUpdate(
     return print;
 }
 
-template <class T> void vcd_reader<T>::process(bool truncate) {
+template <class T>
+void vcd_reader<T>::process(bool truncate, bool warnNoHandlerFound) {
     std::vector<std::string> printBacklog;
     bool print = false;
     bool maskPrinting = true;
@@ -287,7 +291,7 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
         bool isTimestampEnd = token.starts_with('#');
         bool isVariableUpdate = !isTimestampEnd && !token.starts_with('$');
         if (isVariableUpdate) {
-            print |= parseVariableUpdate(truncate, token, printBacklog);
+            print |= parseVariableUpdate(truncate, warnNoHandlerFound, token, printBacklog);
         } else if (isTimestampEnd) {
             if (!maskPrinting && print) {
                 handleTimestampEnd(printBacklog);
@@ -316,7 +320,7 @@ template <class T> void vcd_reader<T>::process(bool truncate) {
             }
             bool printInit = false;
             while (token != END_TOKEN) {
-                printInit |= parseVariableUpdate(truncate, token, initBacklog);
+                printInit |= parseVariableUpdate(truncate, warnNoHandlerFound, token, initBacklog);
                 if (tokenizer.expectHasNextField(token)) {
                     break;
                 }

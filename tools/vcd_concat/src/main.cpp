@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
         }
 
         // run the vcdReader
-        vcdReader.process(!firstRun);
+        vcdReader.process(!firstRun, !firstRun);
 
         offset += lastTimestamp;
     }

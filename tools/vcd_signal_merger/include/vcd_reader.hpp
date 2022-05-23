@@ -53,7 +53,7 @@ template <class T> class vcd_reader {
     bool operator()() { return good(); }
     bool good() { return tokenizer.good(); }
 
-    void process(bool truncate = true);
+    void process(bool truncate = true, bool warnNoHandlerFound = true);
 
     std::map<std::string, T> &getVcdAliasHandler() { return vcdAliases; };
 
@@ -62,7 +62,8 @@ template <class T> class vcd_reader {
   private:
     uint64_t parseHeader(HandlerCreator handlerCreator);
 
-    bool parseVariableUpdate(bool truncate, std::string &line,
+    bool parseVariableUpdate(bool truncate, bool warnNoHandlerFound,
+                             std::string &line,
                              std::vector<std::string> &printBacklog);
 
   private:

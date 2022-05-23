@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
     signalCyclesPerTicks = static_cast<double>(sourceFreq) / tickFreq;
 
     // run the vcdReader
-    vcdReader.process(false);
+    vcdReader.process(false, false);
 
     return 0;
 }
