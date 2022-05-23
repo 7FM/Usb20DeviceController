@@ -26,8 +26,8 @@ int main(int argc, char **argv) {
     std::string outputFile;
     std::string inputVcdFile;
 
-    std::string signalFreqStr;
-    std::string targetMultiplierStr;
+    std::string signalFreqStr = "12MHz";
+    std::string targetMultiplierStr = "4";
 
     int opt;
     while ((opt = getopt(argc, argv, "i:o:s:t:")) != -1) {
@@ -65,9 +65,37 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    // TODO parse frequencies, for now: hardcode!
-    uint64_t sourceFreq = 12'000'000;
-    uint64_t targetMultiplier = 4;
+    unsigned scalePartOffset = 0;
+    for (unsigned end = signalFreqStr.size(); scalePartOffset < end;
+            ++scalePartOffset) {
+        auto c = signalFreqStr[scalePartOffset];
+        if (c < '0' || c > '9') {
+            break;
+        }
+    }
+    std::string factorPart = signalFreqStr.substr(0, scalePartOffset);
+    std::string scalePart = signalFreqStr.substr(scalePartOffset);
+    for (auto& c : scalePart) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+
+    uint64_t targetMultiplier = std::stoull(targetMultiplierStr);
+
+    uint64_t sourceFreq = std::stoull(factorPart);
+    if (scalePart == "hz") {
+        sourceFreq *= static_cast<decltype(sourceFreq)>(1e0);
+    } else if (scalePart == "khz") {
+        sourceFreq *= static_cast<decltype(sourceFreq)>(1e3);
+    } else if (scalePart == "mhz") {
+        sourceFreq *= static_cast<decltype(sourceFreq)>(1e6);
+    } else if (scalePart == "ghz") {
+        sourceFreq *= static_cast<decltype(sourceFreq)>(1e9);
+    } else if (scalePart == "thz") {
+        sourceFreq *= static_cast<decltype(sourceFreq)>(1e12);
+    } else {
+        std::cout << "Unknown frequency scale: " << scalePart << std::endl;
+        return 2;
+    }
 
     uint64_t timestampDelta = 0;
     uint64_t lastTimestamp = 0;
@@ -118,13 +146,13 @@ int main(int argc, char **argv) {
         });
 
     if (!vcdReader.good() || !out.good()) {
-        return 2;
+        return 3;
     }
 
     const uint64_t tickFreq = vcdReader.getTickFrequency();
     if (tickFreq == 0) {
         std::cout << "ERROR: invalid timescale" << std::endl;
-        return 3;
+        return 4;
     }
     signalCyclesPerTicks = static_cast<double>(sourceFreq) / tickFreq;
 
