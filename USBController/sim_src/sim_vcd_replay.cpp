@@ -112,6 +112,9 @@ struct SimWrapper {
     bool handleTimestampStart(uint64_t timestamp) {
         // run sim for the expired cycles
         uint64_t cyclesPassed = timestamp - lastTimestamp;
+        if (cyclesPassed == 0) {
+            return true;
+        }
 
         sim->run<true>(cyclesPassed);
 
@@ -156,6 +159,10 @@ int main(int argc, char **argv) {
         [](auto &, bool) {});
 
     vcdParser.process();
+
+    // Run some more cycles after the vcd is done!
+    constexpr uint64_t postVcdTicks = 1000;
+    sim.run<true>(postVcdTicks);
 
     return 0;
 }
