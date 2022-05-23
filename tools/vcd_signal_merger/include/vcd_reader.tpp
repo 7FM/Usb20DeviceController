@@ -21,8 +21,12 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                           TimestampStartHandler handleTimestampStart,
                           LinePrinter linePrinter)
     : tokenizer(path), handleTimestampEnd(handleTimestampEnd),
-      handleTimestampStart(handleTimestampStart), linePrinter(linePrinter) {
+      handleTimestampStart(handleTimestampStart), linePrinter(linePrinter),
+      tickFreq(parseHeader(std::move(handlerCreator))) {}
 
+template <class T>
+uint64_t vcd_reader<T>::parseHeader(HandlerCreator handlerCreator) {
+    uint64_t immTickFreq = 0;
     std::stack<std::string> scopes;
 
     // Parse the header
@@ -92,8 +96,8 @@ vcd_reader<T>::vcd_reader(const std::string &path,
             // We are done with the header!
             linePrinter(END_TOKEN, true);
             break;
-        } else if (token == DATE_TOKEN || token == TIMESCALE_TOKEN ||
-                   token == VERSION_TOKEN || token == COMMENT_TOKEN) {
+        } else if (token == DATE_TOKEN || token == VERSION_TOKEN ||
+                   token == COMMENT_TOKEN) {
             // Expected format: <token> [<stuff>]* $end
             std::string collectedTokens;
             while (token != END_TOKEN) {
@@ -104,6 +108,68 @@ vcd_reader<T>::vcd_reader(const std::string &path,
             }
             linePrinter(collectedTokens, true);
             linePrinter(token, true);
+        } else if (token == TIMESCALE_TOKEN) {
+            // Expected format: $timescale <factor>[ ]*[<timescale>] $end
+            // -> the timescale might be expressed with a single token or two
+            linePrinter(token, true);
+            if (tokenizer.expectHasNextField(token)) {
+                // TODO error
+                continue;
+            }
+            std::string factorPart = token;
+            linePrinter(token, true);
+            if (tokenizer.expectHasNextField(token)) {
+                // TODO error
+                continue;
+            }
+            std::string scalePart = token;
+            linePrinter(token, true);
+
+            if (token != END_TOKEN) {
+                if (tokenizer.expectToken(END_TOKEN)) {
+                    // TODO error
+                    continue;
+                }
+                linePrinter(END_TOKEN, true);
+            } else {
+                // extract the factor and scale part from factorPart which
+                // currently contains both!
+                unsigned scalePartOffset = 0;
+                for (unsigned end = factorPart.size(); scalePartOffset < end;
+                     ++scalePartOffset) {
+                    auto c = factorPart[scalePartOffset];
+                    if (c < '0' || c > '9') {
+                        break;
+                    }
+                }
+                scalePart = factorPart.substr(scalePartOffset);
+                factorPart = factorPart.substr(0, scalePartOffset);
+            }
+
+            uint64_t factor = 1;
+            factor = std::stoull(factorPart);
+            if (factor == 0) {
+                // Avoid div by 0
+                std::cout << "WARNING: timescale section would cause a "
+                             "division by zero!"
+                          << std::endl;
+                continue;
+            }
+            uint64_t scaleFreq = 1;
+            if (scalePart == "ps") {
+                scaleFreq = static_cast<uint64_t>(1e12);
+            } else if (scalePart == "ns") {
+                scaleFreq = static_cast<uint64_t>(1e9);
+            } else if (scalePart == "us") {
+                scaleFreq = static_cast<uint64_t>(1e6);
+            } else if (scalePart == "ms") {
+                scaleFreq = static_cast<uint64_t>(1e3);
+            } else if (scalePart != "s") {
+                std::cout << "ERROR: unknown timescale '" << scalePart << "'"
+                          << std::endl;
+                continue;
+            }
+            immTickFreq = scaleFreq / factor;
         } else {
             linePrinter(token, true);
             if (token[0] != '$') {
@@ -117,6 +183,8 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                       << std::endl;
         }
     }
+
+    return immTickFreq;
 }
 
 template <class T>

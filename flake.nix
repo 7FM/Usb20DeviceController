@@ -26,6 +26,7 @@
             cp tools/vcd_signal_merger/vcd_signal_merger $out/bin
             cp tools/vcd_real_thresholder/vcd_real_thresholder $out/bin
             cp tools/vcd_concat/vcd_concat $out/bin
+            cp tools/vcd_time_to_clk/vcd_time_to_clk $out/bin
           '';
         }
       );

@@ -55,11 +55,13 @@ template <class T> class vcd_reader {
 
     void process(bool truncate = true);
 
-    std::map<std::string, T> &getVcdAliasHandler() {
-        return vcdAliases;
-    };
+    std::map<std::string, T> &getVcdAliasHandler() { return vcdAliases; };
+
+    uint64_t getTickFrequency() const { return tickFreq; }
 
   private:
+    uint64_t parseHeader(HandlerCreator handlerCreator);
+
     bool parseVariableUpdate(bool truncate, std::string &line,
                              std::vector<std::string> &printBacklog);
 
@@ -69,6 +71,8 @@ template <class T> class vcd_reader {
     const TimestampEndHandler handleTimestampEnd;
     const TimestampStartHandler handleTimestampStart;
     const LinePrinter linePrinter;
+    const uint64_t tickFreq;
+
     std::map<std::string, T> vcdAliases;
 };
 
