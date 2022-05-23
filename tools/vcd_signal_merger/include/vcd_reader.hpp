@@ -67,13 +67,12 @@ template <class T> class vcd_reader {
 
   private:
     Tokenizer tokenizer;
+    std::map<std::string, T> vcdAliases;
 
     const TimestampEndHandler handleTimestampEnd;
     const TimestampStartHandler handleTimestampStart;
     const LinePrinter linePrinter;
     const uint64_t tickFreq;
-
-    std::map<std::string, T> vcdAliases;
 };
 
 #include "vcd_reader.tpp"

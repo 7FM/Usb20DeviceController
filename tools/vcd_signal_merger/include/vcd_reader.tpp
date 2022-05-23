@@ -20,7 +20,7 @@ vcd_reader<T>::vcd_reader(const std::string &path,
                           TimestampEndHandler handleTimestampEnd,
                           TimestampStartHandler handleTimestampStart,
                           LinePrinter linePrinter)
-    : tokenizer(path), handleTimestampEnd(handleTimestampEnd),
+    : tokenizer(path), vcdAliases(), handleTimestampEnd(handleTimestampEnd),
       handleTimestampStart(handleTimestampStart), linePrinter(linePrinter),
       tickFreq(parseHeader(std::move(handlerCreator))) {}
 
@@ -51,7 +51,7 @@ uint64_t vcd_reader<T>::parseHeader(HandlerCreator handlerCreator) {
 
             if (auto handler = handlerCreator(scopes, signalName, vcdAlias,
                                               typeStr, bitwidthStr)) {
-                vcdAliases.insert({vcdAlias, handler.value()});
+                vcdAliases.emplace(vcdAlias, handler.value());
             }
         } else if (token == SCOPE_TOKEN) {
             // Expected format: $scope <type> <name> $end

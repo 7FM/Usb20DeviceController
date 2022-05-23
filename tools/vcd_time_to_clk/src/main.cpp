@@ -10,14 +10,14 @@
 #include "vcd_reader.hpp"
 
 static void printHelp() {
-    std::cout << "Usage: ./vcd_time_to_clk -i <input.vcd> -i -o <output.vcd> "
+    std::cout << "Usage: ./vcd_time_to_clk -i <input.vcd> -o <output.vcd> "
                  "-s <signalFreq> -t <targetMultiplier>"
               << std::endl;
 }
 
 struct DummySignalWrapper {
     bool handleValueChange(
-        const vcd_reader<DummySignalWrapper>::ValueUpdate &/*value*/) {
+        const vcd_reader<DummySignalWrapper>::ValueUpdate & /*value*/) {
         return true;
     }
 };
