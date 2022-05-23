@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 static const std::string DATE_TOKEN("$date");
 static const std::string VERSION_TOKEN("$version");
@@ -147,7 +148,21 @@ uint64_t vcd_reader<T>::parseHeader(HandlerCreator handlerCreator) {
             }
 
             uint64_t factor = 1;
-            factor = std::stoull(factorPart);
+            try {
+                factor = std::stoull(factorPart);
+            } catch (const std::invalid_argument &ex) {
+                std::cout << "Parsing timescale factor: "
+                             "std::invalid_argument::what(): "
+                          << ex.what() << std::endl
+                          << "For string: '" << factorPart << "'" << std::endl;
+                continue;
+            } catch (const std::out_of_range &ex) {
+                std::cout
+                    << "Parsing timescale factor: std::out_of_range::what(): "
+                    << ex.what() << std::endl
+                    << "For string: '" << factorPart << "'" << std::endl;
+                continue;
+            }
             if (factor == 0) {
                 // Avoid div by 0
                 std::cout << "WARNING: timescale section would cause a "
@@ -291,7 +306,8 @@ void vcd_reader<T>::process(bool truncate, bool warnNoHandlerFound) {
         bool isTimestampEnd = token.starts_with('#');
         bool isVariableUpdate = !isTimestampEnd && !token.starts_with('$');
         if (isVariableUpdate) {
-            print |= parseVariableUpdate(truncate, warnNoHandlerFound, token, printBacklog);
+            print |= parseVariableUpdate(truncate, warnNoHandlerFound, token,
+                                         printBacklog);
         } else if (isTimestampEnd) {
             if (!maskPrinting && print) {
                 handleTimestampEnd(printBacklog);
@@ -303,7 +319,23 @@ void vcd_reader<T>::process(bool truncate, bool warnNoHandlerFound) {
             maskPrinting = true;
             print = false;
 
-            uint64_t timestamp = std::stoull(token.substr(1));
+            uint64_t timestamp;
+
+            try {
+                timestamp = std::stoull(token.substr(1));
+            } catch (const std::invalid_argument &ex) {
+                std::cout
+                    << "Parsing timestamp: std::invalid_argument::what(): "
+                    << ex.what() << std::endl
+                    << "For string: '" << token.substr(1) << "'" << std::endl;
+                continue;
+            } catch (const std::out_of_range &ex) {
+                std::cout << "Parsing timestamp: std::out_of_range::what(): "
+                          << ex.what() << std::endl
+                          << "For string: '" << token.substr(1) << "'"
+                          << std::endl;
+                continue;
+            }
             maskPrinting = handleTimestampStart(timestamp);
             // Also print this line that signaled the end of an timestamp
             printBacklog.push_back(token);
@@ -320,7 +352,8 @@ void vcd_reader<T>::process(bool truncate, bool warnNoHandlerFound) {
             }
             bool printInit = false;
             while (token != END_TOKEN) {
-                printInit |= parseVariableUpdate(truncate, warnNoHandlerFound, token, initBacklog);
+                printInit |= parseVariableUpdate(truncate, warnNoHandlerFound,
+                                                 token, initBacklog);
                 if (tokenizer.expectHasNextField(token)) {
                     break;
                 }
