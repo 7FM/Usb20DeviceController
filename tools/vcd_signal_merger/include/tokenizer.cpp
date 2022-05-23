@@ -9,9 +9,9 @@ bool Tokenizer::good() const { return in.good(); }
 
 bool Tokenizer::getNextField(std::string &field) {
     field.clear();
+    const std::string delims(" \t");
 
-    auto fieldStart = buffer.find_first_not_of(
-        " "); // TODO what about other whitespaces such as tabs?
+    auto fieldStart = buffer.find_first_not_of(delims);
     while (fieldStart == std::string::npos) {
         if (!in.good()) {
             return true;
@@ -19,12 +19,10 @@ bool Tokenizer::getNextField(std::string &field) {
         std::getline(in, buffer);
         ++lineNr;
         tokenNr = 0;
-        fieldStart = buffer.find_first_not_of(
-            " "); // TODO what about other whitespaces such as tabs?
+        fieldStart = buffer.find_first_not_of(delims);
     }
 
-    auto fieldEnd = buffer.find(
-        " ", fieldStart); // TODO what about other whitespaces such as tabs?
+    auto fieldEnd = buffer.find_first_of(delims, fieldStart);
     if (fieldEnd == std::string::npos) {
         field = buffer.substr(fieldStart);
         buffer.clear();
