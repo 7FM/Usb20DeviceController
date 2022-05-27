@@ -10,6 +10,16 @@ module usb_endpoint_arbiter#(
 )(
     input logic clk12_i,
 
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_EP0
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+`endif
+`endif
+
     // Serial interface
     input logic usbResetDetected_i,
     output logic ackUsbResetDetect_o,
@@ -179,6 +189,16 @@ module usb_endpoint_arbiter#(
     assign isEp0Selected = epSelect == 0;
     `EP_0_MODULE(USB_DEV_EP_CONF) ep0 (
         .clk12_i(clk12_i),
+
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_EP0
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`endif
+`endif
+`endif
 
         // Endpoint 0 handles the decice state!
         .usbResetDetected_i(usbResetDetected_i),

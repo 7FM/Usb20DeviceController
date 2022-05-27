@@ -9,9 +9,11 @@ module usb_rx#()(
     input logic rxClk12_i,
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
     output logic LED_R,
     output logic LED_G,
     output logic LED_B,
+`endif
 `endif
 
     // CRC interface: rxClk12_i
@@ -84,14 +86,12 @@ module usb_rx#()(
         .clk12_i(clk12_i),
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
 `ifdef DEBUG_USB_RX_IFACE
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
-`else
-        `MUTE_PIN_CONNECT_EMPTY(LED_R),
-        `MUTE_PIN_CONNECT_EMPTY(LED_G),
-        `MUTE_PIN_CONNECT_EMPTY(LED_B),
+`endif
 `endif
 `endif
 
@@ -113,14 +113,12 @@ module usb_rx#()(
         .clk12_i(clk12_i),
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
 `ifdef DEBUG_USB_RX_INTERNAL
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
-`else
-        `MUTE_PIN_CONNECT_EMPTY(LED_R),
-        `MUTE_PIN_CONNECT_EMPTY(LED_G),
-        `MUTE_PIN_CONNECT_EMPTY(LED_B),
+`endif
 `endif
 `endif
 
@@ -157,9 +155,13 @@ module usb_rx_interface(
     input logic clk12_i,
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
+`ifdef DEBUG_USB_RX_IFACE
     output logic LED_R,
     output logic LED_G,
     output logic LED_B,
+`endif
+`endif
 `endif
 
     // Data output interface:
@@ -268,6 +270,8 @@ module usb_rx_interface(
     end
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
+`ifdef DEBUG_USB_RX_IFACE
     logic inv_LED_R;
     logic inv_LED_G;
     logic inv_LED_B;
@@ -286,6 +290,8 @@ module usb_rx_interface(
     assign LED_G = !inv_LED_G;
     assign LED_B = !inv_LED_B;
 `endif
+`endif
+`endif
 
 endmodule
 
@@ -293,9 +299,13 @@ module usb_rx_internal(
     input logic clk12_i,
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
+`ifdef DEBUG_USB_RX_INTERNAL
     output logic LED_R,
     output logic LED_G,
     output logic LED_B,
+`endif
+`endif
 `endif
 
     // CRC interface:
@@ -535,6 +545,8 @@ module usb_rx_internal(
     assign rxCRCInput_o = nrziDecodedInput;
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
+`ifdef DEBUG_USB_RX_INTERNAL
     logic inv_LED_R;
     logic inv_LED_G;
     logic inv_LED_B;
@@ -552,6 +564,8 @@ module usb_rx_internal(
     assign LED_R = !inv_LED_R;
     assign LED_G = !inv_LED_G;
     assign LED_B = !inv_LED_B;
+`endif
+`endif
 `endif
 
 endmodule

@@ -12,9 +12,11 @@ module usb_pe #(
     input logic clk12_i,
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
     output logic LED_R,
     output logic LED_G,
     output logic LED_B,
+`endif
 `endif
 
     input logic usbResetDetected_i,
@@ -94,6 +96,16 @@ module usb_pe #(
         .USB_DEV_EP_CONF(USB_DEV_EP_CONF)
     ) epArbiter (
         .clk12_i(clk12_i),
+
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_EP0
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`endif
+`endif
+`endif
 
         // Serial interface
         .usbResetDetected_i(usbResetDetected_i),
@@ -215,6 +227,8 @@ module usb_pe #(
          && tokenPacketPart.endptSel < ENDPOINTS[3:0] && tokenPacketPart.devAddr == deviceAddr;
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_PE_IFACE
     logic inv_LED_R;
     logic inv_LED_G;
     logic inv_LED_B;
@@ -232,6 +246,8 @@ module usb_pe #(
     assign LED_R = !inv_LED_R;
     assign LED_G = !inv_LED_G;
     assign LED_B = !inv_LED_B;
+`endif
+`endif
 `endif
 
     always_ff @(posedge clk12_i) begin

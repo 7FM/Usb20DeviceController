@@ -11,6 +11,16 @@ module usb_endpoint_0 #(
 )(
     input logic clk12_i,
 
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_EP0
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
+`endif
+`endif
+
     input logic usbResetDetected_i,
     output logic ackUsbResetDetect_o,
     output logic [USB_DEV_ADDR_WID-1:0] deviceAddr_o,
@@ -515,6 +525,31 @@ endgenerate
         romReadIdx <= nextRomReadIdx;
         romTransReadIdx <= nextRomTransReadIdx;
     end
+
+
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_EP0
+    logic inv_LED_R;
+    logic inv_LED_G;
+    logic inv_LED_B;
+    initial begin
+        inv_LED_R = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_G = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_B = 1'b0; // a value of 1 turns the LEDs off!
+    end
+    always_ff @(posedge clk12_i) begin
+        inv_LED_R <= ctrlTransState == IDLE;
+        inv_LED_G <= inv_LED_G || requestError;
+        inv_LED_B <= deviceState == DEVICE_CONFIGURED;
+    end
+
+    assign LED_R = !inv_LED_R;
+    assign LED_G = !inv_LED_G;
+    assign LED_B = !inv_LED_B;
+`endif
+`endif
+`endif
 
     logic sendDataToHost; //TODO this is not yet correct!
     //assign sendDataToHost = setupDataPacket.bmRequestType.dataTransDevToHost;

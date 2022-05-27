@@ -76,10 +76,6 @@ module usb#(
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
-`else
-        `MUTE_PIN_CONNECT_EMPTY(LED_R),
-        `MUTE_PIN_CONNECT_EMPTY(LED_G),
-        `MUTE_PIN_CONNECT_EMPTY(LED_B),
 `endif
 `endif
 
@@ -134,10 +130,6 @@ module usb#(
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
-`else
-        `MUTE_PIN_CONNECT_EMPTY(LED_R),
-        `MUTE_PIN_CONNECT_EMPTY(LED_G),
-        `MUTE_PIN_CONNECT_EMPTY(LED_B),
 `endif
 `endif
 

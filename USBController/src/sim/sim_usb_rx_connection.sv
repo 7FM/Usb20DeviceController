@@ -117,10 +117,13 @@ module sim_usb_rx_connection (
         .rxClk12_i(rxClk12),
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
         `MUTE_PIN_CONNECT_EMPTY(LED_R),
         `MUTE_PIN_CONNECT_EMPTY(LED_G),
         `MUTE_PIN_CONNECT_EMPTY(LED_B),
 `endif
+`endif
+
         // CRC interface
         .rxCRCReset_o(rxCRCReset),
         .rxUseCRC16_o(rxUseCRC16),

@@ -7,9 +7,11 @@ module usb_sie (
     input logic clk12_i,
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
     output logic LED_R,
     output logic LED_G,
     output logic LED_B,
+`endif
 `endif
 
     // Raw usb pins
@@ -239,9 +241,11 @@ module usb_sie (
         .rxClk12_i(rxClk12),
 
 `ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_RX
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
+`endif
 `endif
 
         // CRC interface
