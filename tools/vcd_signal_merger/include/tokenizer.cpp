@@ -9,7 +9,7 @@ bool Tokenizer::good() const { return in.good(); }
 
 bool Tokenizer::getNextField(std::string &field) {
     field.clear();
-    const std::string delims(" \t");
+    const std::string delims(" \t\r\b\a\f\v");
 
     auto fieldStart = buffer.find_first_not_of(delims);
     while (fieldStart == std::string::npos) {
