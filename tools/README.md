@@ -5,6 +5,15 @@
 - parse PulseView USB annotations
 - useless as cli tool
 
+## TLA to VCD
+
+- parse Tektronix TLA5000 `*.txt` data exports and create a VCD file
+
+### Usage: 
+```
+tla_to_vcd -i <input_file.txt> -o <output.vcd>
+```
+
 ## VCD Annotation Masking
 
 - uses the annotation reader in combination with a VCD file to mask out the signals produced by the USB device
