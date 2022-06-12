@@ -79,6 +79,7 @@ headerLoop:
             out << "$var wire 1 " << s.str() << ' ' << s.str() << " $end\n";
         }
     }
+    out << "$enddefinitions $end\n";
     out << "#1\n";
     out << "$dumpvars\n";
     // Zero initialize the variables
