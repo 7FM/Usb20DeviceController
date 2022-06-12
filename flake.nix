@@ -22,6 +22,7 @@
             mkdir -p $out/bin
             cp driver/dummyUsbDriver $out/bin
             cp tools/annotation_reader/annotation_reader $out/bin
+            cp tools/tla_to_vcd/tla_to_vcd $out/bin
             cp tools/vcd_annotation_masking/vcd_annotation_masking $out/bin
             cp tools/vcd_signal_merger/vcd_signal_merger $out/bin
             cp tools/vcd_real_thresholder/vcd_real_thresholder $out/bin

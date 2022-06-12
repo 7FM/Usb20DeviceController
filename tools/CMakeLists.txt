@@ -1,4 +1,5 @@
 add_subdirectory(annotation_reader)
+add_subdirectory(tla_to_vcd)
 add_subdirectory(vcd_annotation_masking)
 add_subdirectory(vcd_signal_merger)
 add_subdirectory(vcd_real_thresholder)
