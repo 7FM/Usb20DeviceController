@@ -90,6 +90,27 @@ struct DummyForwarder {
     const std::function<bool(bool)> handler;
 };
 
+static void updateProgressBar(uint64_t progress, uint64_t goal, uint64_t runningXCycles = 0) {
+    double percentage = static_cast<double>(progress) / goal;
+
+    constexpr unsigned BAR_WIDTH = 70;
+
+    std::cout << "[";
+    unsigned pos = BAR_WIDTH * percentage;
+    for (unsigned i = 0; i < pos; ++i) {
+        std::cout << "=";
+    }
+    if (pos != BAR_WIDTH) {
+        std::cout << ">";
+        for (unsigned i = pos; i < BAR_WIDTH; ++i) {
+            std::cout << " ";
+        }
+    }
+    std::cout << "] " << static_cast<unsigned>(percentage * 100) << " % ("
+              << progress << '/' << goal << ") Running " << runningXCycles << " cycles         \r";
+    std::cout.flush(); // This might further decrease the performance?
+}
+
 struct SimWrapper {
     SimWrapper(UsbVcdReplaySim *sim) : sim(sim) {}
 
@@ -116,15 +137,20 @@ struct SimWrapper {
             return true;
         }
 
-        sim->run<true>(cyclesPassed);
-
+        updateProgressBar(lastTimestamp, finalTimestamp, cyclesPassed);
         lastTimestamp = timestamp;
+        sim->run<true>(cyclesPassed);
+        updateProgressBar(lastTimestamp, finalTimestamp, cyclesPassed);
+
         return true;
     }
 
   private:
     uint64_t lastTimestamp = 0;
     UsbVcdReplaySim *const sim;
+
+  public:
+    uint64_t finalTimestamp = 0;
 };
 
 int main(int argc, char **argv) {
@@ -148,6 +174,25 @@ int main(int argc, char **argv) {
 
     SimWrapper wrapper(&sim);
 
+    {
+        vcd_reader<DummyForwarder> vcdParser(
+            sim.replayFile,
+            [](auto &, auto &, auto &, auto &, auto &) { return std::nullopt; },
+            [](auto &) {},
+            [&](uint64_t timestamp) {
+                wrapper.finalTimestamp = timestamp;
+                return false;
+            },
+            [](auto &, bool) {});
+
+        vcdParser.process();
+    }
+
+    constexpr uint64_t postVcdTicks = 1000;
+    wrapper.finalTimestamp += postVcdTicks;
+
+    updateProgressBar(0, wrapper.finalTimestamp);
+
     vcd_reader<DummyForwarder> vcdParser(
         sim.replayFile,
         std::bind(&SimWrapper::handlerCreator, &wrapper, std::placeholders::_1,
@@ -160,9 +205,12 @@ int main(int argc, char **argv) {
 
     vcdParser.process();
 
+    updateProgressBar(wrapper.finalTimestamp - postVcdTicks, wrapper.finalTimestamp, postVcdTicks);
     // Run some more cycles after the vcd is done!
-    constexpr uint64_t postVcdTicks = 1000;
+    sim.updateUSB_DP(true);
+    sim.updateUSB_DN(false);
     sim.run<true>(postVcdTicks);
+    updateProgressBar(wrapper.finalTimestamp, wrapper.finalTimestamp);
 
     return 0;
 }
