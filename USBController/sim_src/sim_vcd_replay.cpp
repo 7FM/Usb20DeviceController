@@ -211,6 +211,7 @@ int main(int argc, char **argv) {
     sim.updateUSB_DN(false);
     sim.run<true>(postVcdTicks);
     updateProgressBar(wrapper.finalTimestamp, wrapper.finalTimestamp);
+    std::cout << std::endl;
 
     return 0;
 }
