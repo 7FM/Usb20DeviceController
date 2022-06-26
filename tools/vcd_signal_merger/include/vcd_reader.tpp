@@ -385,8 +385,6 @@ void vcd_reader<T>::process(bool truncate, bool warnNoHandlerFound) {
     } else if (!printBacklog.empty()) {
         handleTimestampEnd(printBacklog);
         if (!printBacklog.empty() && printBacklog[0][0] == '#') {
-            std::cout << "Printing last timestamp: " << printBacklog[0]
-                      << std::endl;
             // Always print the last timestamp!
             linePrinter(printBacklog[0], false);
         }
