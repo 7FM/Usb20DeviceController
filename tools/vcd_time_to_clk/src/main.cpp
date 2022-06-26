@@ -67,7 +67,7 @@ int main(int argc, char **argv) {
 
     unsigned scalePartOffset = 0;
     for (unsigned end = signalFreqStr.size(); scalePartOffset < end;
-            ++scalePartOffset) {
+         ++scalePartOffset) {
         auto c = signalFreqStr[scalePartOffset];
         if (c < '0' || c > '9') {
             break;
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     }
     std::string factorPart = signalFreqStr.substr(0, scalePartOffset);
     std::string scalePart = signalFreqStr.substr(scalePartOffset);
-    for (auto& c : scalePart) {
+    for (auto &c : scalePart) {
         c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
 
@@ -127,11 +127,18 @@ int main(int argc, char **argv) {
                         std::lround(timestampDelta * signalCyclesPerTicks);
                     uint64_t patchedTimestamp =
                         lastPatchedTimestamp + signalTicks * targetMultiplier;
-
-                    printBacklog[0] =
-                        std::string("#") + std::to_string(patchedTimestamp);
-
                     lastPatchedTimestamp = patchedTimestamp;
+
+                    if (signalTicks == 0) {
+                        std::cout << "WARNING: 0 cycles update at #"
+                                  << patchedTimestamp << '!' << std::endl;
+                        // Remove the timestamp print line -> concatenate signal
+                        // changes to the previous timestamp and prey!
+                        printBacklog.erase(printBacklog.begin());
+                    } else {
+                        printBacklog[0] =
+                            std::string("#") + std::to_string(patchedTimestamp);
+                    }
                 }
             }
         },
