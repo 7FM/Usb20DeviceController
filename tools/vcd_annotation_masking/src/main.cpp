@@ -60,10 +60,11 @@ int main(int argc, char **argv) {
     std::string inputVcdFile;
     std::string outputFile;
     std::string inputAnnotationFile;
-    int64_t padding = 10;
+    uint64_t padding = 10;
+    uint64_t downsampleFactor = 1;
 
     int opt;
-    while ((opt = getopt(argc, argv, "i:a:o:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "i:a:o:p:d:")) != -1) {
         switch (opt) {
             case 'i': {
                 inputVcdFile = optarg;
@@ -79,6 +80,10 @@ int main(int argc, char **argv) {
             }
             case 'p': {
                 padding = std::stoull(optarg);
+                break;
+            }
+            case 'd': {
+                downsampleFactor = std::stoull(optarg);
                 break;
             }
             default: {
@@ -112,6 +117,8 @@ int main(int argc, char **argv) {
     }
 
     for (decltype(packets.size()) i = 0; i < packets.size(); ++i) {
+        packets[i].startTime *= downsampleFactor;
+        packets[i].endTime *= downsampleFactor;
         std::cout << "Packet " << (i + 1) << "/" << packets.size() << ": "
                   << packets[i] << std::endl;
     }
@@ -153,7 +160,7 @@ int main(int argc, char **argv) {
             }
         },
         [&](uint64_t timestamp) {
-            // Check whether if the current packet is masked!
+            // Check whether the current packet is masked!
             bool ignore = false;
             for (; packetIdx < packets.size(); ++packetIdx) {
                 const auto &p = packets[packetIdx];
