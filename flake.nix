@@ -60,6 +60,8 @@
           pulseviewVersion = "fe94bf8255145410d1673880932d59573c829b0e";
           pulseviewSha256 = "sha256-XQp/g0QYHgY5SbXo8+OCCdoOGeUu+BSXioJExMh5baM=";
         in with pkgs; [
+          dsview # DreamSourceLab's version of pulseview!
+
           gnumake
           gdb-multitarget
 
