@@ -23,12 +23,6 @@ set_frequency clk48 48
 set_frequency clk48_i 48
 set_frequency clk48_o 48
 
-# Player control at PMOD1
-#set_io -pullup yes -pullup_resistor 10K btns[0]    48
-#set_io -pullup yes -pullup_resistor 10K btns[1]    3
-#set_io -pullup yes -pullup_resistor 10K btns[2]    47
-#set_io -pullup yes -pullup_resistor 10K btns[3]    2
-
 # For the iCESugar Board (iCE40UP5K-QFN48)
 
 set_io LED_G 41
@@ -43,6 +37,7 @@ set_io LED_B 39
 
 #set_io clk   35
 
+# These pins are connected vja J5 to UART to the iCELink
 #set_io RX    4
 #set_io TX    6
 

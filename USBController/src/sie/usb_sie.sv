@@ -43,7 +43,7 @@ module usb_sie (
     output logic [7:0] rxData_o, // data to be retrieved
     output logic rxDone_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
-    output logic keepPacket_o, // should be tested when rxDone_o set to check whether an retrival error occurred
+    output logic keepPacket_o, // should be tested when rxDone_o set to check whether an retrieval error occurred
 
     // Data Transmit Interface: synced with clk12_i!
     input logic txReqSendPacket_i, // Caller requests sending a new packet
@@ -60,11 +60,11 @@ module usb_sie (
     // -> manually add pull down resistors for USB_DP & USB_DN
     /*  Additional manual connections required at PMOD1 when looking from the side to the FPGA (PMOD1 to the left of the micro USB port)
                                  PMOD1                             Micro-USB Port
-        top row left -> 1     2    3  4  5  6 <- top right
+        top row left -> 6     5    4  3  2  1 <- top right
                         3.3V  GND          USB_DP
                               ^---15k Ohm---^
                         7     8    9 10 11 12
-                        3.3V  GND          USB_DP
+                        3.3V  GND          USB_DN
                               ^---15k Ohm---^
     */
 
@@ -272,7 +272,7 @@ module usb_sie (
         .rxDone_o(rxDone_o), // indicates that the current byte at rxData_o is the last one
         .rxDataValid_o(rxDataValid_o), // rxData_o contains valid & new data
         .rxData_o(rxData_o), // data to be retrieved
-        .keepPacket_o(keepPacket_o) // should be tested when rxDone_o set to check whether an retrival error occurred
+        .keepPacket_o(keepPacket_o) // should be tested when rxDone_o set to check whether an retrieval error occurred
     );
 
     // =====================================================================================================

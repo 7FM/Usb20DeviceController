@@ -40,7 +40,7 @@ module usb_rx#()(
     output logic rxDone_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
     output logic [7:0] rxData_o, // data to be retrieved
-    output logic keepPacket_o // should be tested when rxDone_o set to check whether an retrival error occurred
+    output logic keepPacket_o // should be tested when rxDone_o set to check whether an retrieval error occurred
 );
 
     logic emptyFifo;
@@ -169,7 +169,7 @@ module usb_rx_interface(
     output logic rxDone_o, // indicates that the current byte at rxData_o is the last one
     output logic rxDataValid_o, // rxData_o contains valid & new data
     output logic [7:0] rxData_o, // data to be retrieved
-    output logic keepPacket_o, // should be tested when rxDone_o set to check whether an retrival error occurred
+    output logic keepPacket_o, // should be tested when rxDone_o set to check whether an retrieval error occurred
 
     // Rx interface signals:
     input logic [7:0] inputBuf,
