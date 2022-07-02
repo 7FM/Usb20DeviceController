@@ -259,7 +259,7 @@ module usb_pe #(
         // Signal that receiving is done for a single cycle
         receiveDone <= !receiveDone && rxDone_i;
 
-        // Only start the transaction if we recieved the packet correctly!
+        // Only start the transaction if we received the packet correctly!
         transactionStarted <= transactionStarted ? !transactionDone : isValidTransStartPacket;
         // Delay gotTransStartPacket to ensure that epSelect is set too! Else the previous endpoint feels responsible!
         gotTransStartPacket <= !transactionStarted && isValidTransStartPacket;

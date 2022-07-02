@@ -45,7 +45,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg
     end else begin
         // Else for bulk/interrupt endpoint’s toggle sequence is initialized to DATA0
         // when the endpoint experiences any configuration event (configuration events are explained in Sections 9.1.1.5 and 9.4.5)
-        // And updated at every successfull transaction!
+        // And updated at every successful transaction!
         always_ff @(posedge clk12_i) begin
             dataToggleState <= resetDataToggle_i ? 1'b0 : ((EP_OUT_popTransDone_i && EP_OUT_fillTransSuccess_i) ^ dataToggleState);
         end
@@ -77,7 +77,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevOut != usb_ep_pkg
         .data_o(EP_OUT_data_o)
     );
 
-    // If this is polled, then receiving was successfull & and a handshake is expected
+    // If this is polled, then receiving was successful & and a handshake is expected
     logic noDataAvailable;
     always_ff @(posedge clk12_i) begin
         noDataAvailable <= gotTransStartPacket_i ? !dataAvailable : noDataAvailable;

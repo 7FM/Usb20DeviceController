@@ -49,7 +49,7 @@ if (!EP_CONF.isControlEP && EP_CONF.conf.nonControlEp.epTypeDevIn != usb_ep_pkg:
     end else begin
         // Else for bulk/interrupt endpoint’s toggle sequence is initialized to DATA0
         // when the endpoint experiences any configuration event (configuration events are explained in Sections 9.1.1.5 and 9.4.5)
-        // And updated at every successfull transaction!
+        // And updated at every successful transaction!
         logic expectedDataToggleBit;
 
         always_ff @(posedge clk12_i) begin
@@ -98,7 +98,7 @@ end else begin
 end
 endgenerate
 
-    // If this is polled, then receiving was successfull & and a handshake is expected
+    // If this is polled, then receiving was successful & and a handshake is expected
     assign respValid_o = 1'b1;
     assign respHandshakePID_o = 1'b1;
 
