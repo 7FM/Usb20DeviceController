@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <type_traits>
 
 #define TOP_MODULE Vsim_top
 #include "Vsim_top.h"       // basic Top header
@@ -83,13 +84,14 @@ SUCCESS = 0
 
 /******************************************************************************/
 
-template <class T>
-static void fillStrBuf(T *buffer, int arrSize, const char *str) {
+template <std::size_t T_Words>
+static void fillStrBuf(VlWide<T_Words> &buffer, const char *str) {
+    using T = std::remove_cvref_t<decltype(buffer[0])>;
     const int strLen = std::strlen(str);
 
     int strIdx = 0;
     constexpr T mask = 255;
-    for (int arrIdx = arrSize - 1; arrIdx >= 0; --arrIdx) {
+    for (int arrIdx = T_Words - 1; arrIdx >= 0; --arrIdx) {
         T imm = 0;
         for (int i = 0; i < sizeof(T) && strIdx < strLen; ++i, ++strIdx) {
             uint8_t character = str[strIdx];
@@ -199,8 +201,7 @@ class UsbTopSim : public VerilatorTB<UsbTopSim, TOP_MODULE> {
     void sanityChecks() {}
 
     void updateSimStateStr(const char *str) {
-        fillStrBuf(top->simStateStr,
-                   sizeof(top->simStateStr) / sizeof(top->simStateStr[0]), str);
+        fillStrBuf(top->simStateStr, str);
     }
 
   public:
