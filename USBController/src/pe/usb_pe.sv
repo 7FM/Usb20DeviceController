@@ -461,7 +461,7 @@ Device Transaction State Machine Hierarchy Overview:
                 nextSendPID = epResponseValid;
 
                 // sendHandshake are set to 1 by default -> overrule EP response to avoid protocol violations... 
-                //TODO fix the EP0 implementation to have matching values... and allways assign epResponseIsHandshakePID!
+                //TODO fix the EP0 implementation to have matching values... and always assign epResponseIsHandshakePID!
                 // sendHandshake = 1'b1;
                 // The response may only be a handshake -> thus it is the last byte!
                 // nextIsPidLast is set to 1 by default
