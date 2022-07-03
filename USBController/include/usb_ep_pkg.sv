@@ -24,7 +24,9 @@ package usb_ep_pkg;
         usb_desc_pkg::EP0_MaxPacketSize maxPacketSize;
     } ControlEndpointConfig;
 
-    typedef union packed {
+    // TODO changing this to union breaks everything with sv2v!
+    // TODO isolate & report the bug!
+    typedef struct packed {
         ControlEndpointConfig controlEpConf;
         NonControlEndpointConfig nonControlEp;
     } EpConfigUnion;
