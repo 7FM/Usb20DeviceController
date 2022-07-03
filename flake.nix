@@ -44,8 +44,8 @@
         ];
 
         nativeBuildInputs = let
-          verilatorVersion = "4.216";
-          verilatorSha256 = "sha256-F2QPZPZp/A0k4YSMOHrtUjmrO7/Gd4GWXbwdMFxuFUo=";
+          verilatorVersion = "4.224";
+          verilatorSha256 = "sha256-Kn44yWkNcOLkc79HLDTxx5zQn/vqft+hhbvsoUAKR7I=";
 
           #libsigrokVersion = "0.5.2";
           #libsigrokSha256 = "sha256-TTQfkLYiDT6MslHaz3JsQRZShWEiSPLFLRXfRZChzjw=";
