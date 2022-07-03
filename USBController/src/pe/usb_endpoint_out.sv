@@ -96,13 +96,17 @@ end else begin
     // Control EP or NONE type -> react with a STALL
     assign respValid_o = 1'b1;
     assign respHandshakePID_o = 1'b1;
-    assign respPacketID_o = usb_packet_pkg::RES_STALL;    
+    assign respPacketID_o = usb_packet_pkg::RES_STALL;
 
     // Dummy signals
     assign EP_OUT_data_o = 8'b0;
     assign EP_OUT_dataAvailable_o = 1'b0;
-    assign EP_OUT_isLastPacketByte_o = 1'b0;    
-    assign EP_OUT_full_o = 1'b1;
+    assign EP_OUT_isLastPacketByte_o = 1'b0;
+    //TODO when this is set to 1'b1 then no STALL will be responded :( because receiving fails due to being unable to store the input bytes!
+    assign EP_OUT_full_o = 1'b0;
+
+    // TODO investigate sv2v bug!
+    $fatal("Sv2v broke me too!");
 end
 endgenerate
 

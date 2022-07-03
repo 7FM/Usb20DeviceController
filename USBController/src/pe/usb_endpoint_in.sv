@@ -92,9 +92,13 @@ end else begin
     assign respPacketID_o = usb_packet_pkg::RES_STALL;
 
     // Dummy signals
-    assign EP_IN_data_o = 8'b0; 
-    assign EP_IN_dataAvailable_o = 1'b0; 
-    assign EP_IN_full_o = 1'b1; 
+    assign EP_IN_data_o = 8'b0;
+    assign EP_IN_dataAvailable_o = 1'b0;
+    //TODO when this is set to 1'b1 then no STALL will be responded :( because receiving fails due to being unable to store the input bytes!
+    assign EP_IN_full_o = 1'b0;
+
+    // TODO investigate sv2v bug!
+    $fatal("Sv2v broke me !");
 end
 endgenerate
 
