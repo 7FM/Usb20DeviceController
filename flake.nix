@@ -2,13 +2,15 @@
   description = "env flake";
 
   inputs.nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+  inputs.nixpkgs_latest.url = "github:nixos/nixpkgs/nixpkgs-unstable";
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, nixpkgs_latest, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
+      pkgs_latest = nixpkgs_latest.legacyPackages.${system};
 
-      my-dummy-fpga-tools = (with pkgs; stdenv.mkDerivation {
+      my-dummy-fpga-tools = (with pkgs_latest; stdenv.mkDerivation {
           pname = "my-dummy-fpga-tools";
           version = "0.0.1";
           src = ./.;
@@ -36,7 +38,7 @@
         drv = defaultPackage;
       };
       defaultPackage = my-dummy-fpga-tools;
-      devShell = pkgs.mkShell {
+      devShell = pkgs_latest.mkShell {
         buildInputs = [
           my-dummy-fpga-tools
         ];
@@ -59,31 +61,31 @@
           #pulseviewSha256 = "sha256-8EL3ej4bNb8wZmMw427Dj6uNJIw2k8N7fjXUAcO/q8s=";
           pulseviewVersion = "fe94bf8255145410d1673880932d59573c829b0e";
           pulseviewSha256 = "sha256-XQp/g0QYHgY5SbXo8+OCCdoOGeUu+BSXioJExMh5baM=";
-        in with pkgs; [
+        in with pkgs_latest; [
           dsview # DreamSourceLab's version of pulseview!
 
           gnumake
-          gdb-multitarget
+          gdb
 
           #clang
           gtkwave
           icestorm # ice40 tools
           trellis # ecp5 tools
-          haskellPackages.sv2v
+          pkgs.haskellPackages.sv2v
           nextpnrWithGui
-          (pkgs.libsForQt514.callPackage ./nix/pulseview.nix {
+          (libsForQt514.callPackage ./nix/pulseview.nix {
             inherit libsigrokVersion libsigrokSha256;
             inherit libsigrokdecodeVersion libsigrokdecodeSha256;
             version = pulseviewVersion; sha256 = pulseviewSha256;
           })
 
-          (yosys.overrideAttrs (oldAttrs: {
+          (yosys.overrideAttrs (oldAttrs: rec {
             patches = [
               ./yosys.patch
             ] ++ (oldAttrs.patches or []);
           }))
 
-          (pkgs.callPackage ./nix/verilator.nix { inherit verilatorVersion verilatorSha256; })
+          (callPackage ./nix/verilator.nix { inherit verilatorVersion verilatorSha256; })
           zlib # Needed for verilator fst exports
         ];
       };
