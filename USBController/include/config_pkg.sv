@@ -5,7 +5,7 @@ package config_pkg;
 
 `define DEBUG_LEDS
 // Select which part of the usb controller should provide the debug leds
-//`define DEBUG_USB_RX
+// `define DEBUG_USB_RX
 `ifndef DEBUG_USB_RX
 `define DEBUG_USB_PE
 `endif
@@ -20,9 +20,12 @@ package config_pkg;
 
 // Select which part of the usb protocol engine should provide the debug leds
 `ifdef DEBUG_USB_PE
-`define DEBUG_USB_EP0
+// `define DEBUG_USB_EP0
 `ifndef DEBUG_USB_EP0
-`define DEBUG_USB_PE_IFACE
+// `define DEBUG_USB_PE_IFACE
+`ifndef DEBUG_USB_PE_IFACE
+`define DEBUG_USB_EP_ARBITER
+`endif
 `endif
 `endif
 

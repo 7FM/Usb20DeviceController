@@ -103,6 +103,12 @@ module usb_pe #(
         .LED_R(LED_R),
         .LED_G(LED_G),
         .LED_B(LED_B),
+`else
+`ifdef DEBUG_USB_EP_ARBITER
+        .LED_R(LED_R),
+        .LED_G(LED_G),
+        .LED_B(LED_B),
+`endif
 `endif
 `endif
 `endif

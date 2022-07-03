@@ -16,6 +16,12 @@ module usb_endpoint_arbiter#(
     output logic LED_R,
     output logic LED_G,
     output logic LED_B,
+`else
+`ifdef DEBUG_USB_EP_ARBITER
+    output logic LED_R,
+    output logic LED_G,
+    output logic LED_B,
+`endif
 `endif
 `endif
 `endif
@@ -278,5 +284,29 @@ module usb_endpoint_arbiter#(
         .maxPacketSize(maxPacketSize),
         .isEpIsochronous(isEpIsochronous)
     );
+
+`ifdef DEBUG_LEDS
+`ifdef DEBUG_USB_PE
+`ifdef DEBUG_USB_EP_ARBITER
+    logic inv_LED_R;
+    logic inv_LED_G;
+    logic inv_LED_B;
+    initial begin
+        inv_LED_R = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_G = 1'b0; // a value of 1 turns the LEDs off!
+        inv_LED_B = 1'b0; // a value of 1 turns the LEDs off!
+    end
+    always_ff @(posedge clk12_i) begin
+        inv_LED_G <= EP_IN_full[1];
+        inv_LED_R <= epSelect == 1;
+        inv_LED_B <= EP_WRITE_EN/* && epSelect == 1*/;
+    end
+
+    assign LED_R = !inv_LED_R;
+    assign LED_G = !inv_LED_G;
+    assign LED_B = !inv_LED_G;
+`endif
+`endif
+`endif
 
 endmodule
