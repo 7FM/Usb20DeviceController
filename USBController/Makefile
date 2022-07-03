@@ -70,6 +70,7 @@ constraints := $(call rwildcard,.,*.$(CONSTRAINT_SUFFIX))
 #sim_srcs := $(call rwildcard,$(SIM_SRC),*.cpp)
 sim_targets := $(wildcard $(SIM_SRC)/sim_*.cpp)
 sim_tops := $(patsubst sim_%.cpp,%,$(notdir $(sim_targets)))
+sim_tops_rules := $(patsubst %.cpp,%,$(notdir $(sim_targets)))
 
 deps := $(call rwildcard,$(V_DIR),*.d)
 
@@ -173,7 +174,11 @@ $(foreach sim_top,$(sim_tops), \
 	$(eval $(GEN_SIM_RULES)) \
 )
 
+# Compile the top module simulation
 sim: sim_$(TOP_MODULE)
+
+# Compile all simulations
+sims: $(sim_tops_rules)
 
 clean:
 	rm -rf $(OUT) $(BUILDDIR) $(V_DIR) $(LOG)
