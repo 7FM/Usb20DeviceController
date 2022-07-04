@@ -71,7 +71,7 @@ static int test_device(uint16_t vid, uint16_t pid) {
     for (int i = 0; i < 512; ++i) {
         sendData.push_back(i);
     }
-    int transferred;
+    int transferred = -1;
     int timeout = 20;
     res = libusb_bulk_transfer(handle,
                                LIBUSB_ENDPOINT_OUT | 1 /* host -> endpoint 1 */,
