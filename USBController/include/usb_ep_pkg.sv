@@ -8,8 +8,19 @@ package usb_ep_pkg;
 
     typedef enum logic[2:0] {
         CONTROL = 0,
+        // An isochronous transfer type provides the requester with the following:
+        // - Guaranteed access to USB bandwidth with bounded latency
+        // - Guaranteed constant data rate through the pipe as long as data is provided to the pipe
+        // - In the case of a delivery failure due to error, NO retrying of the attempt to deliver the data
         ISOCHRONOUS = 1,
+        // A bulk transfer type provides the requester with the following:
+        // - Access to the USB on a bandwidth-available basis
+        // - Retry of transfers, in the case of occasional delivery failure due to errors on the bus
+        // - Guaranteed delivery of data but no guarantee of bandwidth or latency
         BULK = 2,
+        // An interrupt transfer type provides the requester with the following:
+        // - Guaranteed maximum service period for the pipe
+        // - Retry of transfer attempts at the next period, in the case of occasional delivery failure due to error on the bus
         INTERRUPT = 3,
         NONE = 4
     } EndpointType;
@@ -72,7 +83,17 @@ package usb_ep_pkg;
     localparam NonControlEndpointConfig DefaultNonControlEpConfig = '{
         epTypeDevIn: BULK,
         epTypeDevOut: BULK,
-        maxPacketSize: {3'b0, DefaultControlEpConfig.maxPacketSize} // At max 512 bytes per transaction
+        // BULK: The USB defines the allowable maximum bulk data payload sizes
+        // to be only 8, 16, 32, or 64 bytes for full-speed endpoints :(
+        // and 512 bytes for high-speed endpoint
+        // ISOCHRONOUS: The USB limits the maximum data payload size to 
+        // 1,023 bytes for each full-speed isochronous endpoint. :)
+        // High-speed endpoints are allowed up to 1024-byte data payloads
+        // INTERRUPT: The maximum allowable interrupt data payload size is 
+        // 64 bytes or less for full-speed. High-speed endpoints
+        // are allowed maximum data payload sizes up to 1024 bytes
+        // TODO -> each endpoint (in/out) needs its own maxPackSize config field
+        maxPacketSize: {3'b0, DefaultControlEpConfig.maxPacketSize} 
     };
 
     localparam EndpointConfig DefaultEpConfig = '{
