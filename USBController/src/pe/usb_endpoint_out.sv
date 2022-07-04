@@ -104,9 +104,6 @@ end else begin
     assign EP_OUT_isLastPacketByte_o = 1'b0;
     //TODO when this is set to 1'b1 then no STALL will be responded :( because receiving fails due to being unable to store the input bytes!
     assign EP_OUT_full_o = 1'b0;
-
-    // TODO investigate sv2v bug!
-    $fatal("Sv2v broke me too!");
 end
 endgenerate
 
