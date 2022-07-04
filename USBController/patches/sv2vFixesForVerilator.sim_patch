@@ -1,0 +1,89 @@
+iff --git a/top.v b/top.v
+index d1ffd46..b51fe8c 100644
+--- a/top.v
++++ b/top.v
+@@ -686,9 +686,9 @@
+ 		input logic [3:0] inp;
+ 		sv2v_cast_4 = inp;
+ 	endfunction
++	assign isSetupTransStart = transStartTokenID_i == 2'b11;
+-	assign isSetupTransStart = transStartTokenID_i == sv2v_cast_4({2'b11, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
+ 	logic isInTransStart;
++	assign isInTransStart = transStartTokenID_i == 2'b10;
+-	assign isInTransStart = transStartTokenID_i == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
+ 	logic [2:0] ctrlTransState;
+ 	logic [2:0] nextCtrlTransState;
+ 	logic prevDataDir;
+@@ -2209,7 +2209,7 @@
+ 	assign rxAcceptNewData_o = !receiveDone && !rxBufFull;
+ 	assign rxHandshake = rxAcceptNewData_o && rxDataValid_i;
+ 	logic isSOF;
++	assign isSOF = upperTransStartPID == 2'b01;
+-	assign isSOF = upperTransStartPID == sv2v_cast_4({2'b01, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
+ 	logic isTokenPID;
+ 	localparam usb_packet_pkg_PACKET_TYPE_MASK_LENGTH = 2;
+ 	localparam usb_packet_pkg_PACKET_TYPE_MASK_OFFSET = 0;
+@@ -2260,7 +2260,7 @@
+ 		isSendingPhase_o = 1'b0;
+ 		prevIsSendingPhase = 1'b0;
+ 	end
++	assign isHostIn = upperTransStartPID == 2'b10;
+-	assign isHostIn = upperTransStartPID == sv2v_cast_4({2'b10, usb_packet_pkg_TOKEN_PACKET_MASK_VAL})[3:2];
+ 	always_comb begin
+ 		nextTransState = transState;
+ 		readTimerRst_o = 1'b1;
+@@ -3559,8 +3559,8 @@
+ 		input logic [7:0] inp;
+ 		sv2v_cast_8 = inp;
+ 	endfunction
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b00000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b10000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b00000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b10000001};
+ 	localparam logic [55:0] usb_ep_pkg_DefaultInterfaceDescriptor = 56'h05000000020000;
+ 	function automatic logic [599:0] sv2v_cast_600;
+ 		input logic [599:0] inp;
+@@ -3796,8 +3796,8 @@
+ 		input logic [7:0] inp;
+ 		sv2v_cast_8 = inp;
+ 	endfunction
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b00000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b10000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b00000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b10000001};
+ 	localparam logic [55:0] usb_ep_pkg_DefaultInterfaceDescriptor = 56'h05000000020000;
+ 	function automatic logic [599:0] sv2v_cast_600;
+ 		input logic [599:0] inp;
+@@ -4004,8 +4004,8 @@
+ 		input logic [7:0] inp;
+ 		sv2v_cast_8 = inp;
+ 	endfunction
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b00000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b10000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b00000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b10000001};
+ 	localparam logic [55:0] usb_ep_pkg_DefaultInterfaceDescriptor = 56'h05000000020000;
+ 	function automatic logic [599:0] sv2v_cast_600;
+ 		input logic [599:0] inp;
+@@ -4498,8 +4498,8 @@
+ 		input logic [7:0] inp;
+ 		sv2v_cast_8 = inp;
+ 	endfunction
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b00000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b10000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b00000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b10000001};
+ 	localparam logic [55:0] usb_ep_pkg_DefaultInterfaceDescriptor = 56'h05000000020000;
+ 	function automatic logic [599:0] sv2v_cast_600;
+ 		input logic [599:0] inp;
+@@ -4677,8 +4677,8 @@
+ 		input logic [7:0] inp;
+ 		sv2v_cast_8 = inp;
+ 	endfunction
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b00000001};
++	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 2'd2}), 8'b10000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointINDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b00000001};
+-	localparam logic [39:0] usb_ep_pkg_DefaultEndpointOUTDescriptor = {8'd1, sv2v_cast_16({5'b00000, usb_ep_pkg_DefaultNonControlEpConfig[10:0]}), sv2v_cast_8({6'b000000, 3'd2[1:0]}), 8'b10000001};
+ 	localparam logic [55:0] usb_ep_pkg_DefaultInterfaceDescriptor = 56'h05000000020000;
+ 	function automatic logic [599:0] sv2v_cast_600;
+ 		input logic [599:0] inp;

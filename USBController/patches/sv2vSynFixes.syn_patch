@@ -1,7 +1,7 @@
-diff --git a/build/top.v b/build/top.v
+diff --git a/top.v b/top.v
 index d1ffd46..b51fe8c 100644
---- a/build/top.v
-+++ b/build/top.v
+--- a/top.v
++++ b/top.v
 @@ -412,9 +412,9 @@ module usb_endpoint_0 (
  		input logic [3:0] inp;
  		sv2v_cast_4 = inp;
