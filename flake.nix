@@ -67,6 +67,10 @@
           gnumake
           gdb
 
+          sbt
+          scala
+          jdk
+
           #clang
           gtkwave
           icestorm # ice40 tools
