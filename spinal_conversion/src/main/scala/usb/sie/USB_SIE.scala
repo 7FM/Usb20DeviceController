@@ -4,6 +4,8 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.io._
 import usb._
+import usb.sie.rx._
+import usb.sie.tx._
 
 import scala.language.postfixOps
 
@@ -32,6 +34,13 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
     sie_frontend.io.frontend.dataOutEn := False
     sie_frontend.io.frontend.dataOutP := True
     sie_frontend.io.frontend.dataOutN := False
+  }
+
+  val clk12Area = new ClockingArea(clk12) {
+    val crc = new USB_CRC()
+    val bitstuffingWrapper = new USB_BitStuffingWrapper()
+    val rxProcessor = new USB_RX_PROC()
+    val tx = new USB_TX()
   }
 
 }

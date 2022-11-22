@@ -3,8 +3,6 @@ package usb.sie
 import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
-import usb._
-import usb.blackboxes._
 
 import scala.language.postfixOps
 
