@@ -27,7 +27,10 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
   io.USB.PULLUP := True
 
   val sampleClockArea = new ClockingArea(clk48) {
+    val dppl = new DPPL()
     val sie_frontend = new USBSerialFrontend()
+    dppl.io.dataInP <> sie_frontend.io.frontend.dataInP
+    dppl.io.dataInP_negedge <> sie_frontend.io.frontend.dataInP_negedge
     sie_frontend.io.USB <> io.USB.DATA
 
     //TODO replace with useful logic
