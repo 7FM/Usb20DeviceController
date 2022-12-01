@@ -26,7 +26,9 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
 
   io.USB.PULLUP := True
 
+  val dataTypes = Bits(3 bits)
   val sampleClockArea = new ClockingArea(clk48) {
+    val sampleStream = Stream(dataTypes)
     val dppl = new DPPL()
     val sie_frontend = new USBSerialFrontend()
     dppl.io.dataInP <> sie_frontend.io.frontend.dataInP
@@ -37,6 +39,11 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
     sie_frontend.io.frontend.dataOutEn := False
     sie_frontend.io.frontend.dataOutP := True
     sie_frontend.io.frontend.dataOutN := False
+
+    val prevRxCLK = RegInit(False)
+    prevRxCLK := dppl.io.rxClk
+    sampleStream.valid := !prevRxCLK && dppl.io.rxClk
+    sampleStream.payload := dppl.io.dataInP ## sie_frontend.io.info.isValidDPSignal ## sie_frontend.io.info.eopDetected
   }
 
   val clk12Area = new ClockingArea(clk12) {
@@ -44,7 +51,16 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
     val bitstuffingWrapper = new USB_BitStuffingWrapper()
     val rxProcessor = new USB_RX_PROC()
     val tx = new USB_TX()
+
+    val sampleStream = rxProcessor.io.sampleStream
   }
 
+  val cdcFifo = StreamFifoCC(
+    dataType  = dataTypes,
+    depth     = 8,
+    pushClock = clk48,
+    popClock  = clk12
+  )
+  cdcFifo.io.push << sampleClockArea.sampleStream
+  cdcFifo.io.pop >> clk12Area.sampleStream
 }
-

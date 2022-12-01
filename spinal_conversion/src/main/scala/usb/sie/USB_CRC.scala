@@ -5,17 +5,22 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-//TODO create interface? this would be really nice if we can mux entire interface connections!
+case class USB_CRC_Iface() extends Bundle with IMasterSlave {
+  val newPacket = in Bool() // Required at every new packet, can be a wire
+  val valid = in Bool() // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
+  val data = in Bool()
+  val useCRC16 = in Bool() // Indicate which CRC should type should be calculated/checked, needs to be set when newPacket is set high
+  val validCRC = out Bool()
+  val crc = out Bits(16 bits)
+
+  override def asMaster() : Unit = {
+    out(newPacket, valid, data, useCRC16)
+    in(validCRC, crc)
+  }
+}
 
 class USB_CRC() extends Component {
-  val io = new Bundle {
-    val newPacket = in Bool() // Required at every new packet, can be a wire
-    val valid = in Bool() // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-    val data = in Bool()
-    val useCRC16 = in Bool() // Indicate which CRC should type should be calculated/checked, needs to be set when newPacket is set high
-    val validCRC = out Bool()
-    val crc = out Bits(16 bits)
-  }
+  val io = slave(USB_CRC_Iface())
 
   val nextCRC = Bits(16 bits)
   // When the last bit of the checked field is sent, the CRC in the generator is inverted and sent to the checker MSb first
