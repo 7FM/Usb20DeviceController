@@ -7,13 +7,13 @@ import scala.language.postfixOps
 
 //TODO create interface? this would be really nice if we can mux entire interface connections!
 
-case class BitStuffIface() extends Bundle with IMasterSlave{
+case class BitStuffIface() extends Bundle with IMasterSlave {
   val rst = Bool()
   val dataIn = Bool()
   val ready_valid = Bool()
   val error = Bool()
 
-  override def asMaster() : Unit = {
+  override def asMaster(): Unit = {
     out(rst, dataIn)
     in(ready_valid, error)
   }
@@ -36,9 +36,9 @@ class USB_BitUnStuffing() extends Component {
 class USB_BitStuffingWrapper() extends Component {
   val io = new Bundle {
     val bitStuff = slave(BitStuffIface())
-    val isSendingPhase = in Bool()
-    val dataOut = out Bool()
-  } 
+    val isSendingPhase = in Bool ()
+    val dataOut = out Bool ()
+  }
 
   val unstuffer = new USB_BitUnStuffing()
   unstuffer.io <> io.bitStuff

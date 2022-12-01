@@ -6,14 +6,16 @@ import spinal.lib._
 import scala.language.postfixOps
 
 case class USB_CRC_Iface() extends Bundle with IMasterSlave {
-  val newPacket = in Bool() // Required at every new packet, can be a wire
-  val valid = in Bool() // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
-  val data = in Bool()
-  val useCRC16 = in Bool() // Indicate which CRC should type should be calculated/checked, needs to be set when newPacket is set high
-  val validCRC = out Bool()
-  val crc = out Bits(16 bits)
+  val newPacket = in Bool () // Required at every new packet, can be a wire
+  val valid =
+    in Bool () // Indicates if current data is valid(no bit stuffing) and used for the CRC. Can be a wire
+  val data = in Bool ()
+  val useCRC16 =
+    in Bool () // Indicate which CRC should type should be calculated/checked, needs to be set when newPacket is set high
+  val validCRC = out Bool ()
+  val crc = out Bits (16 bits)
 
-  override def asMaster() : Unit = {
+  override def asMaster(): Unit = {
     out(newPacket, valid, data, useCRC16)
     in(validCRC, crc)
   }
@@ -43,11 +45,11 @@ class USB_CRC() extends Component {
     // CRC16 polynomial: 0b1000_0000_0000_0101
     // -> lower bits are identical
     // -> as we ignore the upper most bits for CRC5 we can always xor at the locations of CRC16 polynomial with an 1
-    nextCRC := (crcReg(14).asBits ^ crcX_in) ## 
-                crcReg(13 downto 2) ##
-               (crcReg(1).asBits ^ crcX_in) ##
-                crcReg(0) ##
-                crcX_in
+    nextCRC := (crcReg(14).asBits ^ crcX_in) ##
+      crcReg(13 downto 2) ##
+      (crcReg(1).asBits ^ crcX_in) ##
+      crcReg(0) ##
+      crcX_in
   }
 
   when(io.newPacket) {

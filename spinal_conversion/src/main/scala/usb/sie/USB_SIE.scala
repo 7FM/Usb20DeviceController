@@ -12,7 +12,7 @@ import scala.language.postfixOps
 class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
 
   val io = new Bundle {
-    //TODO
+    // TODO
     // val LED = config.useDebugLED generate new Bundle {
     //   val R = out Bits(1 bits)
     //   val G = out Bits(1 bits)
@@ -35,7 +35,7 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
     dppl.io.dataInP_negedge <> sie_frontend.io.frontend.dataInP_negedge
     sie_frontend.io.USB <> io.USB.DATA
 
-    //TODO replace with useful logic
+    // TODO replace with useful logic
     sie_frontend.io.frontend.dataOutEn := False
     sie_frontend.io.frontend.dataOutP := True
     sie_frontend.io.frontend.dataOutN := False
@@ -56,10 +56,10 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
   }
 
   val cdcFifo = StreamFifoCC(
-    dataType  = dataTypes,
-    depth     = 8,
+    dataType = dataTypes,
+    depth = 8,
     pushClock = clk48,
-    popClock  = clk12
+    popClock = clk12
   )
   cdcFifo.io.push << sampleClockArea.sampleStream
   cdcFifo.io.pop >> clk12Area.sampleStream

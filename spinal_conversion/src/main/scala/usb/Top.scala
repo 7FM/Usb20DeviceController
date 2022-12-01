@@ -10,28 +10,29 @@ import scala.language.postfixOps
 // Companion object for static vals
 object TopModule {
   val clockDomainConfig = ClockDomainConfig(
-    clockEdge         = RISING,
-    resetKind         = ASYNC,
-    resetActiveLevel  = HIGH,
-    softResetActiveLevel = HIGH,
+    clockEdge = RISING,
+    resetKind = ASYNC,
+    resetActiveLevel = HIGH,
+    softResetActiveLevel = HIGH
   )
-  val MySpinalConfig = SpinalConfig(defaultConfigForClockDomains = clockDomainConfig);
+  val MySpinalConfig =
+    SpinalConfig(defaultConfigForClockDomains = clockDomainConfig);
 }
 
 //Hardware definition
 class TopModule(config: USBModuleConfig) extends Component {
   val io = new Bundle {
     val LED = config.useDebugLED generate (new Bundle {
-      val R = out Bits(1 bits)
-      val G = out Bits(1 bits)
-      val B = out Bits(1 bits)
+      val R = out Bits (1 bits)
+      val G = out Bits (1 bits)
+      val B = out Bits (1 bits)
     })
 
-    val clk = in Bool()
+    val clk = in Bool ()
     val USB = master(USB2_0())
   }
 
-  //TODO instanciate stuff!
+  // TODO instanciate stuff!
 
   // Create an Area to manage all clocks and reset things
   val clkCtrl = new Area {
@@ -46,8 +47,8 @@ class TopModule(config: USBModuleConfig) extends Component {
     pll.io.RESETB := True
     pll.io.BYPASS := False
     pll.io.PACKAGEPIN := io.clk
-    
-    //Create a new clock domain named 'core'
+
+    // Create a new clock domain named 'core'
     val clk12MHzDomain = ClockDomain.internal(
       name = "clk12",
       frequency = FixedFrequency(12 MHz)
@@ -57,15 +58,15 @@ class TopModule(config: USBModuleConfig) extends Component {
       frequency = FixedFrequency(48 MHz)
     )
 
-    //Drive clock and reset signals of the coreClockDomain previously created
+    // Drive clock and reset signals of the coreClockDomain previously created
     clk12MHzDomain.clock := pll.io.PLLOUTGLOBALA
     clk48MHzDomain.clock := pll.io.PLLOUTGLOBALB
     clk12MHzDomain.reset := ResetCtrl.asyncAssertSyncDeassert(
-      input = ClockDomain.current.readResetWire || ! pll.io.LOCK,
+      input = ClockDomain.current.readResetWire || !pll.io.LOCK,
       clockDomain = clk12MHzDomain
     )
     clk48MHzDomain.reset := ResetCtrl.asyncAssertSyncDeassert(
-      input = ClockDomain.current.readResetWire || ! pll.io.LOCK,
+      input = ClockDomain.current.readResetWire || !pll.io.LOCK,
       clockDomain = clk48MHzDomain
     )
   }
@@ -83,10 +84,12 @@ class TopModule(config: USBModuleConfig) extends Component {
 object MyTopLevelVerilog {
   def main(args: Array[String]) {
     val config = USBModuleConfig(
-      _isSim = false,
+      _isSim = false
       // _useDebugLED = true // TODO disable!
     )
-    TopModule.MySpinalConfig.generateVerilog(InOutWrapper(new TopModule(config))).printPruned()
+    TopModule.MySpinalConfig
+      .generateVerilog(InOutWrapper(new TopModule(config)))
+      .printPruned()
   }
 }
 object MySimTopLevelVerilog {
@@ -96,6 +99,8 @@ object MySimTopLevelVerilog {
       _useDebugLED = true
     )
     // TODO do we want to use the InOutWrapper?
-    TopModule.MySpinalConfig.generateVerilog(InOutWrapper(new TopModule(config))).printPruned()
+    TopModule.MySpinalConfig
+      .generateVerilog(InOutWrapper(new TopModule(config)))
+      .printPruned()
   }
 }

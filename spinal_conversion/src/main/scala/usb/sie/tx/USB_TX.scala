@@ -10,7 +10,7 @@ import scala.language.postfixOps
 
 class USB_TX() extends Component {
   val io = new Bundle {
-    //TODO
+    // TODO
   }
 
 }

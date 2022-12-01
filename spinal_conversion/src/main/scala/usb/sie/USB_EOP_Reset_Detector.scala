@@ -6,16 +6,15 @@ import spinal.lib.fsm._
 
 import scala.language.postfixOps
 
-
 class USB_EOP_Reset_Detector() extends Component {
   val io = new Bundle {
-    val eopDetected = out Bool()
-    val usbResetDetected = out Bool()
-    val ackEOP = in Bool()
-    val ackUsbRst = in Bool()
+    val eopDetected = out Bool ()
+    val usbResetDetected = out Bool ()
+    val ackEOP = in Bool ()
+    val ackUsbRst = in Bool ()
 
-    val dataP = in Bool()
-    val dataN = in Bool()
+    val dataP = in Bool ()
+    val dataN = in Bool ()
   }
 
   val eopDetected = RegInit(False)
@@ -32,13 +31,16 @@ class USB_EOP_Reset_Detector() extends Component {
   val softResetable = ClockDomain(
     clock = ClockDomain.current.readClockWire,
     reset = ClockDomain.current.readResetWire,
-    softReset = if (ClockDomain.current.hasSoftResetSignal) ClockDomain.current.readSoftResetWire && softResetFSM else softResetFSM,
-    clockEnable = ClockDomain.current.readClockEnableWire,
+    softReset =
+      if (ClockDomain.current.hasSoftResetSignal)
+        ClockDomain.current.readSoftResetWire && softResetFSM
+      else softResetFSM,
+    clockEnable = ClockDomain.current.readClockEnableWire
   )
   val eopFSM = softResetable(new StateMachine {
     val IDLE = makeInstantEntry()
     val FIRST_SE0, SECOND_SE0, THIRD_SE0, LAST_CHANCE = new State
-    
+
     IDLE.whenIsActive {
       when(se0) {
         goto(FIRST_SE0)

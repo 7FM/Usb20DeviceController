@@ -16,11 +16,11 @@ case class USB_RX_Iface() extends Bundle {
 
 class USB_RX_PROC() extends Component {
   val io = new Bundle {
-    //TODO
-    val sampleStream = slave Stream(Bits(3 bits))
+    // TODO
+    val sampleStream = slave Stream (Bits(3 bits))
     val crc = master(USB_CRC_Iface())
     val bitStuff = master(BitStuffIface())
-    val rxIface = master Stream(USB_RX_Iface())
+    val rxIface = master Stream (USB_RX_Iface())
   }
 
   io.sampleStream.ready := True

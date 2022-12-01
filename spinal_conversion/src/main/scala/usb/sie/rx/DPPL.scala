@@ -10,29 +10,30 @@ import scala.language.postfixOps
 
 class DPPL() extends Component {
   val io = new Bundle {
-    val reset = in Bool()
-    val dataInP = in Bool()
-    val dataInP_negedge = in Bool()
-    val rxClk = out Bool()
-    val DPPLGotSignal = out Bool()
+    val reset = in Bool ()
+    val dataInP = in Bool ()
+    val dataInP_negedge = in Bool ()
+    val rxClk = out Bool ()
+    val DPPLGotSignal = out Bool ()
   }
 
   object DPPLStates extends SpinalEnum {
-    val STATE_C, STATE_D, STATE_B, STATE_F, STATE_5, STATE_7, STATE_6, STATE_4, STATE_1, STATE_3, STATE_2, STATE_0 = newElement()
+    val STATE_C, STATE_D, STATE_B, STATE_F, STATE_5, STATE_7, STATE_6, STATE_4,
+        STATE_1, STATE_3, STATE_2, STATE_0 = newElement()
 
     defaultEncoding = SpinalEnumEncoding("staticEncoding")(
-        STATE_C -> 0xC,
-        STATE_D -> 0xD,
-        STATE_B -> 0xB,
-        STATE_F -> 0xF,
-        STATE_5 -> 0x5,
-        STATE_7 -> 0x7,
-        STATE_6 -> 0x6,
-        STATE_4 -> 0x4,
-        STATE_1 -> 0x1,
-        STATE_3 -> 0x3,
-        STATE_2 -> 0x2,
-        STATE_0 -> 0x0,
+      STATE_C -> 0xc,
+      STATE_D -> 0xd,
+      STATE_B -> 0xb,
+      STATE_F -> 0xf,
+      STATE_5 -> 0x5,
+      STATE_7 -> 0x7,
+      STATE_6 -> 0x6,
+      STATE_4 -> 0x4,
+      STATE_1 -> 0x1,
+      STATE_3 -> 0x3,
+      STATE_2 -> 0x2,
+      STATE_0 -> 0x0
     )
   }
 
@@ -59,7 +60,7 @@ class DPPL() extends Component {
         fsmState := False ## fsmState(2 downto 0)
       }
     }
-            // Swap side transitions
+    // Swap side transitions
     is(DPPLStates.STATE_F, DPPLStates.STATE_B) {
       // Keep changes of the grayCode but clear the MSB bit
       fsmState(3) := False

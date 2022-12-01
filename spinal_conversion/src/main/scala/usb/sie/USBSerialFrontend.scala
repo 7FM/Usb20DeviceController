@@ -15,7 +15,7 @@ case class USBFrontend() extends Bundle with IMasterSlave {
   val dataInP = Bool()
   val dataInP_negedge = Bool()
 
-  override def asMaster() : Unit = {
+  override def asMaster(): Unit = {
     out(dataOutEn, dataOutN, dataOutP)
     in(dataInP, dataInP_negedge)
   }
@@ -28,7 +28,7 @@ case class USBSignalInfo() extends Bundle with IMasterSlave {
   val ackEOP = Bool()
   val ackUsbRst = Bool()
 
-  override def asMaster() : Unit = {
+  override def asMaster(): Unit = {
     out(ackEOP, ackUsbRst)
     in(isValidDPSignal, eopDetected, usbResetDetected)
   }
@@ -65,8 +65,8 @@ class USBSerialFrontend() extends Component {
   pinN.io.D_OUT_0 := io.frontend.dataOutN
 
   dataInN := RegNext(pinN.io.D_IN_0)
-  io.frontend.dataInP := RegNext(pinP.io.D_IN_0) init(True)
-  io.frontend.dataInP_negedge := RegNext(pinP.io.D_IN_1) init(True)
+  io.frontend.dataInP := RegNext(pinP.io.D_IN_0) init (True)
+  io.frontend.dataInP_negedge := RegNext(pinP.io.D_IN_1) init (True)
 
   val detect = new USB_EOP_Reset_Detector()
   detect.io.eopDetected <> io.info.eopDetected
