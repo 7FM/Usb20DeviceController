@@ -33,7 +33,7 @@ class USB_EOP_Reset_Detector() extends Component {
     reset = ClockDomain.current.readResetWire,
     softReset =
       if (ClockDomain.current.hasSoftResetSignal)
-        ClockDomain.current.readSoftResetWire && softResetFSM
+        ClockDomain.current.readSoftResetWire || softResetFSM
       else softResetFSM,
     clockEnable = ClockDomain.current.readClockEnableWire
   )
