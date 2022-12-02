@@ -9,6 +9,12 @@ import usb.sie.tx._
 
 import scala.language.postfixOps
 
+case class SampleResult() extends Bundle {
+  val dataP = Bool()
+  val isValidDPSignal = Bool()
+  val eopDetected = Bool()
+}
+
 class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
 
   val io = new Bundle {
@@ -26,7 +32,7 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
 
   io.USB.PULLUP := True
 
-  val dataTypes = Bits(3 bits)
+  val dataTypes = SampleResult()
   val sampleClockArea = new ClockingArea(clk48) {
     val sampleStream = Stream(dataTypes)
     val dppl = new DPPL()
@@ -43,7 +49,9 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
     val prevRxCLK = RegInit(False)
     prevRxCLK := dppl.io.rxClk
     sampleStream.valid := !prevRxCLK && dppl.io.rxClk
-    sampleStream.payload := dppl.io.dataInP ## sie_frontend.io.info.isValidDPSignal ## sie_frontend.io.info.eopDetected
+    sampleStream.payload.dataP := dppl.io.dataInP
+    sampleStream.payload.isValidDPSignal := sie_frontend.io.info.isValidDPSignal
+    sampleStream.payload.eopDetected := sie_frontend.io.info.eopDetected
   }
 
   val clk12Area = new ClockingArea(clk12) {

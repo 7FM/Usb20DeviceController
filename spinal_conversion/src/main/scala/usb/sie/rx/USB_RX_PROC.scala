@@ -17,16 +17,16 @@ case class USB_RX_Iface() extends Bundle {
 class USB_RX_PROC() extends Component {
   val io = new Bundle {
     // TODO
-    val sampleStream = slave Stream (Bits(3 bits))
+    val sampleStream = slave Stream (SampleResult())
     val crc = master(USB_CRC_Iface())
     val bitStuff = master(BitStuffIface())
     val rxIface = master Stream (USB_RX_Iface())
   }
 
   io.sampleStream.ready := True
-  val dataP = io.sampleStream.valid ? io.sampleStream.payload(2) | True
-  val validDPSignal = io.sampleStream.valid ? io.sampleStream.payload(1) | False
-  val eopDetected = io.sampleStream.valid ? io.sampleStream.payload(0) | False
+  val dataP = io.sampleStream.valid ? io.sampleStream.payload.dataP | True
+  val validDPSignal = io.sampleStream.valid ? io.sampleStream.payload.isValidDPSignal | False
+  val eopDetected = io.sampleStream.valid ? io.sampleStream.payload.eopDetected | False
 
   //TODO
 }
