@@ -57,7 +57,7 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
   val clk12Area = new ClockingArea(clk12) {
     val crc = new USB_CRC()
     val bitstuffingWrapper = new USB_BitStuffingWrapper()
-    val rxProcessor = new USB_RX_PROC()
+    val rxProcessor = new USB_RX()
     val tx = new USB_TX()
 
     val sampleStream = rxProcessor.io.sampleStream

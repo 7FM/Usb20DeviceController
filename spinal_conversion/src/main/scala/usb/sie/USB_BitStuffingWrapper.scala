@@ -5,8 +5,6 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-//TODO create interface? this would be really nice if we can mux entire interface connections!
-
 case class BitStuffIface() extends Bundle with IMasterSlave {
   val rst = Bool()
   val dataIn = Bool()

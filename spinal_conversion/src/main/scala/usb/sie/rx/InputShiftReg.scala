@@ -14,6 +14,8 @@ class InputShiftReg(val length: Int = 8) extends Component {
     val full = out Bool ()
   }
 
+//TODO use History?
+
   val data = RegInit(B(length bits, default -> True))
   io.data := data
   val validEntryCounter = Reg(UInt(log2Up(length + 1) bits)) init (0)
