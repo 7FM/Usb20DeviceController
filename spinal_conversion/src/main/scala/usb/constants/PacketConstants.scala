@@ -51,45 +51,45 @@ package object packet {
   val PACKET_TYPE_MASK_OFFSET = 0
   val PACKET_TYPE_MASK_LENGTH = 2
 
-  val TOKEN_PACKET_MASK_VAL = B"01"
-  val DATA_PACKET_MASK_VAL = B"11"
-  val HANDSHAKE_PACKET_MASK_VAL = B"10"
-  val SPECIAL_PACKET_MASK_VAL = B"00"
+  def TOKEN_PACKET_MASK_VAL = B"01"
+  def DATA_PACKET_MASK_VAL = B"11"
+  def HANDSHAKE_PACKET_MASK_VAL = B"10"
+  def SPECIAL_PACKET_MASK_VAL = B"00"
 
   val DATA_0_1_TOGGLE_OFFSET = 3
 
   object Handshakes {
-    val RES_ACK = B"00"
-    val RES_NAK = B"10"
-    val RES_STALL = B"11"
-    val RES_NYET = B"01"
+    def RES_ACK = B"00"
+    def RES_NAK = B"10"
+    def RES_STALL = B"11"
+    def RES_NYET = B"01"
   }
 
   // TODO we want enums here!
   object PID_Types {
     // TOKEN: last lsb bits are 01
-    val PID_OUT_TOKEN = B"00" ## TOKEN_PACKET_MASK_VAL
-    val PID_IN_TOKEN = B"10" ## TOKEN_PACKET_MASK_VAL
-    val PID_SOF_TOKEN = B"01" ## TOKEN_PACKET_MASK_VAL
-    val PID_SETUP_TOKEN = B"11" ## TOKEN_PACKET_MASK_VAL
+    def PID_OUT_TOKEN = B"00" ## TOKEN_PACKET_MASK_VAL
+    def PID_IN_TOKEN = B"10" ## TOKEN_PACKET_MASK_VAL
+    def PID_SOF_TOKEN = B"01" ## TOKEN_PACKET_MASK_VAL
+    def PID_SETUP_TOKEN = B"11" ## TOKEN_PACKET_MASK_VAL
     // DATA: last lsb bits are 11
-    val PID_DATA0 = B"00" ## DATA_PACKET_MASK_VAL
-    val PID_DATA1 = B"10" ## DATA_PACKET_MASK_VAL
-    val PID_DATA2 = B"01" ## DATA_PACKET_MASK_VAL // unused: High-speed only
-    val PID_MDATA = B"11" ## DATA_PACKET_MASK_VAL // unused: High-speed only
+    def PID_DATA0 = B"00" ## DATA_PACKET_MASK_VAL
+    def PID_DATA1 = B"10" ## DATA_PACKET_MASK_VAL
+    def PID_DATA2 = B"01" ## DATA_PACKET_MASK_VAL // unused: High-speed only
+    def PID_MDATA = B"11" ## DATA_PACKET_MASK_VAL // unused: High-speed only
     // HANDSHAKE: last lsb bits are 10
-    val PID_HANDSHAKE_ACK = Handshakes.RES_ACK ## HANDSHAKE_PACKET_MASK_VAL
-    val PID_HANDSHAKE_NAK = Handshakes.RES_NAK ## HANDSHAKE_PACKET_MASK_VAL
-    val PID_HANDSHAKE_STALL = Handshakes.RES_STALL ## HANDSHAKE_PACKET_MASK_VAL
-    val PID_HANDSHAKE_NYET = Handshakes.RES_NYET ## HANDSHAKE_PACKET_MASK_VAL
+    def PID_HANDSHAKE_ACK = Handshakes.RES_ACK ## HANDSHAKE_PACKET_MASK_VAL
+    def PID_HANDSHAKE_NAK = Handshakes.RES_NAK ## HANDSHAKE_PACKET_MASK_VAL
+    def PID_HANDSHAKE_STALL = Handshakes.RES_STALL ## HANDSHAKE_PACKET_MASK_VAL
+    def PID_HANDSHAKE_NYET = Handshakes.RES_NYET ## HANDSHAKE_PACKET_MASK_VAL
     // SPECIAL: last lsb bits are 00
-    val PID_SPECIAL_PRE__ERR =
+    def PID_SPECIAL_PRE__ERR =
       B"11" ## SPECIAL_PACKET_MASK_VAL // Meaning depends on context
-    val PID_SPECIAL_SPLIT =
+    def PID_SPECIAL_SPLIT =
       B"10" ## SPECIAL_PACKET_MASK_VAL // unused: High-speed only
-    val PID_SPECIAL_PING =
+    def PID_SPECIAL_PING =
       B"01" ## SPECIAL_PACKET_MASK_VAL // unused: High-speed only
-    val _PID_RESERVED = B"00" ## SPECIAL_PACKET_MASK_VAL
+    def _PID_RESERVED = B"00" ## SPECIAL_PACKET_MASK_VAL
   }
 
   /*
