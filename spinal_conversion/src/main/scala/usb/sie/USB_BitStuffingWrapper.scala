@@ -15,6 +15,21 @@ case class BitStuffIface() extends Bundle with IMasterSlave {
     out(rst, dataIn)
     in(ready_valid, error)
   }
+
+  def mux(sel: Bool, m1 : BitStuffIface, m2 : BitStuffIface): Unit = {
+    when(sel) {
+      rst <> m1.rst
+      dataIn <> m1.dataIn
+    }.otherwise {
+      rst <> m2.rst
+      dataIn <> m2.dataIn
+    }
+
+    ready_valid <> m1.ready_valid
+    error <> m1.error
+    ready_valid <> m2.ready_valid
+    error <> m2.error
+  }
 }
 
 class USB_BitUnStuffing() extends Component {

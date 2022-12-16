@@ -19,6 +19,25 @@ case class USB_CRC_Iface() extends Bundle with IMasterSlave {
     out(newPacket, valid, data, useCRC16)
     in(validCRC, crc)
   }
+
+  def mux(sel: Bool, m1 : USB_CRC_Iface, m2 : USB_CRC_Iface): Unit = {
+    when(sel) {
+      newPacket <> m1.newPacket
+      valid <> m1.valid
+      data <> m1.data
+      useCRC16 <> m1.useCRC16
+    }.otherwise {
+      newPacket <> m2.newPacket
+      valid <> m2.valid
+      data <> m2.data
+      useCRC16 <> m2.useCRC16
+    }
+
+    validCRC <> m1.validCRC
+    crc <> m1.crc
+    validCRC <> m2.validCRC
+    crc <> m2.crc
+  }
 }
 
 class USB_CRC() extends Component {

@@ -26,6 +26,8 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
     // }
 
     val USB = master(USB2_0())
+    val rxIface = master Stream (USB_RX_Iface())
+    val isSendingPhase = in Bool()
   }
 
   // TODO
@@ -57,10 +59,15 @@ class USB_SIE(clk12: ClockDomain, clk48: ClockDomain) extends Component {
   val clk12Area = new ClockingArea(clk12) {
     val crc = new USB_CRC()
     val bitstuffingWrapper = new USB_BitStuffingWrapper()
-    val rxProcessor = new USB_RX()
+    val rx = new USB_RX()
+    io.rxIface <> rx.io.rxIface
     val tx = new USB_TX()
 
-    val sampleStream = rxProcessor.io.sampleStream
+    val sampleStream = rx.io.sampleStream
+    bitstuffingWrapper.io.isSendingPhase <> io.isSendingPhase
+    bitstuffingWrapper.io.dataOut <> tx.io.bitStuffedData
+    bitstuffingWrapper.io.bitStuff.mux(io.isSendingPhase, tx.io.bitStuff, rx.io.bitStuff)
+    crc.io.mux(io.isSendingPhase, tx.io.crc, rx.io.crc)
   }
 
   val cdcFifo = StreamFifoCC(
