@@ -24,9 +24,6 @@ class USB_RX() extends Component {
     val rxIface = master Stream (USB_RX_Iface())
   }
 
-  // TODO is a RST even needed? sync signal should automagically cause the required resets
-  io.bitStuff.rst := False
-
   // TODO check that all signals are defined & set
 
   io.sampleStream.ready := True
@@ -44,6 +41,10 @@ class USB_RX() extends Component {
   // We need to delay validDPSignal because our nrzi decoder introduces a delay to the decoded signal too
   val gotInvalidDPSignal = RegNext(!validDPSignal)
   val signalError = gotInvalidDPSignal || io.bitStuff.error
+
+  // TODO is a RST even needed? sync signal should automagically cause the required resets
+  io.bitStuff.rst := False
+  io.bitStuff.dataIn := nrziDecodedInput
 
   // Stage 1
   val expectNonBitStuffedInput = io.bitStuff.ready_valid

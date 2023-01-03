@@ -7,6 +7,12 @@ import scala.language.postfixOps
 
 package object packet {
 
+  // SYNC sequence is KJKJ_KJKK
+  // NRZI decoded:    0000_0001
+  //              ------ time ---->
+  // Is send LSB first
+  def SYNC_VALUE = B"1000_0000";
+
 //TODO NOTE that SV structs are MSB first where as in SpinalHDL they are LSB first
 
   /*

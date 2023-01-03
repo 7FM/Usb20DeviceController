@@ -59,4 +59,10 @@ class USBTop(config: USBModuleConfig, clk12: ClockDomain, clk48: ClockDomain)
 
   val sie = new USB_SIE(clk12, clk48)
   sie.io.USB <> io.USB
+  //TODO connect to USB_PE
+  sie.io.txIface.valid := False
+  sie.io.txIface.payload.isLast := False
+  sie.io.txIface.payload.data := 0
+  sie.io.txReqSendPacket := False
+  sie.io.isSendingPhase := False
 }
